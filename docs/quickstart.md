@@ -1,20 +1,7 @@
 # CAL Quickstart
 
-This guide runs one complete local CAL loop:
-
-```text
-provider observation
--> proposal generation
--> deterministic verification
--> promotion
--> intent-level use
--> verified reuse
--> eval evidence
-```
-
-CAL asks a configured LLM to propose candidate capabilities, probe plans, and
-generated verifier packages from provider observations. CAL still executes the
-probe and verifier locally before promotion.
+This guide runs one local loop: observe a CLI provider, promote a verified
+binding, call it by intent, and inspect eval output.
 
 ## Install
 
@@ -43,9 +30,6 @@ Start the local service through `calctl`:
 calctl daemon start --json
 calctl daemon status --json
 ```
-
-`calctl daemon start` launches the local `cald` service. Users normally do not
-need to run `cald` directly.
 
 ## Configure LLM
 
@@ -77,18 +61,9 @@ On another platform, choose a local CLI that exists on your machine and has
 useful `--help` or `man` output, then pass its absolute path with
 `--provider-path`.
 
-Expected shape:
-
-```json
-{
-  "state": "succeeded",
-  "capabilities_promoted": 1,
-  "bindings_promoted": 1
-}
-```
-
-The exact capability id and verifier id are model-proposed and may vary. CAL
-only promotes bindings whose generated probe passes locally.
+Expect `state: "succeeded"` and at least one promoted binding. The exact
+capability id and verifier id are model-proposed and may vary. CAL only
+promotes bindings whose generated probe passes locally.
 
 ## Use The Capability
 
@@ -163,22 +138,9 @@ calctl daemon stop --json
 
 ## Troubleshooting
 
-If `calctl daemon start` fails with `cald executable was not found`, run:
-
-```sh
-make install
-export PATH="$(go env GOPATH)/bin:$PATH"
-```
-
-If discovery fails with `candidate_proposal_failed`, live LLM configuration is
-missing or invalid, or the selected CLI did not expose enough useful local
-documentation. Check the LLM environment variables and try a CLI with richer
-help or manual output.
-
-If `calctl use` reports `no_match`, acquisition did not promote a compatible
-binding. Check:
-
-```sh
-calctl capabilities list --json
-calctl eval --json
-```
+- `cald executable was not found`: run `make install` and ensure
+  `$(go env GOPATH)/bin` is on `PATH`.
+- `candidate_proposal_failed`: check the LLM environment variables and try a
+  CLI with richer help or manual output.
+- `no_match`: acquisition did not promote a compatible binding; inspect
+  `calctl capabilities list --json` and `calctl eval --json`.
