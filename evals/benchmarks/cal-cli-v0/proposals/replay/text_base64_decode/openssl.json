@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "source": "cal-cli-v0-benchmark",
+    "prompt_version": "benchmark-replay-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "verifier_packages": [
+    {
+      "id": "base64_decode_matches_source",
+      "description": "Passes when target bytes equal the decoded Base64 source.",
+      "verify_py": "import base64\nimport json\nimport sys\n\nrequest = json.load(sys.stdin)\nverifier_id = request[\"verifier\"][\"id\"]\ninputs = request.get(\"inputs\") or {}\n\ndef fail(code, message):\n    print(json.dumps({\"passed\": False, \"error\": {\"code\": code, \"message\": message}}))\n    sys.exit(0)\n\ndef passed(content):\n    print(json.dumps({\"passed\": True, \"evidence\": [{\"id\": verifier_id, \"type\": verifier_id, \"content\": content}], \"outputs\": content}))\n    sys.exit(0)\n\nsource = inputs.get(\"source\")\ntarget = inputs.get(\"target\")\nif not source or not target:\n    fail(\"missing_input\", \"source and target are required\")\nwith open(source, \"rb\") as handle:\n    encoded = b\"\".join(handle.read().split())\ntry:\n    expected = base64.b64decode(encoded, validate=True)\nexcept Exception as exc:\n    fail(\"invalid_base64\", str(exc))\nwith open(target, \"rb\") as handle:\n    actual = handle.read()\nif actual != expected:\n    fail(\"decoded_bytes_mismatch\", \"target bytes do not equal decoded source\")\npassed({\"source\": source, \"target\": target, \"bytes\": len(actual)})\n"
+    }
+  ],
+  "candidates": [
+    {
+      "capability_id": "text.decode_base64",
+      "description": "Decode Base64 source text into bytes.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "base64",
+            "-d",
+            "-A",
+            "-in",
+            "{{source}}",
+            "-out",
+            "{{target}}"
+          ]
+        }
+      },
+      "rationale": "Benchmark replay proposal for OpenSSL Base64 decoding."
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/decoded.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.b64",
+          "content": "Y2FsIGJlbmNobWFyayBiYXNlNjQgZGVjb2RlIGZpeHR1cmUK"
+        }
+      ],
+      "verifier": {
+        "id": "base64_decode_matches_source"
+      }
+    }
+  ]
+}

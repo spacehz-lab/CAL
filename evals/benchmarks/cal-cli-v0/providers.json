@@ -1,0 +1,67 @@
+{
+  "providers": [
+    {
+      "id": "shasum",
+      "kind": "cli",
+      "command": "shasum",
+      "platforms": ["darwin", "linux"],
+      "path_lookup": "PATH",
+      "version_command": ["shasum", "--version"],
+      "task_families": ["file_hash_sha1"]
+    },
+    {
+      "id": "openssl",
+      "kind": "cli",
+      "command": "openssl",
+      "platforms": ["darwin", "linux"],
+      "path_lookup": "PATH",
+      "version_command": ["openssl", "version"],
+      "task_families": ["file_hash_sha1", "text_base64_encode", "text_base64_decode"]
+    },
+    {
+      "id": "base64",
+      "kind": "cli",
+      "command": "base64",
+      "platforms": ["darwin", "linux"],
+      "path_lookup": "PATH",
+      "version_command": ["base64", "-h"],
+      "task_families": ["text_base64_encode", "text_base64_decode"]
+    },
+    {
+      "id": "zip",
+      "kind": "cli",
+      "command": "zip",
+      "platforms": ["darwin", "linux"],
+      "path_lookup": "PATH",
+      "version_command": ["zip", "-v"],
+      "task_families": ["archive_create_zip"]
+    },
+    {
+      "id": "ditto",
+      "kind": "cli",
+      "command": "ditto",
+      "platforms": ["darwin"],
+      "path_lookup": "PATH",
+      "version_command": ["ditto", "-h"],
+      "task_families": ["archive_create_zip"]
+    },
+    {
+      "id": "jq",
+      "kind": "cli",
+      "command": "jq",
+      "platforms": ["darwin", "linux"],
+      "path_lookup": "PATH",
+      "version_command": ["jq", "--version"],
+      "task_families": ["json_query"]
+    },
+    {
+      "id": "python3",
+      "kind": "cli",
+      "command": "python3",
+      "platforms": ["darwin", "linux"],
+      "path_lookup": "PATH",
+      "version_command": ["python3", "--version"],
+      "task_families": ["json_query"]
+    }
+  ]
+}

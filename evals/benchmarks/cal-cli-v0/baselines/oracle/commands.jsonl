@@ -1,0 +1,10 @@
+{"id":"oracle_shasum_sha1","task_id":"file_hash_sha1","provider":"shasum","command":["shasum","-a","1","{{source}}"],"stdout_path_input":"target"}
+{"id":"oracle_openssl_sha1","task_id":"file_hash_sha1","provider":"openssl","command":["openssl","dgst","-sha1","{{source}}"],"stdout_path_input":"target"}
+{"id":"oracle_base64_encode","task_id":"text_base64_encode","provider":"base64","command":["base64","-i","{{source}}","-o","{{target}}"],"platforms":["darwin"]}
+{"id":"oracle_openssl_base64_encode","task_id":"text_base64_encode","provider":"openssl","command":["openssl","base64","-in","{{source}}","-out","{{target}}"]}
+{"id":"oracle_base64_decode","task_id":"text_base64_decode","provider":"base64","command":["base64","-D","-i","{{source}}","-o","{{target}}"],"platforms":["darwin"]}
+{"id":"oracle_openssl_base64_decode","task_id":"text_base64_decode","provider":"openssl","command":["openssl","base64","-d","-in","{{source}}","-out","{{target}}"]}
+{"id":"oracle_zip_create","task_id":"archive_create_zip","provider":"zip","command":["zip","-q","{{target}}","{{source}}"]}
+{"id":"oracle_ditto_zip_create","task_id":"archive_create_zip","provider":"ditto","command":["ditto","-c","-k","--keepParent","{{source}}","{{target}}"],"platforms":["darwin"]}
+{"id":"oracle_jq_query","task_id":"json_query","provider":"jq","command":["jq","-r","{{query}}","{{source}}"],"stdout_path_input":"target"}
+{"id":"oracle_python_json_query","task_id":"json_query","provider":"python3","command":["python3","-c","import json,sys; data=json.load(open(sys.argv[1])); value=data\nfor part in sys.argv[2].strip('.').split('.'):\n    value=value[part]\nprint(value)","{{source}}","{{query}}"],"stdout_path_input":"target"}

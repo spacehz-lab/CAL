@@ -1,0 +1,1 @@
+CAL reuse fixture with unicode: 你好, capability layer.

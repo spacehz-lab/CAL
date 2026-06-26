@@ -1,0 +1,1 @@
+zip held-out fixture

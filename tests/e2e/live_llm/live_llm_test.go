@@ -1,0 +1,583 @@
+package e2e
+
+import (
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/spacehz-lab/cal/internal/core"
+	e2etest "github.com/spacehz-lab/cal/internal/testsupport/e2e"
+	caltrace "github.com/spacehz-lab/cal/internal/trace"
+)
+
+func TestLiveLLMAcquisitionPromotesNewCapability(t *testing.T) {
+	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
+	repo := e2etest.RepoRoot(t)
+	temp := t.TempDir()
+	calctlBin := filepath.Join(temp, "calctl")
+	caldBin := filepath.Join(temp, "cald")
+	e2etest.Build(t, repo, calctlBin, "./cmd/calctl")
+	e2etest.Build(t, repo, caldBin, "./cmd/cald")
+	e2etest.StartCald(t, repo, env, caldBin)
+
+	providerPath := filepath.Join(temp, "live-exporter")
+	writeLiveLLMExporter(t, providerPath)
+
+	var acquisition struct {
+		State                string `json:"state"`
+		TraceID              string `json:"trace_id"`
+		CapabilitiesPromoted int    `json:"capabilities_promoted"`
+		BindingsPromoted     int    `json:"bindings_promoted"`
+	}
+	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" {
+		t.Fatalf("acquisition = %#v, want new capability and binding promotion", acquisition)
+	}
+
+	home := e2etest.HomeFromEnv(env)
+	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
+	capabilityID := assertLiveLLMTrace(t, trace)
+	verifierID := trace.Probes[0].Verifier.ID
+	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", capabilityID+".json"))
+	if len(capability.Bindings) != 1 {
+		t.Fatalf("capability = %#v, want one promoted binding", capability)
+	}
+
+	source := filepath.Join(temp, "source.txt")
+	target := filepath.Join(temp, "target.pdf")
+	if err := os.WriteFile(source, []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	var runSuccess struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+	}
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", capabilityID, "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
+		t.Fatalf("run success = %#v, want verified live LLM capability reuse", runSuccess)
+	}
+
+	useTarget := filepath.Join(temp, "use-target.pdf")
+	var useSuccess struct {
+		Status    string `json:"status"`
+		Selection struct {
+			CapabilityID string `json:"capability_id"`
+			BindingID    string `json:"binding_id"`
+			ProviderID   string `json:"provider_id"`
+		} `json:"selection"`
+		Run struct {
+			Status       string `json:"status"`
+			Verified     bool   `json:"verified"`
+			CapabilityID string `json:"capability_id"`
+			BindingID    string `json:"binding_id"`
+			ProviderID   string `json:"provider_id"`
+		} `json:"run"`
+	}
+	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "convert a utf-8 text file into a valid pdf document", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(useTarget)+`}`, "--verify", "--json")
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != capabilityID || useSuccess.Selection.BindingID == "" {
+		t.Fatalf("use success = %#v, want selected live LLM capability %s", useSuccess, capabilityID)
+	}
+	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.BindingID != useSuccess.Selection.BindingID || useSuccess.Run.CapabilityID != capabilityID {
+		t.Fatalf("use run = %#v, want verified selected live LLM binding", useSuccess.Run)
+	}
+	if _, err := os.Stat(useTarget); err != nil {
+		t.Fatalf("use target missing: %v", err)
+	}
+
+	var metrics e2etest.EvalMetricsOutput
+	e2etest.RunJSON(t, repo, env, &metrics, calctlBin, "eval", "--json")
+	if metrics.Summary.Providers != 1 || metrics.Summary.Capabilities != 1 || metrics.Summary.Bindings != 1 || metrics.Summary.PromotedBindings != 1 || metrics.Summary.Traces != 1 || metrics.Summary.Runs != 2 {
+		t.Fatalf("eval summary = %#v, want live LLM new capability closed-loop records", metrics.Summary)
+	}
+	if metrics.Reuse.RunCount != 2 || metrics.Reuse.RunSuccessCount != 2 || metrics.Reuse.VerifiedRunCount != 2 || metrics.Reuse.VerifiedSuccessRate != 1 {
+		t.Fatalf("eval reuse = %#v, want verified live LLM new capability reuse", metrics.Reuse)
+	}
+}
+
+func TestLiveLLMAcquisitionReusesExistingCapability(t *testing.T) {
+	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
+	repo := e2etest.RepoRoot(t)
+	temp := t.TempDir()
+	calctlBin := filepath.Join(temp, "calctl")
+	caldBin := filepath.Join(temp, "cald")
+	e2etest.Build(t, repo, calctlBin, "./cmd/calctl")
+	e2etest.Build(t, repo, caldBin, "./cmd/cald")
+	e2etest.StartCald(t, repo, env, caldBin)
+	home := e2etest.HomeFromEnv(env)
+	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
+
+	seedPath := filepath.Join(temp, "seed-exporter")
+	e2etest.WriteFakeExporter(t, seedPath, e2etest.WriteParseablePDFCommand())
+	var seed struct {
+		State                string `json:"state"`
+		CapabilitiesPromoted int    `json:"capabilities_promoted"`
+		BindingsPromoted     int    `json:"bindings_promoted"`
+	}
+	e2etest.RunJSON(t, repo, env, &seed, calctlBin, "discovery", "run", "--provider-path", seedPath, "--mode", "rules", "--json")
+	if seed.State != "succeeded" || seed.CapabilitiesPromoted != 1 || seed.BindingsPromoted != 1 {
+		t.Fatalf("seed acquisition = %#v, want seeded document.export_pdf", seed)
+	}
+
+	providerPath := filepath.Join(temp, "live-exporter")
+	writeLiveLLMExporter(t, providerPath)
+	var acquisition struct {
+		State                string                    `json:"state"`
+		TraceID              string                    `json:"trace_id"`
+		CapabilitiesPromoted int                       `json:"capabilities_promoted"`
+		BindingsPromoted     int                       `json:"bindings_promoted"`
+		Providers            []e2etest.ProviderSummary `json:"providers"`
+	}
+	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 0 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
+		t.Fatalf("acquisition = %#v, want existing capability reuse with new binding", acquisition)
+	}
+
+	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
+	assertLiveLLMTrace(t, trace)
+	verifierID := trace.Probes[0].Verifier.ID
+	e2etest.AssertPromotionAction(t, home, acquisition.TraceID, "reused", "created")
+	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
+	if len(capability.Bindings) != 2 {
+		t.Fatalf("capability = %#v, want seeded binding plus live LLM binding", capability)
+	}
+
+	source := filepath.Join(temp, "source.txt")
+	target := filepath.Join(temp, "target.pdf")
+	if err := os.WriteFile(source, []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	var runSuccess struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+	}
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
+		t.Fatalf("run success = %#v, want verified live LLM binding reuse", runSuccess)
+	}
+	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
+		t.Fatalf("run evidence = %#v, want verifier evidence %q", runSuccess.Evidence, verifierID)
+	}
+
+	var metrics e2etest.EvalMetricsOutput
+	e2etest.RunJSON(t, repo, env, &metrics, calctlBin, "eval", "--json")
+	if metrics.Summary.Providers != 2 || metrics.Summary.Capabilities != 1 || metrics.Summary.Bindings != 2 || metrics.Summary.PromotedBindings != 2 || metrics.Summary.Traces != 2 || metrics.Summary.Runs != 1 {
+		t.Fatalf("eval summary = %#v, want live LLM closed-loop records", metrics.Summary)
+	}
+	if metrics.Acquisition.AttemptCount != 2 || metrics.Acquisition.CompletedCount != 2 || metrics.Acquisition.PromotionCount != 2 {
+		t.Fatalf("eval acquisition counts = %#v, want seed plus live LLM acquisition", metrics.Acquisition)
+	}
+	if metrics.Acquisition.CapabilityCreatedCount != 1 || metrics.Acquisition.CapabilityReusedCount != 1 || metrics.Acquisition.BindingCreatedCount != 2 || metrics.Acquisition.BindingUpdatedCount != 0 {
+		t.Fatalf("eval promotion actions = %#v, want seed creation and live LLM capability reuse", metrics.Acquisition)
+	}
+	if metrics.Acquisition.BindingPromotionRate != 1 || metrics.Acquisition.ProbeSuccessRate != 1 {
+		t.Fatalf("eval acquisition rates = %#v, want successful live LLM acquisition rates", metrics.Acquisition)
+	}
+	if metrics.Reuse.VerifiedSuccessRate != 1 || metrics.Reuse.VerifierFailureRate != 0 {
+		t.Fatalf("eval reuse = %#v, want verified live LLM reuse", metrics.Reuse)
+	}
+}
+
+func TestLiveLLMAcquisitionPromotesMultipleCapabilities(t *testing.T) {
+	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
+	repo := e2etest.RepoRoot(t)
+	temp := t.TempDir()
+	calctlBin := filepath.Join(temp, "calctl")
+	caldBin := filepath.Join(temp, "cald")
+	e2etest.Build(t, repo, calctlBin, "./cmd/calctl")
+	e2etest.Build(t, repo, caldBin, "./cmd/cald")
+	e2etest.StartCald(t, repo, env, caldBin)
+
+	providerPath := filepath.Join(temp, "live-multi-tool")
+	writeLiveLLMMultiCapabilityExporter(t, providerPath)
+
+	var acquisition struct {
+		State                string                    `json:"state"`
+		TraceID              string                    `json:"trace_id"`
+		CapabilitiesPromoted int                       `json:"capabilities_promoted"`
+		BindingsPromoted     int                       `json:"bindings_promoted"`
+		Providers            []e2etest.ProviderSummary `json:"providers"`
+	}
+	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 2 || acquisition.BindingsPromoted != 2 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
+		t.Fatalf("acquisition = %#v, want two live LLM promoted capabilities", acquisition)
+	}
+
+	home := e2etest.HomeFromEnv(env)
+	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
+	pdfCapabilityID, noteCapabilityID := assertLiveLLMMultiCapTrace(t, trace)
+	pdfVerifierID := traceVerifierForCapability(t, trace, pdfCapabilityID)
+	noteVerifierID := traceVerifierForCapability(t, trace, noteCapabilityID)
+	for _, capabilityID := range []string{pdfCapabilityID, noteCapabilityID} {
+		capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", capabilityID+".json"))
+		if len(capability.Bindings) != 1 {
+			t.Fatalf("capability %s = %#v, want one promoted binding", capabilityID, capability)
+		}
+	}
+
+	pdfSource := filepath.Join(temp, "source.txt")
+	pdfTarget := filepath.Join(temp, "target.pdf")
+	if err := os.WriteFile(pdfSource, []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write pdf source: %v", err)
+	}
+	var pdfRun struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+	}
+	e2etest.RunJSON(t, repo, env, &pdfRun, calctlBin, "runs", "create", "--capability-id", pdfCapabilityID, "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(pdfSource)+`,"target":`+strconv.Quote(pdfTarget)+`}`, "--verify", "--json")
+	if pdfRun.Status != "succeeded" || !pdfRun.Verified || len(pdfRun.Evidence) != 1 || pdfRun.Evidence[0].ID != pdfVerifierID {
+		t.Fatalf("pdf run = %#v, want verified %s reuse", pdfRun, pdfCapabilityID)
+	}
+
+	noteSource := filepath.Join(temp, "note-source.txt")
+	noteTarget := filepath.Join(temp, "note.txt")
+	if err := os.WriteFile(noteSource, []byte("note\n"), 0o644); err != nil {
+		t.Fatalf("write note source: %v", err)
+	}
+	var noteRun struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+	}
+	e2etest.RunJSON(t, repo, env, &noteRun, calctlBin, "runs", "create", "--capability-id", noteCapabilityID, "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(noteSource)+`,"target":`+strconv.Quote(noteTarget)+`}`, "--verify", "--json")
+	if noteRun.Status != "succeeded" || !noteRun.Verified || len(noteRun.Evidence) != 1 || noteRun.Evidence[0].ID != noteVerifierID {
+		t.Fatalf("note run = %#v, want verified %s reuse", noteRun, noteCapabilityID)
+	}
+
+	var metrics e2etest.EvalMetricsOutput
+	e2etest.RunJSON(t, repo, env, &metrics, calctlBin, "eval", "--json")
+	if metrics.Summary.Providers != 1 || metrics.Summary.Capabilities != 2 || metrics.Summary.Bindings != 2 || metrics.Summary.PromotedBindings != 2 || metrics.Summary.Traces != 1 || metrics.Summary.Runs != 2 {
+		t.Fatalf("eval summary = %#v, want live LLM multi-cap closed-loop records", metrics.Summary)
+	}
+	if metrics.Acquisition.PromotionCount != 2 || metrics.Acquisition.CandidateCount != 2 || metrics.Acquisition.ProbePassCount != 2 {
+		t.Fatalf("eval acquisition counts = %#v, want two live LLM promoted candidates", metrics.Acquisition)
+	}
+	if metrics.Acquisition.CapabilityCreatedCount != 2 || metrics.Acquisition.BindingCreatedCount != 2 || metrics.Acquisition.BindingPromotionRate != 1 || metrics.Acquisition.ProbeSuccessRate != 1 {
+		t.Fatalf("eval acquisition rates = %#v, want successful live LLM multi-cap acquisition", metrics.Acquisition)
+	}
+	if metrics.Reuse.VerifiedSuccessRate != 1 || metrics.Reuse.VerifierFailureRate != 0 {
+		t.Fatalf("eval reuse = %#v, want both promoted bindings reusable", metrics.Reuse)
+	}
+}
+
+func TestLiveLLMAcquisitionGeneratesVerifierHarness(t *testing.T) {
+	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
+	repo := e2etest.RepoRoot(t)
+	temp := t.TempDir()
+	calctlBin := filepath.Join(temp, "calctl")
+	caldBin := filepath.Join(temp, "cald")
+	e2etest.Build(t, repo, calctlBin, "./cmd/calctl")
+	e2etest.Build(t, repo, caldBin, "./cmd/cald")
+	e2etest.StartCald(t, repo, env, caldBin)
+
+	providerPath := filepath.Join(temp, "live-marker-tool")
+	writeLiveLLMMarkerWriter(t, providerPath)
+	var acquisition struct {
+		State                string                    `json:"state"`
+		TraceID              string                    `json:"trace_id"`
+		CapabilitiesPromoted int                       `json:"capabilities_promoted"`
+		BindingsPromoted     int                       `json:"bindings_promoted"`
+		Providers            []e2etest.ProviderSummary `json:"providers"`
+	}
+	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
+		t.Fatalf("acquisition = %#v, want generated verifier live LLM acquisition", acquisition)
+	}
+
+	home := e2etest.HomeFromEnv(env)
+	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
+	if len(trace.Candidates) != 1 || len(trace.Probes) != 1 || !trace.Probes[0].Passed {
+		t.Fatalf("trace = %#v, want one passed generated verifier probe", trace)
+	}
+	verifierID := trace.Probes[0].Verifier.ID
+	if _, err := os.Stat(filepath.Join(home, "verifiers", verifierID, "verify.py")); err != nil {
+		t.Fatalf("generated verifier %q missing: %v", verifierID, err)
+	}
+
+	source := filepath.Join(temp, "source.txt")
+	target := filepath.Join(temp, "marker.txt")
+	if err := os.WriteFile(source, []byte("ignored\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	var runSuccess struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+	}
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", trace.Candidates[0].CapabilityID, "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
+		t.Fatalf("run success = %#v, want generated verifier reuse", runSuccess)
+	}
+
+	var metrics e2etest.EvalMetricsOutput
+	e2etest.RunJSON(t, repo, env, &metrics, calctlBin, "eval", "--json")
+	if metrics.Summary.Providers != 1 || metrics.Summary.Capabilities != 1 || metrics.Summary.Bindings != 1 || metrics.Summary.PromotedBindings != 1 || metrics.Summary.Traces != 1 || metrics.Summary.Runs != 1 {
+		t.Fatalf("eval summary = %#v, want generated verifier closed-loop records", metrics.Summary)
+	}
+	if metrics.Reuse.RunCount != 1 || metrics.Reuse.RunSuccessCount != 1 || metrics.Reuse.VerifiedRunCount != 1 || metrics.Reuse.VerifiedSuccessRate != 1 {
+		t.Fatalf("eval reuse = %#v, want generated verifier reuse evidence", metrics.Reuse)
+	}
+}
+
+func liveLLMEnv(t *testing.T, home string) []string {
+	t.Helper()
+	if os.Getenv("CAL_LIVE_LLM_E2E") != "1" {
+		t.Skip("set CAL_LIVE_LLM_E2E=1 and CAL_LLM_* to run live LLM e2e")
+	}
+	required := []string{"CAL_LLM_API", "CAL_LLM_MODEL", "CAL_LLM_API_KEY"}
+	for _, name := range required {
+		if os.Getenv(name) == "" {
+			t.Skipf("set %s to run live LLM e2e", name)
+		}
+	}
+	if os.Getenv("CAL_LLM_API") != "chat_completions" {
+		t.Skip("live Kimi/OpenAI-compatible e2e requires CAL_LLM_API=chat_completions")
+	}
+	return e2etest.WithHomeEnv(os.Environ(), home)
+}
+
+func assertLiveLLMTrace(t *testing.T, trace caltrace.Trace) string {
+	t.Helper()
+	if len(trace.Candidates) != 1 {
+		t.Fatalf("trace candidates = %#v, want one candidate", trace.Candidates)
+	}
+	candidate := trace.Candidates[0]
+	if candidate.CapabilityID == "" || candidate.Description == "" {
+		t.Fatalf("candidate = %#v, want capability id and description", candidate)
+	}
+	args, ok := candidate.Execution.Spec[core.ExecutionSpecArgs].([]any)
+	if !ok {
+		t.Fatalf("candidate args = %#v, want JSON array", candidate.Execution.Spec[core.ExecutionSpecArgs])
+	}
+	wantArgs := []string{"make-pdf", "--in", "{{source}}", "--out", "{{target}}"}
+	if len(args) != len(wantArgs) {
+		t.Fatalf("candidate args = %#v, want %#v", args, wantArgs)
+	}
+	for index, want := range wantArgs {
+		if args[index] != want {
+			t.Fatalf("candidate args[%d] = %#v, want %q", index, args[index], want)
+		}
+	}
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || !strings.HasPrefix(trace.Probes[0].Verifier.ID, "verifier_") {
+		t.Fatalf("trace probes = %#v, want passing generated verifier probe", trace.Probes)
+	}
+	promotions := e2etest.TracePromotions(trace)
+	if len(promotions) != 1 || promotions[0].CapabilityID != candidate.CapabilityID || promotions[0].BindingID == "" {
+		t.Fatalf("trace promotions = %#v, want %s promotion", promotions, candidate.CapabilityID)
+	}
+	return candidate.CapabilityID
+}
+
+func assertLiveLLMMultiCapTrace(t *testing.T, trace caltrace.Trace) (string, string) {
+	t.Helper()
+	if len(trace.Candidates) != 2 || len(trace.Probes) != 2 || len(e2etest.TracePromotions(trace)) != 2 {
+		t.Fatalf("trace = %#v, want two candidates, probes, and promotions", trace)
+	}
+	var pdfCapabilityID string
+	var noteCapabilityID string
+	for _, candidate := range trace.Candidates {
+		if candidate.CapabilityID == "" || candidate.Description == "" {
+			t.Fatalf("candidate = %#v, want capability id and description", candidate)
+		}
+		args, ok := candidate.Execution.Spec[core.ExecutionSpecArgs].([]any)
+		if !ok || len(args) == 0 {
+			t.Fatalf("candidate args = %#v, want non-empty JSON array", candidate.Execution.Spec[core.ExecutionSpecArgs])
+		}
+		switch args[0] {
+		case "make-pdf":
+			pdfCapabilityID = candidate.CapabilityID
+		case "write-note":
+			noteCapabilityID = candidate.CapabilityID
+		default:
+			t.Fatalf("candidate = %#v, want make-pdf or write-note execution", candidate)
+		}
+	}
+	if pdfCapabilityID == "" || noteCapabilityID == "" || pdfCapabilityID == noteCapabilityID {
+		t.Fatalf("trace candidates = %#v, want distinct PDF and note capabilities", trace.Candidates)
+	}
+	for _, probe := range trace.Probes {
+		if probe.CandidateIndex < 0 || probe.CandidateIndex >= len(trace.Candidates) {
+			t.Fatalf("probe = %#v, want valid candidate index", probe)
+		}
+		capabilityID := trace.Candidates[probe.CandidateIndex].CapabilityID
+		if !probe.Passed || !strings.HasPrefix(probe.Verifier.ID, "verifier_") {
+			t.Fatalf("probe = %#v, want passing generated verifier for %s", probe, capabilityID)
+		}
+	}
+	for _, promotion := range e2etest.TracePromotions(trace) {
+		if promotion.CandidateIndex < 0 || promotion.CandidateIndex >= len(trace.Candidates) {
+			t.Fatalf("promotion = %#v, want valid candidate index", promotion)
+		}
+		capabilityID := trace.Candidates[promotion.CandidateIndex].CapabilityID
+		if promotion.CapabilityID != capabilityID || promotion.CapabilityAction != "created" || promotion.BindingAction != "created" || promotion.BindingID == "" {
+			t.Fatalf("promotion = %#v, want created promotion for %s", promotion, capabilityID)
+		}
+	}
+	return pdfCapabilityID, noteCapabilityID
+}
+
+func traceVerifierForCapability(t *testing.T, trace caltrace.Trace, capabilityID string) string {
+	t.Helper()
+	for _, probe := range trace.Probes {
+		if probe.CandidateIndex < 0 || probe.CandidateIndex >= len(trace.Candidates) {
+			continue
+		}
+		if trace.Candidates[probe.CandidateIndex].CapabilityID == capabilityID {
+			return probe.Verifier.ID
+		}
+	}
+	t.Fatalf("trace probes = %#v, missing verifier for %s", trace.Probes, capabilityID)
+	return ""
+}
+
+func writeLiveLLMExporter(t *testing.T, path string) {
+	t.Helper()
+	script := `#!/bin/sh
+if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
+  echo "Live LLM Exporter"
+  echo "Usage: live-llm-exporter make-pdf --in <input-text> --out <output.pdf>"
+  echo "Converts a UTF-8 text file into a valid PDF document."
+  exit 0
+fi
+if [ "$1" = "make-pdf" ]; then
+  source=""
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --in)
+        source="$2"
+        shift 2
+        ;;
+      --out)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$source" ] || [ -z "$target" ]; then
+    exit 2
+  fi
+  ` + e2etest.WriteParseablePDFCommand() + `
+  exit $?
+fi
+exit 64
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write live llm exporter: %v", err)
+	}
+}
+
+func writeLiveLLMMultiCapabilityExporter(t *testing.T, path string) {
+	t.Helper()
+	script := `#!/bin/sh
+if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
+  echo "Live Multi Tool"
+  echo "Usage: live-multi-tool make-pdf --in <input.txt> --out <output.pdf>"
+  echo "Usage: live-multi-tool write-note --in <input.txt> --out <output.txt>"
+  echo "Commands:"
+  echo "  make-pdf      Converts a UTF-8 text file into a valid PDF document."
+  echo "  write-note    Writes a UTF-8 text note file."
+  exit 0
+fi
+if [ "$1" = "make-pdf" ]; then
+  source=""
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --in)
+        source="$2"
+        shift 2
+        ;;
+      --out)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$target" ]; then
+    exit 2
+  fi
+  ` + e2etest.WriteParseablePDFCommand() + `
+  exit $?
+fi
+if [ "$1" = "write-note" ]; then
+  source=""
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --in)
+        source="$2"
+        shift 2
+        ;;
+      --out)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$target" ]; then
+    exit 2
+  fi
+  if [ -n "$source" ] && [ -f "$source" ]; then
+    cat "$source" > "$target"
+  else
+    printf 'hello\n' > "$target"
+  fi
+  exit $?
+fi
+exit 64
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write live llm multi-capability exporter: %v", err)
+	}
+}
+
+func writeLiveLLMMarkerWriter(t *testing.T, path string) {
+	t.Helper()
+	script := `#!/bin/sh
+if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
+  echo "Live Marker Tool"
+  echo "Usage: live-marker-tool write-marker --in <input.txt> --out <output.txt>"
+  echo "Commands:"
+  echo "  write-marker    Writes the literal text CAL_PROBE_OK to the output file."
+  echo "A correct output must contain CAL_PROBE_OK."
+  exit 0
+fi
+if [ "$1" = "write-marker" ]; then
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --out)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$target" ]; then
+    exit 2
+  fi
+  printf 'CAL_PROBE_OK\n' > "$target"
+  exit $?
+fi
+exit 64
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write live llm marker writer: %v", err)
+	}
+}

@@ -1,0 +1,80 @@
+{
+  "levels": {
+    "smoke": ["base64_encode"],
+    "focus": ["textutil_html", "plutil_json", "jq_query", "base64_encode"],
+    "full": [
+      "textutil_html",
+      "plutil_json",
+      "jq_query",
+      "base64_encode",
+      "iconv_transcode",
+      "shasum_sha1",
+      "md5_hash",
+      "file_type",
+      "zip_create",
+      "gzip_compress"
+    ]
+  },
+  "cases": [
+    {
+      "name": "textutil_html",
+      "command": "textutil",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/textutil_html.json"
+    },
+    {
+      "name": "plutil_json",
+      "command": "plutil",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/plutil_json.json"
+    },
+    {
+      "name": "jq_query",
+      "command": "jq",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/jq_query.json"
+    },
+    {
+      "name": "base64_encode",
+      "command": "base64",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/base64_encode.json"
+    },
+    {
+      "name": "iconv_transcode",
+      "command": "iconv",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/iconv_transcode.json"
+    },
+    {
+      "name": "shasum_sha1",
+      "command": "shasum",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/shasum_sha1.json"
+    },
+    {
+      "name": "md5_hash",
+      "command": "md5",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/md5_hash.json"
+    },
+    {
+      "name": "file_type",
+      "command": "file",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/file_type.json"
+    },
+    {
+      "name": "zip_create",
+      "command": "zip",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/zip_create.json"
+    },
+    {
+      "name": "gzip_compress",
+      "command": "gzip",
+      "platforms": ["darwin"],
+      "replay_proposal": "proposals/replay/gzip_compress.json"
+    }
+  ]
+}
