@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -156,6 +157,9 @@ func validateInputsPatch(req Request, selected candidate, patch map[string]any) 
 			return nil, &Error{Code: CodeInvalidLLMSelection, Message: fmt.Sprintf("llm inputs_patch key %q is not required by selected binding", name)}
 		}
 		if hasInput(req.Inputs, name) {
+			if reflect.DeepEqual(req.Inputs[name], value) {
+				continue
+			}
 			return nil, &Error{Code: CodeInvalidLLMSelection, Message: fmt.Sprintf("llm inputs_patch key %q overwrites caller input", name)}
 		}
 		cleaned[name] = value

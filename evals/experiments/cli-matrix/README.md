@@ -21,6 +21,7 @@ calctl discovery run --provider-path ...
 -> deterministic verifier execution
 -> promotion
 -> calctl runs create --verify
+-> calctl use --verify
 -> calctl eval
 ```
 
@@ -63,7 +64,7 @@ CAL_LLM_API_KEY=<api key> \
 ```
 
 Live mode records partial candidate failures. The runner fails only if no
-selected case produces a verified reuse.
+selected case produces both a verified direct reuse and a verified intent use.
 
 ## Run Levels
 
@@ -97,6 +98,16 @@ evals/out/experiments/cli-matrix/<run-id>/home/
 The generated `home/` directory contains the local `CAL_HOME` used for that
 run, including traces and generated verifier packages. Generated outputs under
 `evals/out/` are ignored by git.
+
+## Reuse Checks
+
+Each promoted candidate is checked twice:
+
+- direct reuse: `calctl runs create --verify` with the promoted capability and
+  provider ids.
+- intent use: `calctl use --verify` with a natural-language intent derived from
+  the candidate description and non-target probe inputs. CAL must select the
+  promoted binding and create any missing target artifact path itself.
 
 ## Current Cases
 

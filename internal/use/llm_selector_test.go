@@ -71,6 +71,47 @@ func TestResolverRejectsUnknownLLMInputPatch(t *testing.T) {
 	}
 }
 
+func TestResolverIgnoresDuplicateLLMInputPatch(t *testing.T) {
+	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_pdf","inputs_patch":{"format":"html"}}`)}
+	capabilities := []core.Capability{
+		testCapability("document.convert_format", "Convert a document to a specified format.", "binding_pdf", "provider_a", []string{"convert", "{{source}}", "{{format}}", "{{target}}"}),
+		testCapability("document.convert_text", "Convert a document to text.", "binding_text", "provider_a", []string{"convert-text", "{{source}}", "{{target}}"}),
+	}
+
+	resolution, err := NewResolver(Request{
+		Intent: "convert document to html",
+		Inputs: map[string]any{
+			"source": "/tmp/source.txt",
+			"format": "html",
+		},
+	}, WithLLM(client)).Resolve(context.Background(), capabilities)
+	if err != nil {
+		t.Fatalf("Resolve() error = %v", err)
+	}
+	if len(resolution.Selection.inputsPatch) != 0 {
+		t.Fatalf("inputsPatch = %#v, want duplicate patch ignored", resolution.Selection.inputsPatch)
+	}
+}
+
+func TestResolverRejectsConflictingDuplicateLLMInputPatch(t *testing.T) {
+	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_pdf","inputs_patch":{"format":"txt"}}`)}
+	capabilities := []core.Capability{
+		testCapability("document.convert_format", "Convert a document to a specified format.", "binding_pdf", "provider_a", []string{"convert", "{{source}}", "{{format}}", "{{target}}"}),
+		testCapability("document.convert_text", "Convert a document to text.", "binding_text", "provider_a", []string{"convert-text", "{{source}}", "{{target}}"}),
+	}
+
+	_, err := NewResolver(Request{
+		Intent: "convert document to html",
+		Inputs: map[string]any{
+			"source": "/tmp/source.txt",
+			"format": "html",
+		},
+	}, WithLLM(client)).Resolve(context.Background(), capabilities)
+	if err == nil || err.Code != CodeInvalidLLMSelection {
+		t.Fatalf("Resolve() error = %#v, want invalid llm selection", err)
+	}
+}
+
 func TestResolverRejectsUnknownLLMSelection(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_missing"}`)}
 	capabilities := []core.Capability{

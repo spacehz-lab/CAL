@@ -56,6 +56,7 @@ def main() -> int:
                 "cli-matrix progress: completed "
                 f"{index}/{len(cases)} {case['name']} candidates={len(result.get('candidates', []))} "
                 f"promoted={promoted_count(result)} verified_reuses={verified_reuse_count(result)} "
+                f"verified_uses={verified_use_count(result)} "
                 f"failure={failure_summary(result.get('failure'))}",
                 flush=True,
             )
@@ -123,6 +124,7 @@ class MatrixRunner:
             result["provider_id"] = providers[0].get("id", "")
         self.add_trace_summary(result)
         self.run_reuses(result)
+        self.run_uses(result)
         return result
 
     def add_trace_summary(self, result: dict[str, Any]) -> None:
@@ -229,6 +231,77 @@ class MatrixRunner:
             reuse["verified"] = bool(run_output.get("verified"))
             reuse["evidence"] = run_output.get("evidence", [])
             candidate["reuse"] = reuse
+
+    def run_uses(self, result: dict[str, Any]) -> None:
+        for candidate in result.get("candidates", []):
+            promotion = candidate.get("promotion") or {}
+            if not promotion.get("binding_id") or not candidate.get("probe", {}).get("passed"):
+                continue
+            raw_inputs = candidate.get("_probe_inputs_raw") or {}
+            intent = use_intent(result, candidate)
+            use: dict[str, Any] = {"intent": intent, "inputs": summarize_inputs(self.home, use_inputs(raw_inputs))}
+            if not raw_inputs:
+                failed = failure("use_unavailable_input", "use_unavailable_input", "passed probe did not record reusable inputs")
+                use["failure"] = failed
+                candidate["use"] = use
+                candidate["failure"] = failed
+                continue
+            started = time.monotonic()
+            completed = run_command(
+                self.calctl,
+                [
+                    "use",
+                    intent,
+                    "--inputs-json",
+                    json.dumps(use_inputs(raw_inputs), separators=(",", ":")),
+                    "--verify",
+                    "--json",
+                ],
+                self.repo,
+                self.env,
+            )
+            use["duration_ms"] = elapsed_ms(started)
+            if completed.returncode != 0:
+                failed = command_failure("use_execution_failed", completed)
+                failed["stage"] = use_failure_stage(failed["code"])
+                use["failure"] = failed
+                candidate["failure"] = failed
+                candidate["use"] = use
+                continue
+            use_output = parse_json(completed.stdout)
+            if not use_output:
+                failed = failure("use_execution_failed", "invalid_use_json", "use did not return JSON")
+                use["failure"] = failed
+                candidate["failure"] = failed
+                candidate["use"] = use
+                continue
+            selection = use_output.get("selection") or {}
+            run = use_output.get("run") or {}
+            use["status"] = use_output.get("status", "")
+            use["selection"] = {
+                "source": selection.get("source", ""),
+                "capability_id": selection.get("capability_id", ""),
+                "binding_id": selection.get("binding_id", ""),
+                "provider_id": selection.get("provider_id", ""),
+                "candidates_considered": selection.get("candidates_considered", 0),
+            }
+            use["verified"] = bool(run.get("verified"))
+            use["run_status"] = run.get("status", "")
+            use["run_inputs"] = summarize_inputs(self.home, run.get("inputs") or {})
+            use["evidence"] = run.get("evidence", [])
+            if selection.get("binding_id") != promotion.get("binding_id"):
+                failed = failure(
+                    "use_selection_failed",
+                    "wrong_binding",
+                    f"use selected binding {selection.get('binding_id', '')}, want {promotion.get('binding_id', '')}",
+                )
+                use["failure"] = failed
+                candidate["failure"] = failed
+            elif not use["verified"]:
+                failed = failure("use_verification_failed", "not_verified", "use run did not return verified evidence")
+                use["failure"] = failed
+                candidate["failure"] = failed
+            candidate["use"] = use
 
     def trace_ids(self) -> set[str]:
         root = self.home / "discovery"
@@ -391,13 +464,17 @@ def summarize(cases: list[dict[str, Any]]) -> dict[str, Any]:
         "probe_fail_count": 0,
         "promoted_bindings": 0,
         "verified_reuses": 0,
+        "intent_uses": 0,
+        "verified_uses": 0,
+        "use_fail_count": 0,
         "failed": 0,
         "llm_duration_ms": 0,
         "avg_scan_ms": 0,
         "avg_llm_ms": 0,
         "avg_run_ms": 0,
+        "avg_use_ms": 0,
     }
-    scan_total = scan_count = llm_count = run_total = run_count = 0
+    scan_total = scan_count = llm_count = run_total = run_count = use_total = use_count = 0
     for case in cases:
         if case.get("provider_path"):
             summary["cli_available"] += 1
@@ -427,22 +504,54 @@ def summarize(cases: list[dict[str, Any]]) -> dict[str, Any]:
                     summary["verified_reuses"] += 1
                 if reuse.get("failure"):
                     summary["failed"] += 1
+            use = candidate.get("use")
+            if use:
+                summary["intent_uses"] += 1
+                use_total += use.get("duration_ms", 0)
+                use_count += 1
+                if use.get("verified"):
+                    summary["verified_uses"] += 1
+                if use.get("failure"):
+                    summary["use_fail_count"] += 1
+                    summary["failed"] += 1
             if candidate.get("failure") and not reuse:
                 summary["failed"] += 1
     summary["avg_scan_ms"] = average(scan_total, scan_count)
     summary["avg_llm_ms"] = average(summary["llm_duration_ms"], llm_count)
     summary["avg_run_ms"] = average(run_total, run_count)
+    summary["avg_use_ms"] = average(use_total, use_count)
     if summary["promoted_bindings"]:
         summary["reuse_success_rate"] = summary["verified_reuses"] / summary["promoted_bindings"]
+        summary["use_success_rate"] = summary["verified_uses"] / summary["promoted_bindings"]
     return summary
 
 
 def validate_result(mode: str, cases: list[dict[str, Any]], artifact: dict[str, Any]) -> None:
     verified = artifact.get("summary", {}).get("verified_reuses", 0)
+    verified_uses = artifact.get("summary", {}).get("verified_uses", 0)
     if mode == MODE_REPLAY and verified < len(cases):
         raise SystemExit(f"verified reuses = {verified}, want {len(cases)} replay reuses")
+    if mode == MODE_REPLAY and verified_uses < len(cases):
+        raise SystemExit(f"verified uses = {verified_uses}, want {len(cases)} replay uses")
     if mode == MODE_LIVE_LLM and verified < 1:
         raise SystemExit("live_llm produced no verified reuse")
+    if mode == MODE_LIVE_LLM and verified_uses < 1:
+        raise SystemExit("live_llm produced no verified intent use")
+
+
+def use_intent(case: dict[str, Any], candidate: dict[str, Any]) -> str:
+    description = str(candidate.get("description") or "").strip()
+    if description:
+        return description
+    configured = str(case.get("use_intent") or "").strip()
+    if configured:
+        return configured
+    capability_id = str(candidate.get("capability_id") or "").replace(".", " ").replace("_", " ").strip()
+    return capability_id or f"use {case.get('cli', 'provider')}"
+
+
+def use_inputs(inputs: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in inputs.items() if key != "target"}
 
 
 def summarize_inputs(home: Path, inputs: dict[str, Any]) -> list[dict[str, str]]:
@@ -501,12 +610,26 @@ def probe_failure_stage(code: str) -> str:
     return "probe_plan_failed"
 
 
+def use_failure_stage(code: str) -> str:
+    if code in {"no_match", "ambiguous", "llm_selection_failed", "invalid_llm_selection"}:
+        return "use_selection_failed"
+    if code in {"missing_inputs", "artifact_path_failed", "invalid_use_input"}:
+        return "use_input_failed"
+    if code == "verification_failed":
+        return "use_verification_failed"
+    return "use_execution_failed"
+
+
 def promoted_count(result: dict[str, Any]) -> int:
     return sum(1 for candidate in result.get("candidates") or [] if (candidate.get("promotion") or {}).get("binding_id"))
 
 
 def verified_reuse_count(result: dict[str, Any]) -> int:
     return sum(1 for candidate in result.get("candidates") or [] if (candidate.get("reuse") or {}).get("verified"))
+
+
+def verified_use_count(result: dict[str, Any]) -> int:
+    return sum(1 for candidate in result.get("candidates") or [] if (candidate.get("use") or {}).get("verified"))
 
 
 def failure_summary(value: dict[str, str] | None) -> str:

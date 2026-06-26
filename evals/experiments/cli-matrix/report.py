@@ -40,6 +40,7 @@ def _summary_cards(artifact: dict[str, Any]) -> str:
         ("Candidates", summary.get("candidate_count", 0)),
         ("Promoted", summary.get("promoted_bindings", 0)),
         ("Verified reuse", summary.get("verified_reuses", 0)),
+        ("Verified use", summary.get("verified_uses", 0)),
         ("Failed", summary.get("failed", 0)),
         ("LLM duration", duration(summary.get("llm_duration_ms", 0))),
     ]
@@ -65,6 +66,7 @@ def _candidate_row(case: dict[str, Any], candidate: dict[str, Any]) -> str:
     probe = candidate.get("probe") or {}
     promotion = candidate.get("promotion") or {}
     reuse = candidate.get("reuse") or {}
+    use = candidate.get("use") or {}
     failure = candidate.get("failure") or case.get("failure")
     probe_status = '<span class="ok">passed</span>' if probe.get("passed") else f'<span class="fail">{_e(probe.get("status", "not_run"))}</span>'
     promotion_status = '<span class="muted">none</span>'
@@ -77,12 +79,27 @@ def _candidate_row(case: dict[str, Any], candidate: dict[str, Any]) -> str:
         else:
             reuse_failure = reuse.get("failure") or {}
             reuse_status = f'<span class="fail">{_e(reuse_failure.get("stage", reuse.get("status", "failed")))}</span><br><span class="muted">{duration(reuse.get("duration_ms"))}</span>'
+    use_status = '<span class="muted">not run</span>'
+    if use:
+        if use.get("verified"):
+            selected = use.get("selection") or {}
+            use_status = (
+                f'<span class="ok">verified</span><br><span class="muted">{duration(use.get("duration_ms"))}</span>'
+                f'<br><code>{_e(selected.get("source", ""))}</code>'
+            )
+        else:
+            use_failure = use.get("failure") or {}
+            use_status = f'<span class="fail">{_e(use_failure.get("stage", use.get("status", "failed")))}</span><br><span class="muted">{duration(use.get("duration_ms"))}</span>'
     failure_text = '<span class="ok">none</span>'
     if failure:
         failure_text = f'<span class="fail">{_e(failure.get("stage", ""))}</span><br><code>{_e(failure.get("code", ""))}</code><br>{_e(failure.get("message", ""))}'
     inputs = "".join(
         f'<code>{_e(item.get("key", ""))}={_e(item.get("value", ""))}</code><br>'
         for item in candidate.get("probe_inputs") or []
+    )
+    use_inputs = "".join(
+        f'<code>{_e(item.get("key", ""))}={_e(item.get("value", ""))}</code><br>'
+        for item in use.get("run_inputs") or []
     )
     return f"""<tr>
 <td><strong>{_e(case.get("cli", ""))}</strong><br><span class="muted">{_e(case.get("name", ""))}</span><br><code>{_e(case.get("provider_id", ""))}</code></td>
@@ -91,6 +108,7 @@ def _candidate_row(case: dict[str, Any], candidate: dict[str, Any]) -> str:
 <td>{probe_status}<details><summary>inputs</summary>{inputs}</details></td>
 <td>{promotion_status}</td>
 <td>{reuse_status}</td>
+<td>{use_status}<details><summary>intent</summary>{_e(use.get("intent", ""))}</details><details><summary>run inputs</summary>{use_inputs}</details></td>
 <td>{failure_text}</td>
 <td>scan {duration(case.get("scan_duration_ms"))}<br>llm {duration(case.get("llm_duration_ms"))}</td>
 </tr>"""
@@ -103,7 +121,7 @@ def _empty_case_row(case: dict[str, Any]) -> str:
         failure_text = f'<span class="fail">{_e(failure.get("stage", ""))}</span><br><code>{_e(failure.get("code", ""))}</code><br>{_e(failure.get("message", ""))}'
     return f"""<tr>
 <td><strong>{_e(case.get("cli", ""))}</strong><br><span class="muted">{_e(case.get("name", ""))}</span></td>
-<td colspan="5" class="muted">no candidates</td>
+<td colspan="6" class="muted">no candidates</td>
 <td>{failure_text}</td>
 <td>scan {duration(case.get("scan_duration_ms"))}<br>llm {duration(case.get("llm_duration_ms"))}</td>
 </tr>"""
