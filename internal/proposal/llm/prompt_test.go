@@ -41,7 +41,7 @@ func TestPromptBuilderBuildsBoundedProposalPrompt(t *testing.T) {
 	if !strings.Contains(prompt.System, "provider observations -> candidate operations") || !strings.Contains(prompt.System, "Do not reverse it") || !strings.Contains(prompt.System, "one verification path is easier to implement") {
 		t.Fatalf("system prompt = %q, want one-way inference chain rules", prompt.System)
 	}
-	if !strings.Contains(prompt.System, "Observations are the only authority") || !strings.Contains(prompt.System, "helper inputs, not proof") || !strings.Contains(prompt.System, "Generate a new capability_id when no existing_capability_ids value matches") {
+	if !strings.Contains(prompt.System, "Observations are the only authority") || !strings.Contains(prompt.System, "helper inputs, not proof") || !strings.Contains(prompt.System, "Generate a new capability_id when no existing_capability_ids value matches that full meaning") {
 		t.Fatalf("system prompt = %q, want observation-first capability id rules", prompt.System)
 	}
 	if !strings.Contains(prompt.System, "Generate one verifier_packages[] entry for each probe plan") || !strings.Contains(prompt.System, "verifier_<proposal_local_id>_<hash12>") || !strings.Contains(prompt.System, "inputs.format") {
@@ -59,8 +59,11 @@ func TestPromptBuilderBuildsBoundedProposalPrompt(t *testing.T) {
 	if strings.Contains(prompt.System, "known_capabilities") || strings.Contains(prompt.System, "available_verifiers") || strings.Contains(prompt.System, "preferred_verifier") {
 		t.Fatalf("system prompt = %q, want no default catalog rules", prompt.System)
 	}
-	if !strings.Contains(prompt.System, "runtime result discriminator") || !strings.Contains(prompt.System, "parameterized capability") || !strings.Contains(prompt.System, "document.convert_format") || !strings.Contains(prompt.System, "overly broad id such as document.convert") || !strings.Contains(prompt.System, "verified documented subset") || !strings.Contains(prompt.System, "Do not rewrite a parameterized candidate into a fixed-value candidate") || !strings.Contains(prompt.System, "include that fixed result discriminator") || !strings.Contains(prompt.System, "not limited to") || !strings.Contains(prompt.System, "lowercase snake_case") {
+	if !strings.Contains(prompt.System, "runtime result discriminator") || !strings.Contains(prompt.System, "parameterized capability") || !strings.Contains(prompt.System, "<subject>.<operation>") || !strings.Contains(prompt.System, "narrowest stable object or data type") || !strings.Contains(prompt.System, "not a fixed taxonomy") || !strings.Contains(prompt.System, "subject, operation, and fixed or parameterized result discriminator") || !strings.Contains(prompt.System, "verified documented subset") || !strings.Contains(prompt.System, "Do not rewrite a parameterized candidate into a fixed-value candidate") || !strings.Contains(prompt.System, "include that fixed result discriminator") || !strings.Contains(prompt.System, "lowercase snake_case") {
 		t.Fatalf("system prompt = %q, want capability-id granularity rules", prompt.System)
+	}
+	if strings.Contains(prompt.System, "<domain>.<verb_object>") || strings.Contains(prompt.System, "archive.create_zip") || strings.Contains(prompt.System, "file.hash_sha1") || strings.Contains(prompt.System, "document.convert_format") || strings.Contains(prompt.System, "file.hash_algorithm") {
+		t.Fatalf("system prompt = %q, want no capability id examples or fixed taxonomy wording", prompt.System)
 	}
 	if !strings.Contains(prompt.System, "unrelated operations are not a reason to return an empty candidates array") {
 		t.Fatalf("system prompt = %q, want multi-operation provider candidate rules", prompt.System)

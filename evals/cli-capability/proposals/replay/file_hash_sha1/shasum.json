@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "verifier_packages": [
+    {
+      "id": "sha1_matches_source",
+      "description": "Passes when target output contains the SHA-1 digest of source.",
+      "verify_py": "import hashlib\nimport json\nimport re\nimport sys\n\nrequest = json.load(sys.stdin)\nverifier_id = request[\"verifier\"][\"id\"]\ninputs = request.get(\"inputs\") or {}\n\ndef fail(code, message):\n    print(json.dumps({\"passed\": False, \"error\": {\"code\": code, \"message\": message}}))\n    sys.exit(0)\n\ndef passed(content):\n    print(json.dumps({\"passed\": True, \"evidence\": [{\"id\": verifier_id, \"type\": verifier_id, \"content\": content}], \"outputs\": content}))\n    sys.exit(0)\n\nsource = inputs.get(\"source\")\ntarget = inputs.get(\"target\")\nif not source or not target:\n    fail(\"missing_input\", \"source and target are required\")\nhasher = hashlib.sha1()\nwith open(source, \"rb\") as handle:\n    hasher.update(handle.read())\nexpected = hasher.hexdigest()\nwith open(target, \"r\", encoding=\"utf-8\", errors=\"ignore\") as handle:\n    content = handle.read()\nmatch = re.search(r\"\\b[0-9a-fA-F]{40}\\b\", content)\nif not match:\n    fail(\"missing_sha1\", \"target does not contain a SHA-1 digest\")\nactual = match.group(0).lower()\nif actual != expected:\n    fail(\"sha1_mismatch\", \"target digest does not match source\")\npassed({\"source\": source, \"target\": target, \"algorithm\": \"sha1\"})\n"
+    }
+  ],
+  "candidates": [
+    {
+      "capability_id": "file.hash_sha1",
+      "description": "Compute the SHA-1 digest of a file.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-a",
+            "1",
+            "{{source}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      },
+      "rationale": "Benchmark replay proposal for shasum."
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/sha1.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "cal benchmark acquisition fixture"
+        }
+      ],
+      "verifier": {
+        "id": "sha1_matches_source"
+      }
+    }
+  ]
+}

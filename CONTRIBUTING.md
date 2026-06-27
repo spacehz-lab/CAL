@@ -66,9 +66,9 @@ make build
 Replay mode runs without live LLM credentials:
 
 ```sh
-python3 evals/experiments/cli-matrix/run.py \
+python3 evals/cli-capability/runner/run.py \
   --mode replay \
-  --level smoke \
+  --level focus \
   --calctl build/bin/calctl \
   --cald build/bin/cald
 ```

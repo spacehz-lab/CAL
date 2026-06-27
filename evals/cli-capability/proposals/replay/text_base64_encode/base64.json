@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "verifier_packages": [
+    {
+      "id": "base64_encode_matches_source",
+      "description": "Passes when target contains the Base64 encoding of source bytes.",
+      "verify_py": "import base64\nimport json\nimport sys\n\nrequest = json.load(sys.stdin)\nverifier_id = request[\"verifier\"][\"id\"]\ninputs = request.get(\"inputs\") or {}\n\ndef fail(code, message):\n    print(json.dumps({\"passed\": False, \"error\": {\"code\": code, \"message\": message}}))\n    sys.exit(0)\n\ndef passed(content):\n    print(json.dumps({\"passed\": True, \"evidence\": [{\"id\": verifier_id, \"type\": verifier_id, \"content\": content}], \"outputs\": content}))\n    sys.exit(0)\n\nsource = inputs.get(\"source\")\ntarget = inputs.get(\"target\")\nif not source or not target:\n    fail(\"missing_input\", \"source and target are required\")\nwith open(source, \"rb\") as handle:\n    expected = base64.b64encode(handle.read()).decode(\"ascii\")\nwith open(target, \"r\", encoding=\"utf-8\", errors=\"ignore\") as handle:\n    actual = \"\".join(handle.read().split())\nif actual != expected:\n    fail(\"base64_mismatch\", \"target is not the Base64 encoding of source\")\npassed({\"source\": source, \"target\": target})\n"
+    }
+  ],
+  "candidates": [
+    {
+      "capability_id": "text.encode_base64",
+      "description": "Encode source bytes as Base64 text.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-i",
+            "{{source}}",
+            "-o",
+            "{{target}}"
+          ]
+        }
+      },
+      "rationale": "Benchmark replay proposal for base64 encoding."
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/encoded.b64"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "cal benchmark base64 encode fixture\n"
+        }
+      ],
+      "verifier": {
+        "id": "base64_encode_matches_source"
+      }
+    }
+  ]
+}

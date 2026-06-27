@@ -129,15 +129,20 @@ random suffixes
 Selection order:
 
 ```text
-1. Reuse a semantically matching existing_capability_ids value.
-2. Generate a new id only when no existing id matches.
+1. Reuse an existing_capability_ids value only when subject, operation, and
+   fixed or parameterized result discriminator are semantically equivalent.
+2. Generate a new id when no existing id matches that full meaning.
 ```
 
 When generating a new id, use lowercase dotted words:
 
 ```text
-<domain>.<verb_object>
+<subject>.<operation>
 ```
+
+The subject is the narrowest stable object or data type described by
+observations. It is not a fixed taxonomy and must not be inferred from provider
+names, executable names, command names, flags, paths, or marketing labels.
 
 ## Fixed And Parameterized Results
 
@@ -148,31 +153,12 @@ discriminator in the capability id. A result discriminator can be an output
 type, result type, format, encoding, archive type, checksum algorithm, or target
 artifact kind.
 
-Examples:
-
-```text
-document.export_pdf
-document.convert_html
-plist.convert_json
-archive.create_zip
-file.compress_gzip
-text.encode_base64
-file.hash_sha1
-```
-
 If the provider exposes the discriminator as a runtime input, prefer one
 parameterized capability instead of many fixed-value capabilities.
 
 The capability id for a parameterized operation must name the runtime
-discriminator in the operation, such as:
-
-```text
-document.convert_format
-file.hash_algorithm
-```
-
-Do not use an overly broad id such as `document.convert` when the result is
-selected by `format`.
+discriminator in the operation. Do not use an operation name that hides the
+runtime dimension.
 
 Parameterized candidates must satisfy all of these:
 
@@ -406,29 +392,20 @@ return candidates without probe plans
 return verifier results or claim that verification passed
 ```
 
-## Example: Parameterized Conversion
+## Parameterized Conversion Pattern
 
-An observation like:
+When observations describe one conversion operation with a documented runtime
+format selector, the model should usually produce one parameterized capability
+instead of one capability per format value.
 
-```text
--convert fmt
-fmt is one of: xml1 binary1 json
--o path
-```
-
-should usually produce one parameterized capability:
+The binding should keep the selector as a runtime input:
 
 ```text
-plist.convert_format
+execution args use the same runtime placeholder
+input_constraints records documented accepted values or a verified subset
+description says the result is selected by the runtime input
 ```
 
-with:
-
-```text
-args = ["-convert", "{{format}}", "-o", "{{target}}", "{{source}}"]
-input_constraints.format.enum = ["xml1", "binary1", "json"]
-```
-
-The verifier must read `inputs.format` and validate the target according to that
-format. If the model cannot select or generate such a verifier, it must not
-claim `plist.convert_format`.
+The verifier must read that runtime input and validate the target according to
+the selected value. If the model cannot select or generate such a verifier, it
+must not claim the parameterized capability.

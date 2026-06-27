@@ -163,22 +163,23 @@ tests/
 evals/
   README.md
 
-  experiments/
-    cli-matrix/
-      README.md
+  cli-capability/
+    README.md
+    scoring.md
+    tasks.jsonl
+    providers.json
+    fixtures/
+    oracles/
+    proposals/
+      replay/
+    runner/
       run.py
-      cases.json
-      artifact.py
-      report.py
-      proposals/
-        replay/
-      templates/
-        index.html
+      run_test.py
+      validate.py
 
-  benchmarks/
-    cal-cli-v0/
+  results/
+    cli-capability/
       README.md
-      scoring.md
 
   out/
     <generated, gitignored>
@@ -401,9 +402,10 @@ by default. `tests/e2e/local_cli` contains local real-CLI end-to-end checks.
 
 Owns executable evaluation assets for CAL system claims.
 
-`evals/experiments` contains exploratory evidence runners and fixtures.
-`evals/benchmarks` contains stable task sets, scoring, and baselines once they
-exist. Generated outputs belong under `evals/out/`, which is ignored by git.
+`evals/cli-capability` contains the current executable evaluation surface,
+fixtures, scoring, replay proposals, and runner. `evals/results` contains
+compact, commit-ready summaries selected from local runs. Generated outputs
+belong under `evals/out/`, which is ignored by git.
 
 Verifier packages live under `CAL_HOME/verifiers/`. Production runtime does not
 load embedded verifier scripts from the repository.

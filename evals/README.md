@@ -5,58 +5,53 @@
 This directory is separate from `tests/`:
 
 - `tests/` catches engineering regressions.
-- `evals/experiments/` records exploratory evidence for local release checks.
-- `evals/benchmarks/` defines stable task sets, scoring rules, and baselines for
-  fixed seed benchmarks and future comparative evaluation.
-- `evals/artifacts/` stores sanitized release summaries and selected trace
-  excerpts for reported results.
+- `evals/cli-capability/` defines the current executable evaluation surface for
+  local CLI capability acquisition and intent reuse.
+- `evals/results/` stores curated, commit-ready result summaries when a run is
+  intentionally selected for release notes or reports.
 
 Generated outputs belong under `evals/out/`, which is ignored by git. Commit
-experiment runners, cases, fixtures, scoring definitions, and documentation.
+eval runners, tasks, fixtures, scoring definitions, curated summaries, and
+documentation.
 Do not commit API keys, raw LLM responses, full provider output dumps, or local
 machine-specific run artifacts.
 
 Evaluation runs may produce ignored local outputs under `evals/out/`; reported
-results should point to a sanitized committed summary or trace excerpt for the
-exact run used.
+results should either point to the exact generated run directory used locally or
+copy a compact summary into `evals/results/`.
 
 ## Layout
 
 ```text
 evals/
-  experiments/
-    cli-matrix/
-
-  benchmarks/
-    cal-cli-v0/
-
-  artifacts/           # sanitized release artifacts
+  cli-capability/      # executable eval definition, fixtures, runner, scoring
+  results/             # curated commit-ready result summaries
   out/                 # local generated outputs, ignored by git
 ```
 
-## Current Experiments
+## Current Eval
 
-Replay real-CLI matrix:
+Replay CLI capability eval:
 
 ```sh
 make build
-python3 evals/experiments/cli-matrix/run.py \
+python3 evals/cli-capability/runner/run.py \
   --mode replay \
-  --level full \
+  --level focus \
   --calctl build/bin/calctl \
   --cald build/bin/cald
 ```
 
-Live LLM real-CLI matrix:
+Live LLM CLI capability eval:
 
 ```sh
 CAL_LLM_API=chat_completions \
 CAL_LLM_BASE_URL=<openai-compatible base url> \
 CAL_LLM_MODEL=<model> \
 CAL_LLM_API_KEY=<api key> \
-  python3 evals/experiments/cli-matrix/run.py \
+  python3 evals/cli-capability/runner/run.py \
     --mode live_llm \
-    --level smoke \
+    --level focus \
     --calctl build/bin/calctl \
     --cald build/bin/cald
 ```
