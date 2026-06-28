@@ -263,15 +263,6 @@ func FindProvider(providers []ProviderSummary, name, kind string) (ProviderSumma
 	return ProviderSummary{}, false
 }
 
-// WriteConfig writes a minimal CAL config with one CLI directory and one app directory.
-func WriteConfig(t *testing.T, path, cliDir, appDir string) {
-	t.Helper()
-	content := `{"provider_sources":[{"kind":"path","value":` + strconv.Quote(cliDir) + `},{"kind":"path","value":` + strconv.Quote(appDir) + `}]}`
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
-}
-
 // WriteFakeExecutable writes a fake PATH executable for smoke tests.
 func WriteFakeExecutable(t *testing.T, path string) {
 	t.Helper()

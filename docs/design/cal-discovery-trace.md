@@ -12,14 +12,15 @@ Trace input comes from Discovery steps:
 Entry
   provider entry facts
 
-Inference
+Proposal
   observations
   candidates
+  proposal stage summaries
 
 Verification
   probes
   evidence
-  verifier results
+  verify check results
 
 Promotion
   promoted capability and binding summaries
@@ -33,8 +34,8 @@ Trace handling:
 ```text
 create Trace
 -> append Entry details
--> append Inference observations
--> append Inference candidates
+-> append Proposal observations
+-> append Proposal candidates
 -> append Verification probes
 -> append Promotion summaries
 -> update status
@@ -53,7 +54,7 @@ Discovery starts
 Entry
 -> append provider ids or entry summary
 
-Inference
+Proposal
 -> append observations[]
 -> append candidates[]
 
@@ -184,7 +185,8 @@ Probe:
 probe
   candidate_index
   passed
-  verifier
+  verify
+  fallback optional
   evidence
   reason optional
   error optional

@@ -17,7 +17,6 @@ import (
 	"github.com/spacehz-lab/cal/internal/cald"
 	"github.com/spacehz-lab/cal/internal/cald/control"
 	"github.com/spacehz-lab/cal/internal/calpath"
-	"github.com/spacehz-lab/cal/internal/config"
 	"github.com/spacehz-lab/cal/internal/core"
 	"github.com/spacehz-lab/cal/internal/discovery"
 	caleval "github.com/spacehz-lab/cal/internal/eval"
@@ -66,35 +65,10 @@ func (client Client) Stop(ctx context.Context) error {
 	return client.post(ctx, "/v1/daemon/stop", map[string]any{}, &ignored)
 }
 
-// ListSources returns configured provider sources.
-func (client Client) ListSources(ctx context.Context) ([]config.ProviderSource, error) {
-	var response struct {
-		Sources []config.ProviderSource `json:"sources"`
-	}
-	if err := client.get(ctx, "/v1/providers/sources", &response); err != nil {
-		return nil, err
-	}
-	return response.Sources, nil
-}
-
-// AddSource adds one provider source.
-func (client Client) AddSource(ctx context.Context, source config.ProviderSource) (SourceMutation, error) {
-	var response SourceMutation
-	err := client.post(ctx, "/v1/providers/sources/add", source, &response)
-	return response, err
-}
-
-// RemoveSource removes one provider source.
-func (client Client) RemoveSource(ctx context.Context, source config.ProviderSource) (SourceMutation, error) {
-	var response SourceMutation
-	err := client.post(ctx, "/v1/providers/sources/remove", source, &response)
-	return response, err
-}
-
-// FindProviders scans configured provider sources.
-func (client Client) FindProviders(ctx context.Context, req control.ProviderFindRequest) (control.ProviderFindResponse, error) {
-	var response control.ProviderFindResponse
-	err := client.post(ctx, "/v1/providers/find", req, &response)
+// AddProvider registers one provider path.
+func (client Client) AddProvider(ctx context.Context, providerPath string) (core.Provider, error) {
+	var response core.Provider
+	err := client.post(ctx, "/v1/providers", map[string]string{"provider_path": providerPath}, &response)
 	return response, err
 }
 
@@ -113,6 +87,15 @@ func (client Client) ListProviders(ctx context.Context) ([]core.Provider, error)
 func (client Client) GetProvider(ctx context.Context, id string) (core.Provider, error) {
 	var response core.Provider
 	err := client.get(ctx, "/v1/providers/"+id, &response)
+	return response, err
+}
+
+// GetProviderByPath returns a stored Provider record for one provider path.
+func (client Client) GetProviderByPath(ctx context.Context, providerPath string) (core.Provider, error) {
+	var response core.Provider
+	query := url.Values{}
+	query.Set("provider_path", providerPath)
+	err := client.get(ctx, "/v1/providers/by-path?"+query.Encode(), &response)
 	return response, err
 }
 
@@ -187,12 +170,6 @@ func (client Client) GetTrace(ctx context.Context, id string) (caltrace.Trace, e
 	var response caltrace.Trace
 	err := client.get(ctx, "/v1/traces/"+id, &response)
 	return response, err
-}
-
-// SourceMutation is the provider source mutation response.
-type SourceMutation struct {
-	Changed bool                    `json:"changed"`
-	Sources []config.ProviderSource `json:"sources"`
 }
 
 func (client Client) get(ctx context.Context, path string, target any) error {

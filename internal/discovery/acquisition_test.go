@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/spacehz-lab/cal/internal/core"
 	"github.com/spacehz-lab/cal/internal/observe"
-	"github.com/spacehz-lab/cal/internal/proposal"
+	"github.com/spacehz-lab/cal/internal/proposalflow"
 	"github.com/spacehz-lab/cal/internal/runtime"
 	calstore "github.com/spacehz-lab/cal/internal/store"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
@@ -135,7 +134,7 @@ func TestAcquisitionRunnerReportsProposalDuration(t *testing.T) {
 	runner := NewAcquisitionRunner(fakeObserver{}, slowProposer{
 		capabilityID: "document.export_pdf",
 		delay:        2 * time.Millisecond,
-	}, &fakeProbePlanner{})
+	})
 
 	result, err := runner.Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_cli",
@@ -220,7 +219,7 @@ func TestAcquisitionRunnerPromotesMultipleCandidates(t *testing.T) {
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
 		t.Fatalf("put provider: %v", err)
 	}
-	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{capabilityIDs: []string{"document.export_pdf", "image.resize"}}, &fakeProbePlanner{})
+	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{capabilityIDs: []string{"document.export_pdf", "image.resize"}})
 
 	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
 	if err != nil {
@@ -254,29 +253,6 @@ func TestAcquisitionRunnerPromotesMultipleCandidates(t *testing.T) {
 	}
 }
 
-func TestAcquisitionRunnerDeduplicatesCandidates(t *testing.T) {
-	store := newAcquisitionTestStore(t)
-	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
-		t.Fatalf("put provider: %v", err)
-	}
-	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{capabilityIDs: []string{"document.export_pdf", "document.export_pdf"}}, &fakeProbePlanner{})
-
-	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
-	if err != nil {
-		t.Fatalf("AcquisitionRunner.Run() error = %v", err)
-	}
-	if result.CapabilitiesPromoted != 1 || result.BindingsPromoted != 1 {
-		t.Fatalf("result = %#v, want duplicate candidates promoted once", result)
-	}
-	trace, ok, err := store.GetTrace(result.TraceID)
-	if err != nil {
-		t.Fatalf("GetTrace() error = %v", err)
-	}
-	if !ok || len(trace.Candidates) != 1 || len(trace.Probes) != 1 || len(promotionSummaries(trace)) != 1 {
-		t.Fatalf("trace = %#v, %v, want one deduplicated candidate", trace, ok)
-	}
-}
-
 func TestAcquisitionRunnerSucceedsWithPartialCandidateFailure(t *testing.T) {
 	store := newAcquisitionTestStore(t)
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
@@ -285,7 +261,7 @@ func TestAcquisitionRunnerSucceedsWithPartialCandidateFailure(t *testing.T) {
 	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{
 		capabilityIDs: []string{"document.export_pdf", "image.resize"},
 		badIndexes:    map[int]struct{}{1: {}},
-	}, &fakeProbePlanner{})
+	})
 
 	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
 	if err != nil {
@@ -314,7 +290,7 @@ func TestAcquisitionRunnerFailsWhenAllCandidatesFail(t *testing.T) {
 	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{
 		capabilityIDs: []string{"document.export_pdf", "image.resize"},
 		badIndexes:    map[int]struct{}{0: {}, 1: {}},
-	}, &fakeProbePlanner{})
+	})
 
 	_, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"})
 	assertCodedError(t, err, "verification_failed")
@@ -329,83 +305,7 @@ func TestAcquisitionRunnerFailsWhenAllCandidatesFail(t *testing.T) {
 	}
 }
 
-func TestAcquisitionRunnerLimitsCandidates(t *testing.T) {
-	store := newAcquisitionTestStore(t)
-	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
-		t.Fatalf("put provider: %v", err)
-	}
-	capabilityIDs := make([]string, 0, maxAcquisitionCandidates+5)
-	for index := 0; index < maxAcquisitionCandidates+5; index++ {
-		capabilityIDs = append(capabilityIDs, fmt.Sprintf("test.cap_%02d", index))
-	}
-	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{capabilityIDs: capabilityIDs}, &fakeProbePlanner{})
-
-	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
-	if err != nil {
-		t.Fatalf("AcquisitionRunner.Run() error = %v", err)
-	}
-	if result.CapabilitiesPromoted != maxAcquisitionCandidates || result.BindingsPromoted != maxAcquisitionCandidates {
-		t.Fatalf("result = %#v, want candidate limit promotions", result)
-	}
-	trace, ok, err := store.GetTrace(result.TraceID)
-	if err != nil {
-		t.Fatalf("GetTrace() error = %v", err)
-	}
-	if !ok || len(trace.Candidates) != maxAcquisitionCandidates || len(trace.Probes) != maxAcquisitionCandidates || len(promotionSummaries(trace)) != maxAcquisitionCandidates {
-		t.Fatalf("trace counts = candidates %d probes %d promotions %d, want limit %d", len(trace.Candidates), len(trace.Probes), len(promotionSummaries(trace)), maxAcquisitionCandidates)
-	}
-}
-
-func TestAcquisitionRunLimitedCandidatesCapsAtAcquisitionLimit(t *testing.T) {
-	run := &acquisitionRun{}
-	candidates := make([]caltrace.Candidate, maxAcquisitionCandidates+2)
-	for index := range candidates {
-		candidates[index].CapabilityID = "document.export_pdf"
-	}
-
-	limited := run.limitedCandidates(candidates)
-	if len(limited) != maxAcquisitionCandidates {
-		t.Fatalf("limitedCandidates() len = %d, want %d", len(limited), maxAcquisitionCandidates)
-	}
-}
-
-func TestAcquisitionRunUniqueCandidatesDeduplicatesByProviderCapabilityAndExecution(t *testing.T) {
-	run := &acquisitionRun{}
-	candidates := []caltrace.Candidate{
-		helperCandidate("provider_cli", "document.export_pdf", "old"),
-		helperCandidate("provider_cli", "document.export_pdf", "old"),
-		helperCandidate("provider_cli", "document.export_pdf", "new"),
-		helperCandidate("provider_other", "document.export_pdf", "old"),
-	}
-
-	unique, err := run.uniqueCandidates(candidates)
-	if err != nil {
-		t.Fatalf("uniqueCandidates() error = %v", err)
-	}
-	if len(unique) != 3 {
-		t.Fatalf("uniqueCandidates() len = %d, want 3: %#v", len(unique), unique)
-	}
-	if unique[0].Execution.Spec["args"].([]string)[0] != "old" || unique[1].Execution.Spec["args"].([]string)[0] != "new" || unique[2].ProviderID != "provider_other" {
-		t.Fatalf("uniqueCandidates() = %#v, want stable first occurrences", unique)
-	}
-}
-
-func TestAcquisitionRunUniqueCandidatesReportsInvalidExecution(t *testing.T) {
-	run := &acquisitionRun{}
-	_, err := run.uniqueCandidates([]caltrace.Candidate{{
-		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
-		Execution: core.Execution{
-			Kind: core.ExecutionKindCLI,
-			Spec: map[string]any{"bad": func() {}},
-		},
-	}})
-	if err == nil || !strings.Contains(err.Error(), "canonicalize execution") {
-		t.Fatalf("uniqueCandidates() error = %v, want canonical execution error", err)
-	}
-}
-
-func TestAcquisitionRunnerPassesSelectedCapabilityIDsToProposer(t *testing.T) {
+func TestAcquisitionRunnerPassesCatalogToProposer(t *testing.T) {
 	store := newAcquisitionTestStore(t)
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
 		t.Fatalf("put provider: %v", err)
@@ -419,27 +319,26 @@ func TestAcquisitionRunnerPassesSelectedCapabilityIDsToProposer(t *testing.T) {
 		}
 	}
 	proposer := &capturingProposer{}
-	runner := NewAcquisitionRunner(fakeObserver{}, proposer, &fakeProbePlanner{})
+	runner := NewAcquisitionRunner(fakeObserver{}, proposer)
 
 	_, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "image.resize"})
 	assertCodedError(t, err, "candidate_not_found")
-	assertIDs(t, proposer.existingCapabilityIDs, []string{"image.resize", "document.export_pdf"})
+	assertIDs(t, capabilityIDs(proposer.catalog), []string{"document.export_pdf", "image.resize"})
+	if proposer.debugFilter != "image.resize" {
+		t.Fatalf("debug filter = %q, want image.resize", proposer.debugFilter)
+	}
 }
 
-func TestAcquisitionRunnerUsesConfiguredProbePlanner(t *testing.T) {
+func TestAcquisitionRunnerUsesProposalProbePlan(t *testing.T) {
 	store := newAcquisitionTestStore(t)
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
 		t.Fatalf("put provider: %v", err)
 	}
-	planner := &fakeProbePlanner{}
-	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "custom.cap"}, planner)
+	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "custom.cap"})
 
 	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
 	if err != nil {
 		t.Fatalf("AcquisitionRunner.Run() error = %v", err)
-	}
-	if !planner.called {
-		t.Fatal("probe planner was not called")
 	}
 	if result.State != JobStateSucceeded || result.CapabilitiesPromoted != 1 {
 		t.Fatalf("result = %#v, want successful custom capability promotion", result)
@@ -450,21 +349,21 @@ func TestAcquisitionRunnerUsesConfiguredProbePlanner(t *testing.T) {
 }
 
 func acquisitionTestRunner(capabilityID string) AcquisitionRunner {
-	return NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: capabilityID}, &fakeProbePlanner{})
+	return NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: capabilityID})
 }
 
 func TestNewAcquisitionRunnerConfiguresComponents(t *testing.T) {
-	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "document.export_pdf"}, &fakeProbePlanner{})
-	if runner.observer == nil || runner.proposer == nil || runner.verifier.planner == nil {
+	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "document.export_pdf"})
+	if runner.observer == nil || runner.proposer == nil {
 		t.Fatalf("NewAcquisitionRunner() = %#v, want configured observer and proposer", runner)
 	}
 }
 
-func TestAcquisitionRunnerRejectsMissingProbePlanner(t *testing.T) {
+func TestAcquisitionRunnerRejectsMissingProposer(t *testing.T) {
 	store := newAcquisitionTestStore(t)
-	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "document.export_pdf"}, nil)
+	runner := NewAcquisitionRunner(fakeObserver{}, nil)
 	_, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
-	assertCodedError(t, err, "probe_planner_unavailable")
+	assertCodedError(t, err, "proposer_unavailable")
 }
 
 type fakeObserver struct{}
@@ -485,11 +384,11 @@ type fakeProposer struct {
 	capabilityID string
 }
 
-func (proposer fakeProposer) Propose(_ context.Context, request proposal.Request) (proposal.Response, error) {
+func (proposer fakeProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
 	if proposer.capabilityID == "" {
-		return proposal.Response{}, nil
+		return proposalflow.Result{}, nil
 	}
-	return proposal.Response{Candidates: []caltrace.Candidate{{
+	return proposalResult(request.Provider.ID, []caltrace.Candidate{{
 		ProviderID:   request.Provider.ID,
 		CapabilityID: proposer.capabilityID,
 		Description:  testCapabilityDescription(proposer.capabilityID),
@@ -499,7 +398,7 @@ func (proposer fakeProposer) Propose(_ context.Context, request proposal.Request
 				"args": []string{"export-pdf", "--target", "{{target}}"},
 			},
 		},
-	}}}, nil
+	}}), nil
 }
 
 type slowProposer struct {
@@ -507,12 +406,12 @@ type slowProposer struct {
 	delay        time.Duration
 }
 
-func (proposer slowProposer) Propose(ctx context.Context, request proposal.Request) (proposal.Response, error) {
+func (proposer slowProposer) Propose(ctx context.Context, request proposalflow.Request) (proposalflow.Result, error) {
 	timer := time.NewTimer(proposer.delay)
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return proposal.Response{}, ctx.Err()
+		return proposalflow.Result{}, ctx.Err()
 	case <-timer.C:
 		return fakeProposer{capabilityID: proposer.capabilityID}.Propose(ctx, request)
 	}
@@ -523,7 +422,7 @@ type multiProposer struct {
 	badIndexes    map[int]struct{}
 }
 
-func (proposer multiProposer) Propose(_ context.Context, request proposal.Request) (proposal.Response, error) {
+func (proposer multiProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
 	candidates := make([]caltrace.Candidate, 0, len(proposer.capabilityIDs))
 	for index, capabilityID := range proposer.capabilityIDs {
 		args := []string{"export-pdf", "--target", "{{target}}"}
@@ -542,7 +441,7 @@ func (proposer multiProposer) Propose(_ context.Context, request proposal.Reques
 			},
 		})
 	}
-	return proposal.Response{Candidates: candidates}, nil
+	return proposalResult(request.Provider.ID, candidates), nil
 }
 
 func testCapabilityDescription(capabilityID string) string {
@@ -557,25 +456,32 @@ func testCapabilityDescription(capabilityID string) string {
 }
 
 type capturingProposer struct {
-	existingCapabilityIDs []string
+	catalog     []core.Capability
+	debugFilter string
 }
 
-func (proposer *capturingProposer) Propose(_ context.Context, request proposal.Request) (proposal.Response, error) {
-	proposer.existingCapabilityIDs = append([]string(nil), request.ExistingCapabilityIDs...)
-	return proposal.Response{}, nil
+func (proposer *capturingProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+	proposer.catalog = append([]core.Capability(nil), request.Catalog...)
+	proposer.debugFilter = request.DebugFilter
+	return proposalflow.Result{}, nil
 }
 
-type fakeProbePlanner struct {
-	called bool
-}
-
-func (planner *fakeProbePlanner) Plan(_ context.Context, request proposal.ProbePlanRequest) (proposal.ProbePlan, error) {
-	planner.called = true
-	target := filepath.Join(request.WorkDir, "output.any")
-	return proposal.ProbePlan{
-		Inputs:   map[string]any{"target": target},
-		Verifier: core.Verifier{ID: "file_exists"},
-	}, nil
+func proposalResult(providerID string, candidates []caltrace.Candidate) proposalflow.Result {
+	probePlans := make([]proposalflow.ProbePlan, 0, len(candidates))
+	for index := range candidates {
+		if candidates[index].ProviderID == "" {
+			candidates[index].ProviderID = providerID
+		}
+		probePlans = append(probePlans, proposalflow.ProbePlan{
+			CandidateIndex: index,
+			Inputs:         map[string]any{"target": "{{workdir}}/output.any"},
+			Verifier:       core.Verifier{ID: "file_exists"},
+		})
+	}
+	return proposalflow.Result{
+		Candidates: candidates,
+		ProbePlans: probePlans,
+	}
 }
 
 func newAcquisitionTestStore(t *testing.T) *calstore.Store {
@@ -677,6 +583,14 @@ func assertIDs(t *testing.T, got, want []string) {
 	}
 }
 
+func capabilityIDs(capabilities []core.Capability) []string {
+	ids := make([]string, 0, len(capabilities))
+	for _, capability := range capabilities {
+		ids = append(ids, capability.ID)
+	}
+	return ids
+}
+
 func assertSingleFailedTrace(t *testing.T, store *calstore.Store, code string) caltrace.Trace {
 	t.Helper()
 
@@ -699,15 +613,4 @@ func assertSingleFailedTrace(t *testing.T, store *calstore.Store, code string) c
 
 func promotionSummaries(trace caltrace.Trace) []caltrace.Promotion {
 	return trace.Promotions
-}
-
-func helperCandidate(providerID, capabilityID, arg string) caltrace.Candidate {
-	return caltrace.Candidate{
-		ProviderID:   providerID,
-		CapabilityID: capabilityID,
-		Execution: core.Execution{
-			Kind: core.ExecutionKindCLI,
-			Spec: map[string]any{"args": []string{arg}},
-		},
-	}
 }

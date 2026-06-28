@@ -2,55 +2,47 @@ package discovery
 
 import (
 	"context"
-	"errors"
-	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/proposal"
+	"github.com/spacehz-lab/cal/internal/proposalflow"
 	"github.com/spacehz-lab/cal/internal/runtime"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
-func TestAcquisitionVerifierReportsProbePlanFailure(t *testing.T) {
+func TestAcquisitionVerifierRequiresWorkDir(t *testing.T) {
 	now := time.Unix(10, 0).UTC()
-	plannerErr := errors.New("cannot plan probe")
-	planner := &errorProbePlanner{err: plannerErr}
-	verifier := newAcquisitionVerifier(planner)
-	workDir := t.TempDir()
 
-	probe, err := verifier.Verify(context.Background(), core.Provider{}, caltrace.Candidate{}, 2, workDir, now)
-	if !errors.Is(err, plannerErr) {
-		t.Fatalf("Verify() error = %v, want %v", err, plannerErr)
-	}
-	if probe.Passed || probe.CandidateIndex != 2 || probe.Reason != "probe_plan_failed" || probe.Error == nil || probe.Error.Code != "probe_plan_failed" {
-		t.Fatalf("probe = %#v, want failed probe plan result", probe)
-	}
-	if probe.CreatedAt != now.Format(time.RFC3339Nano) {
-		t.Fatalf("probe CreatedAt = %q, want %q", probe.CreatedAt, now.Format(time.RFC3339Nano))
-	}
-	if planner.workDir != workDir {
-		t.Fatalf("planner workDir = %q, want %q", planner.workDir, workDir)
-	}
-	if _, statErr := os.Stat(planner.workDir); statErr != nil {
-		t.Fatalf("probe work dir stat err = %v, want retained dir", statErr)
+	_, err := verifyProbe(context.Background(), probeVerification{
+		CandidateIndex: 2,
+		Now:            now,
+	})
+	if err == nil {
+		t.Fatal("Verify() error = nil, want work dir error")
 	}
 }
 
 func TestAcquisitionVerifierReportsExecutionFailure(t *testing.T) {
 	installAcquisitionTestVerifier(t)
 	now := time.Unix(20, 0).UTC()
-	verifier := newAcquisitionVerifier(targetProbePlanner{})
 	candidate := acquisitionVerifierCandidate()
 	provider := core.Provider{
 		ID:   "provider_cli",
 		Kind: core.ProviderKindCLI,
 		Path: writeAcquisitionScript(t, false),
 	}
+	workDir := t.TempDir()
 
-	probe, err := verifier.Verify(context.Background(), provider, candidate, 1, t.TempDir(), now)
+	probe, err := verifyProbe(context.Background(), probeVerification{
+		Provider:       provider,
+		Candidate:      candidate,
+		Plan:           targetProbePlan(),
+		CandidateIndex: 1,
+		WorkDir:        workDir,
+		Now:            now,
+	})
 	if err == nil {
 		t.Fatal("Verify() error = nil, want execution failure")
 	}
@@ -60,7 +52,7 @@ func TestAcquisitionVerifierReportsExecutionFailure(t *testing.T) {
 	if probe.Verifier.ID != "file_exists" {
 		t.Fatalf("probe verifier = %#v, want file_exists", probe.Verifier)
 	}
-	if probe.Inputs["target"] == nil {
+	if probe.Inputs["target"] != filepath.Join(workDir, "output.pdf") {
 		t.Fatalf("probe inputs = %#v, want materialized target", probe.Inputs)
 	}
 }
@@ -68,15 +60,22 @@ func TestAcquisitionVerifierReportsExecutionFailure(t *testing.T) {
 func TestAcquisitionVerifierPassesWhenExecutionAndVerifierPass(t *testing.T) {
 	installAcquisitionTestVerifier(t)
 	now := time.Unix(30, 0).UTC()
-	verifier := newAcquisitionVerifier(targetProbePlanner{})
 	candidate := acquisitionVerifierCandidate()
 	provider := core.Provider{
 		ID:   "provider_cli",
 		Kind: core.ProviderKindCLI,
 		Path: writeAcquisitionScript(t, true),
 	}
+	workDir := t.TempDir()
 
-	probe, err := verifier.Verify(context.Background(), provider, candidate, 0, t.TempDir(), now)
+	probe, err := verifyProbe(context.Background(), probeVerification{
+		Provider:       provider,
+		Candidate:      candidate,
+		Plan:           targetProbePlan(),
+		CandidateIndex: 0,
+		WorkDir:        workDir,
+		Now:            now,
+	})
 	if err != nil {
 		t.Fatalf("Verify() error = %v", err)
 	}
@@ -86,28 +85,16 @@ func TestAcquisitionVerifierPassesWhenExecutionAndVerifierPass(t *testing.T) {
 	if probe.Reason != "file_exists verifier passed" {
 		t.Fatalf("probe reason = %q, want verifier pass reason", probe.Reason)
 	}
-	if probe.Inputs["target"] == nil {
+	if probe.Inputs["target"] != filepath.Join(workDir, "output.pdf") {
 		t.Fatalf("probe inputs = %#v, want materialized target", probe.Inputs)
 	}
 }
 
-type errorProbePlanner struct {
-	err     error
-	workDir string
-}
-
-func (planner *errorProbePlanner) Plan(_ context.Context, request proposal.ProbePlanRequest) (proposal.ProbePlan, error) {
-	planner.workDir = request.WorkDir
-	return proposal.ProbePlan{}, planner.err
-}
-
-type targetProbePlanner struct{}
-
-func (targetProbePlanner) Plan(_ context.Context, request proposal.ProbePlanRequest) (proposal.ProbePlan, error) {
-	return proposal.ProbePlan{
-		Inputs:   map[string]any{"target": filepath.Join(request.WorkDir, "output.pdf")},
+func targetProbePlan() proposalflow.ProbePlan {
+	return proposalflow.ProbePlan{
+		Inputs:   map[string]any{"target": "{{workdir}}/output.pdf"},
 		Verifier: core.Verifier{ID: "file_exists"},
-	}, nil
+	}
 }
 
 func acquisitionVerifierCandidate() caltrace.Candidate {

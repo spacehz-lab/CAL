@@ -28,7 +28,7 @@ func TestLiveLLMUseExtractsInputsAndFillsTarget(t *testing.T) {
 		CapabilitiesPromoted int    `json:"capabilities_promoted"`
 		BindingsPromoted     int    `json:"bindings_promoted"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--proposal-path", proposalPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 {
 		t.Fatalf("acquisition = %#v, want replay-promoted capability", acquisition)
 	}

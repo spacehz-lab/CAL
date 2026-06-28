@@ -97,7 +97,7 @@ internal/
     errors.go
     acquisition.go
     acquisition_result.go
-    acquisition_verifier.go
+    acquisition_verification.go
     acquisition_promoter.go
 
   observe/
@@ -212,7 +212,7 @@ Core-owned types:
 Provider
 Capability
 Binding
-Verifier
+VerifySpec
 EvidenceRef
 Run
 Eval
@@ -220,8 +220,9 @@ Eval
 
 `core` must not import higher-level packages.
 
-`core` does not own a verifier catalog. Verifier package ids are data owned by
-local verifier packages, proposals, or tests.
+`core` does not own a verification catalog. Verify specs are data owned by
+promoted bindings, proposals, or tests. Script fallback ids are migration or
+extension data, not the default verification model.
 
 ### `internal/trace`
 
@@ -230,7 +231,7 @@ Owns Discovery Trace records and Trace-specific validation.
 Trace is process material for explanation, debugging, and evaluation. It is not
 executable capability knowledge and must not live in `core`.
 
-Trace may reference core value types such as `Execution`, `Verifier`,
+Trace may reference core value types such as `Execution`, `VerifySpec`,
 `EvidenceRef`, and `RecordError`.
 
 ### `internal/store`
@@ -244,8 +245,8 @@ Business packages should define the narrow persistence interfaces they need.
 
 ### `internal/config`
 
-Owns user-editable local configuration, including provider sources, non-secret
-LLM settings, and logging policy.
+Owns user-editable local configuration, including non-secret LLM settings and
+logging policy.
 
 It does not own provider discovery, Trace writing, promotion, or run behavior.
 
@@ -290,7 +291,7 @@ Owns discovery jobs and the Discovery loop:
 
 ```text
 Entry
-Inference
+Proposal
 Verification
 Promotion
 Trace
@@ -299,16 +300,12 @@ Probe
 
 Discovery should coordinate `observe` and `proposal`, then promote only verified bindings.
 
-`internal/proposal` defines the `Proposer` and `ProbePlanner` contracts.
-Production planner implementations live with their proposal source, such as
-`proposal/llm` or the proposal JSON materializer. Rules-only deterministic
-planning is a baseline implementation under `internal/baseline/rules`, not a
-default production fallback.
+`internal/proposalflow` owns the new four-stage Proposal flow. It returns
+candidate bindings and probe plans in one result so Discovery does not depend on
+separate proposer and probe-planner callbacks.
 
-`ProbePlanRequest` should carry only the candidate and the temporary work
-directory needed to materialize probe inputs. Provider execution stays in
-Discovery Verification and should not be passed into planners unless a planner
-has a concrete provider-specific planning need.
+The older `internal/proposal` package remains a migration source for replay JSON
+and current adapters until Discovery is switched to `proposalflow`.
 
 ### `internal/observe`
 
@@ -322,25 +319,24 @@ observe/cli
 
 Keep observation separate from discovery because different providers require different drivers.
 
-### `internal/proposal`
+### `internal/proposalflow`
 
-Owns the proposal contract for candidate generation and probe-plan materialization.
-
-Implementation subpackages:
+Owns the four-stage Proposal contract:
 
 ```text
-proposal/llm
+Surface
+Capability
+Binding
+Evidence
 ```
 
-Keep proposal-domain adapters under `proposal`. Do not move proposal schema,
-prompt, or materialization logic into generic package names such as `llm`,
-`infer`, `model`, or `actor`.
+It should hide stage sequencing behind one `Pipeline.Propose` call and return
+candidate bindings plus probe plans as process material.
 
-`proposal/llm` is only the `LLM proposer` implementation detail.
+### `internal/proposal`
 
-The top-level `proposal` package owns offline proposal JSON parsing, loading,
-and materialization. Live LLM output, SOP files, and fixtures use the same
-proposal contract before Discovery executes and verifies anything.
+Owns the legacy replay/materializer and current adapter contracts until the
+Discovery cutover is complete.
 
 Rules-only proposal generation is intentionally outside `internal/proposal` in
 `internal/baseline/rules` so experiments and regression tests do not leak
@@ -351,7 +347,7 @@ hard-coded behavior into production discovery.
 Owns deterministic rules-only proposal generation and probe planning for evaluation baselines,
 controlled fake CLI fixtures, and regression tests.
 
-It may reference test-installed verifier package ids as fixture data, but
+It may reference test-installed script fallback ids as fixture data, but
 production discovery must import it only for hidden baseline mode.
 
 ### `internal/runtime`
@@ -407,8 +403,8 @@ fixtures, scoring, replay proposals, and runner. `evals/results` contains
 compact, commit-ready summaries selected from local runs. Generated outputs
 belong under `evals/out/`, which is ignored by git.
 
-Verifier packages live under `CAL_HOME/verifiers/`. Production runtime does not
-load embedded verifier scripts from the repository.
+Legacy script fallback packages may live under `CAL_HOME/verifiers/` during
+migration. Production verification should prefer `Binding.verify.checks`.
 
 ## Naming Decisions
 

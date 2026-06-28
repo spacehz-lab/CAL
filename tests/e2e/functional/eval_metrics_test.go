@@ -30,7 +30,7 @@ func TestExperimentEvalClosedLoopReportsAcquisitionAndReuse(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &firstScan, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &firstScan, "--mode", "rules", "--json")
 	if firstScan.State != "succeeded" || firstScan.CapabilitiesPromoted != 1 || firstScan.BindingsPromoted != 1 || len(firstScan.Providers) != 1 {
 		t.Fatalf("first scan = %#v, want created capability and binding", firstScan)
 	}
@@ -121,7 +121,7 @@ fi
 		CapabilitiesPromoted int    `json:"capabilities_promoted"`
 		BindingsPromoted     int    `json:"bindings_promoted"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--mode", "rules", "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" {
 		t.Fatalf("acquisition = %#v, want promoted binding before runtime failure", acquisition)
 	}
@@ -167,7 +167,7 @@ func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		CapabilitiesPromoted int    `json:"capabilities_promoted"`
 		BindingsPromoted     int    `json:"bindings_promoted"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--proposal-path", proposalPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 2 || acquisition.BindingsPromoted != 2 || acquisition.TraceID == "" {
 		t.Fatalf("acquisition = %#v, want two promoted capabilities", acquisition)
 	}

@@ -5,53 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
-
-func normalizeProviderPath(path string) (string, error) {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return "", fmt.Errorf("provider source path is required")
-	}
-	return path, nil
-}
-
-func newPathSource(path string) (ProviderSource, error) {
-	path, err := normalizeProviderPath(path)
-	if err != nil {
-		return ProviderSource{}, err
-	}
-	return ProviderSource{Kind: ProviderSourceKindPath, Value: path}, nil
-}
-
-func pathSources(paths []string) []ProviderSource {
-	sources := make([]ProviderSource, 0, len(paths))
-	for _, path := range paths {
-		source, err := newPathSource(path)
-		if err != nil {
-			continue
-		}
-		sources = append(sources, source)
-	}
-	return sources
-}
-
-func normalizeProviderSources(sources []ProviderSource) ([]ProviderSource, error) {
-	normalized := make([]ProviderSource, 0, len(sources))
-	for _, source := range sources {
-		switch source.Kind {
-		case ProviderSourceKindPath:
-			path, err := normalizeProviderPath(source.Value)
-			if err != nil {
-				return nil, err
-			}
-			normalized = append(normalized, ProviderSource{Kind: ProviderSourceKindPath, Value: path})
-		default:
-			return nil, fmt.Errorf("provider source kind %q is not supported", source.Kind)
-		}
-	}
-	return normalized, nil
-}
 
 func readConfig(path string) (Config, error) {
 	file, err := os.Open(path)

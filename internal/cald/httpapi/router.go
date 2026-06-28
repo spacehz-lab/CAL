@@ -23,11 +23,9 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	r.Post("/v1/daemon/stop", daemon.stopHandler)
 
 	providers := providerHandler{svc: cfg.Service}
-	r.Get("/v1/providers/sources", providers.listSources)
-	r.Post("/v1/providers/sources/add", providers.addSource)
-	r.Post("/v1/providers/sources/remove", providers.removeSource)
-	r.Post("/v1/providers/find", providers.find)
+	r.Post("/v1/providers", providers.add)
 	r.Get("/v1/providers", providers.list)
+	r.Get("/v1/providers/by-path", providers.getByPath)
 	r.Get("/v1/providers/{provider_id}", providers.get)
 
 	discovery := discoveryHandler{svc: cfg.Service}

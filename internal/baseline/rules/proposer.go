@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/proposal"
+	"github.com/spacehz-lab/cal/internal/proposalflow"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
@@ -14,7 +14,7 @@ import (
 type Proposer struct{}
 
 // Propose returns rule-derived candidates for the current skeleton.
-func (Proposer) Propose(_ context.Context, request proposal.Request) (proposal.Response, error) {
+func (Proposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
 	var candidates []caltrace.Candidate
 	for _, observation := range request.Observations {
 		if observation.Type != "cli_output" {
@@ -24,15 +24,71 @@ func (Proposer) Propose(_ context.Context, request proposal.Request) (proposal.R
 		if !ok {
 			continue
 		}
-		candidate, ok, err := candidateFromHelp(request.Provider.ID, request.Hint, text)
+		candidate, ok, err := candidateFromHelp(request.Provider.ID, request.DebugFilter, text)
 		if err != nil {
-			return proposal.Response{}, err
+			return proposalflow.Result{}, err
 		}
 		if ok {
 			candidates = append(candidates, candidate)
 		}
 	}
-	return proposal.Response{Candidates: candidates}, nil
+	return proposalflow.Select(rulesResult(candidates), proposalflow.SelectOptions{
+		ProviderID:  request.Provider.ID,
+		DebugFilter: request.DebugFilter,
+	})
+}
+
+func rulesResult(candidates []caltrace.Candidate) proposalflow.Result {
+	probePlans := make([]proposalflow.ProbePlan, 0, len(candidates))
+	for index, candidate := range candidates {
+		probePlans = append(probePlans, proposalflow.ProbePlan{
+			CandidateIndex: index,
+			Inputs:         probeInputs(candidate.CapabilityID),
+			Fixtures:       probeFixtures(candidate.CapabilityID),
+			Verifier:       core.Verifier{ID: verifierForCapability(candidate.CapabilityID)},
+		})
+	}
+	return proposalflow.Result{
+		Candidates: candidates,
+		ProbePlans: probePlans,
+	}
+}
+
+func probeInputs(capabilityID string) map[string]any {
+	switch capabilityID {
+	case "image.resize":
+		return map[string]any{
+			"source": "{{workdir}}/input.png",
+			"target": "{{workdir}}/output.png",
+			"width":  12,
+			"height": 8,
+		}
+	default:
+		return map[string]any{
+			"source": "{{workdir}}/input.txt",
+			"target": "{{workdir}}/output.pdf",
+		}
+	}
+}
+
+func probeFixtures(capabilityID string) []proposalflow.Fixture {
+	if capabilityID != "document.export_pdf" {
+		return nil
+	}
+	return []proposalflow.Fixture{{
+		Input:    "source",
+		Filename: "input.txt",
+		Content:  "cal probe input\n",
+	}}
+}
+
+func verifierForCapability(capabilityID string) string {
+	switch capabilityID {
+	case "image.resize":
+		return verifierImageDimensions
+	default:
+		return verifierFileParsePDF
+	}
 }
 
 func candidateFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {

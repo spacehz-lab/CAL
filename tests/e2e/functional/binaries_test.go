@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	e2etest "github.com/spacehz-lab/cal/internal/testsupport/e2e"
 )
 
 type e2eBinaries struct {
@@ -72,4 +74,27 @@ func buildGoPackage(repo string, output string, pkg string) error {
 		return fmt.Errorf("go build %s failed: %w\n%s", pkg, err, out)
 	}
 	return nil
+}
+
+func addProvider(t *testing.T, repo string, env []string, calctlBin string, providerPath string) e2etest.ProviderSummary {
+	t.Helper()
+	var provider e2etest.ProviderSummary
+	e2etest.RunJSON(t, repo, env, &provider, calctlBin, "providers", "add", "--provider-path", providerPath, "--json")
+	return provider
+}
+
+func runDiscoveryForProviderPath(t *testing.T, repo string, env []string, calctlBin string, providerPath string, output any, args ...string) e2etest.ProviderSummary {
+	t.Helper()
+	provider := addProvider(t, repo, env, calctlBin, providerPath)
+	command := append([]string{"discovery", "run", "--provider-id", provider.ID}, args...)
+	e2etest.RunJSON(t, repo, env, output, calctlBin, command...)
+	return provider
+}
+
+func runFailDiscoveryForProviderPath(t *testing.T, repo string, env []string, calctlBin string, providerPath string, output any, args ...string) e2etest.ProviderSummary {
+	t.Helper()
+	provider := addProvider(t, repo, env, calctlBin, providerPath)
+	command := append([]string{"discovery", "run", "--provider-id", provider.ID}, args...)
+	e2etest.RunFailJSON(t, repo, env, output, calctlBin, command...)
+	return provider
 }

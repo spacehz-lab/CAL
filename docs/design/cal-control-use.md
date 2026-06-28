@@ -106,11 +106,12 @@ Provider.name
 Binding.execution.kind
 required runtime inputs
 Binding.input_constraints
-whether the binding has a verifier
+Binding.verify.level
+compact verification summary
 ```
 
-It must not read Trace candidates, failed probes, raw observations, verifier
-source code, or provider documentation dumps as executable knowledge.
+It must not read Trace candidates, failed probes, raw observations, script
+fallback source code, or provider documentation dumps as executable knowledge.
 
 The resolver does not send the full durable catalog to an LLM. It first builds
 a local high-recall shortlist over promoted bindings. If runtime LLM settings
@@ -142,7 +143,8 @@ intent overlap with capability id and description
 user input keys covering required runtime inputs
 optional provider_id match
 binding execution support
-verify request versus verifier availability
+verify request versus available verification level
+verification strength, with L3 preferred over L2 and L1 excluded by default
 ```
 
 The default shortlist size can be conservative, such as 20 bindings, and may be
@@ -216,7 +218,7 @@ The resolver must not:
 ```text
 create a Capability
 create a Binding
-create a Verifier
+create a script fallback
 rewrite Binding.execution
 trigger Discovery
 call provider commands directly
@@ -235,7 +237,7 @@ The Use LLM system prompt must be separate from the acquisition prompt.
 Acquisition prompt:
 
 ```text
-provider observations -> candidates -> bindings -> verifier packages -> probes
+provider observations -> Proposal Surface -> Capability -> Binding -> Evidence
 ```
 
 Use prompt:
@@ -251,7 +253,7 @@ You select one promoted binding for a user intent.
 Choose only from the provided capabilities and bindings.
 Only add inputs_patch values that are explicitly present in the intent.
 Do not include target in inputs_patch; CAL creates missing target paths locally.
-Do not create capability_id, binding_id, verifier, execution, or proof.
+Do not create capability_id, binding_id, verify checks, script fallback, execution, or proof.
 Do not invent or overwrite user inputs.
 Do not modify execution.
 Do not claim execution success.
@@ -298,7 +300,7 @@ The final Run request is equivalent to:
 
 ```json
 {
-  "capability_id": "file.hash_algorithm",
+  "capability_id": "file.checksum",
   "binding_id": "binding_abc123",
   "inputs": {
     "source": "/tmp/a.txt",
@@ -315,7 +317,8 @@ Run remains the deterministic primitive for:
 binding resolution when only capability_id is supplied
 input validation
 provider execution
-optional verifier execution
+optional verify.checks evaluation
+optional script fallback execution
 Run record persistence
 ```
 
@@ -333,7 +336,7 @@ Successful output shape:
   "intent": "compute the SHA-1 digest of this file",
   "selection": {
     "source": "llm",
-    "capability_id": "file.hash_algorithm",
+    "capability_id": "file.checksum",
     "binding_id": "binding_abc123",
     "provider_id": "provider_shasum",
     "reason": "The intent asks for SHA-1 and the binding supports algorithm selector 1.",
@@ -341,7 +344,7 @@ Successful output shape:
   },
   "run": {
     "id": "run_456",
-    "capability_id": "file.hash_algorithm",
+    "capability_id": "file.checksum",
     "binding_id": "binding_abc123",
     "provider_id": "provider_shasum",
     "status": "succeeded",
@@ -515,7 +518,7 @@ multi-step planning or composition
 embedding-backed search in the first slice
 provider command execution outside Run
 new capability or binding generation
-verifier generation
+verify-check generation
 raw Trace or candidate browsing as a public API
 success claims from LLM output
 ```

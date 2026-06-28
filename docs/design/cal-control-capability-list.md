@@ -76,7 +76,7 @@ Shape:
   "count": 1,
   "capabilities": [
     {
-      "id": "document.export_pdf",
+      "id": "document.convert",
       "description": "Create a PDF artifact from an editable document.",
       "bindings": {
         "available": 2,
@@ -84,10 +84,7 @@ Shape:
           "provider_soffice",
           "provider_preview"
         ],
-        "verifiers": [
-          "file_exists",
-          "file_parse_pdf"
-        ]
+        "verification_levels": ["L2", "L3"]
       }
     }
   ]
@@ -100,7 +97,7 @@ Required fields per listed capability:
 id
 bindings.available
 bindings.provider_ids[]
-bindings.verifiers[]
+bindings.verification_levels[]
 ```
 
 Optional fields:
@@ -125,7 +122,7 @@ Allowed binding summary fields:
 
 ```text
 provider ids
-verifier ids
+verification levels
 binding count
 ```
 
@@ -159,7 +156,7 @@ List can say:
 This capability exists.
 This capability has reusable bindings.
 These provider ids can realize it.
-These verifier ids are available.
+These verification levels are available.
 ```
 
 The agent or Capability Use decides whether the current task matches a
@@ -194,7 +191,7 @@ Output order must be deterministic:
 ```text
 capability id ascending
 provider id ascending inside summaries
-verifier id ascending inside summaries
+verification level descending inside summaries
 ```
 
 Deterministic ordering keeps agent prompts, tests, and diffs stable.
@@ -234,7 +231,7 @@ Use selection
 binding resolution
 binding execution
 outcome verification
-Discovery Inference
+Discovery Proposal
 Discovery Verification
 Discovery Promotion
 Trace writing
@@ -247,7 +244,7 @@ A skill or agent policy can use List like this:
 
 ```text
 Before performing low-level GUI, shell, or app actions for a task that looks reusable, call `calctl capabilities list --json`.
-Choose a capability only when its id and description match the task, and its binding summary shows an available provider/verifier surface that is acceptable for the environment.
+Choose a capability only when its id and description match the task, and its binding summary shows an available provider and verification level that is acceptable for the environment.
 If no listed capability fits, continue normal agent behavior or trigger an explicit discovery flow.
 After selecting a capability_id, call `calctl runs create`.
 ```

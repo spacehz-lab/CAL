@@ -29,7 +29,7 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &first, calctlBin, "discovery", "run", "--provider-path", firstPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, firstPath, &first, "--mode", "rules", "--json")
 	if first.State != "succeeded" || first.CapabilitiesPromoted != 1 || first.BindingsPromoted != 1 || len(first.Providers) != 1 {
 		t.Fatalf("first acquisition = %#v, want created capability and binding", first)
 	}
@@ -40,7 +40,7 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &second, calctlBin, "discovery", "run", "--provider-path", secondPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, secondPath, &second, "--mode", "rules", "--json")
 	if second.State != "succeeded" || second.CapabilitiesPromoted != 0 || second.BindingsPromoted != 1 || len(second.Providers) != 1 {
 		t.Fatalf("second acquisition = %#v, want reused capability and second binding", second)
 	}

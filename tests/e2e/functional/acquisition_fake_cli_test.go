@@ -31,7 +31,7 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--mode", "rules", "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition discovery = %#v, want one promoted parse-verified binding", acquisition)
 	}
@@ -97,7 +97,7 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--mode", "rules", "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition discovery = %#v, want one promoted marker-free binding", acquisition)
 	}
@@ -175,7 +175,7 @@ func TestReplayProposalAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--proposal-path", proposalPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition discovery = %#v, want proposal-backed promoted binding", acquisition)
 	}
@@ -259,7 +259,7 @@ func TestReplayProposalAcquisitionPromotesGeneratedVerifierBinding(t *testing.T)
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--proposal-path", proposalPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition discovery = %#v, want generated-verifier promoted binding", acquisition)
 	}
@@ -309,7 +309,7 @@ func TestControlledAcquisitionRejectsInvalidPDF(t *testing.T) {
 			Code string `json:"code"`
 		} `json:"error"`
 	}
-	e2etest.RunFailJSON(t, repo, env, &failure, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runFailDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &failure, "--mode", "rules", "--json")
 	if failure.Error.Code != "verification_failed" {
 		t.Fatalf("acquisition failure = %#v, want verification_failed", failure)
 	}

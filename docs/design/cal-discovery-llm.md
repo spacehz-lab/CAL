@@ -1,21 +1,31 @@
 # CAL Discovery LLM Integration
 
-This document defines the production LLM boundary for Discovery.
+This document defines the production LLM boundary for Discovery Proposal.
 
-The detailed prompt contract is defined in
-`docs/design/cal-discovery-llm-prompt.md`.
+Proposal stage contracts are defined in:
+
+```text
+docs/design/cal-discovery-proposal.md
+docs/design/cal-proposal-surface.md
+docs/design/cal-proposal-capability.md
+docs/design/cal-proposal-binding.md
+docs/design/cal-proposal-evidence.md
+```
+
+Detailed prompt wording lives in code and tests. Design docs define stage
+contracts, not full prompt text.
 
 ## Role
 
-The LLM is a proposer, not a verifier.
+The LLM is a proposer, not a verification judge.
 
 Allowed:
 
 ```text
 Provider observations
 selected existing Capability ids
-optional debug capability hint
--> one proposal JSON object with one or more strongly supported candidates
+optional debug capability filter
+-> Proposal Surface / Capability / Binding / Evidence material
 ```
 
 Not allowed:
@@ -27,9 +37,10 @@ write durable Provider / Capability / Binding records
 store or log API credentials
 ```
 
-The proposal JSON is process material. CAL must still parse it, execute the
-candidate through a safe probe, run a deterministic verifier, write Trace
-evidence, and promote only passing candidates.
+The Proposal output is process material. CAL must still parse it, execute the
+candidate through a safe probe, evaluate deterministic `verify.checks`, write
+Trace evidence, and promote only passing candidates that satisfy promotion
+policy.
 
 ## SDK And Providers
 
@@ -40,70 +51,61 @@ github.com/openai/openai-go/v3
 ```
 
 Provider transport lives in `internal/llm` behind the `llm.Client` interface.
-The proposal adapter lives in `internal/proposal/llm`; it owns the CAL proposal
-prompt and implements `proposal.Proposer` plus `proposal.ProbePlanner` by
-calling `llm.Client` and parsing the returned proposal JSON. `discovery` and
+The proposal adapter lives in `internal/proposal/llm`; it owns live Proposal
+orchestration and implements `proposal.Proposer` plus `proposal.ProbePlanner`
+by calling `llm.Client` and parsing strict JSON stage outputs. `discovery` and
 `cli` do not import provider SDKs.
-
-The Responses adapter calls the OpenAI Responses API with:
-
-```text
-instructions = bounded CAL system prompt
-input        = serialized provider observations and capability ids
-model        = CAL_LLM_MODEL
-store        = false
-```
 
 The Chat Completions adapter calls an OpenAI-compatible Chat Completions API
 with:
 
 ```text
 base_url        = CAL_LLM_BASE_URL when set
-system message  = bounded CAL system prompt
-user message    = serialized provider observations and capability ids
+system message  = bounded CAL stage prompt
+user message    = serialized stage context
 model           = CAL_LLM_MODEL
 response_format = json_object
 ```
 
-The provider response text must be exactly one proposal JSON object. It may
-contain multiple candidates when the observations strongly support multiple
-capabilities, and every candidate must have a matching probe plan by
-`candidate_index`. Markdown fences, prose, empty output, speculative
-capabilities, and invalid schema fail before Verification.
+The provider response text must be exactly one stage JSON object. Markdown
+fences, prose, empty output, speculative capabilities, and invalid schema fail
+before Verification.
+
 Live provider response JSON does not own proposal provenance. The CAL adapter
 sets source, prompt version, schema version, and model from local call context
 before writing Trace.
 
-The user prompt includes bounded helper inputs:
+## Stage Call Shape
+
+The live LLM Proposal implementation may use four internal stages:
 
 ```text
-existing_capability_ids
-hint
+Surface
+-> Capability
+-> Binding
+-> Evidence
 ```
 
-`existing_capability_ids` is a bounded topK local lookup result for reuse. It
-does not include bindings, probe history, vectors, or execution details.
+Surface and Capability are global for one provider acquisition. After
+Capability planning, Binding and Evidence may run as bounded per-capability
+pipelines.
 
-The prompt must preserve this one-way chain:
+Target call count depends on provider complexity:
 
 ```text
-provider observations
--> candidate operations
--> capability ids
--> binding contracts
--> verifier requirements
--> generated harness packages
--> probe plans
+simple deterministic replay/parser: 0 LLM calls
+simple live provider: 2-3 LLM calls
+complex live provider: 2 global calls + bounded per-capability calls
 ```
 
-The model includes `verifier_packages[]` when the inferred candidate outcome can
-be checked with deterministic local evidence. The generated harness is still
-executed by CAL locally; the model must not claim verification success.
+Each stage must have its own compact schema and token budget. Complex CLI
+providers may require larger max token budgets for Surface and Capability
+planning because reasoning tokens can dominate even when final JSON is small.
 
 ## Configuration
 
-Runtime secrets stay outside the repository, outside Trace artifacts, and outside
-`CAL_HOME/config.json`.
+Runtime secrets stay outside the repository, outside Trace artifacts, and
+outside `CAL_HOME/config.json`.
 
 The v0 product surface should let users configure non-secret LLM settings, such
 as API type, model, and optional base URL, through CAL configuration or
@@ -119,10 +121,6 @@ from whichever key is present.
 
 ```json
 {
-  "provider_sources": [
-    {"kind": "path", "value": "PATH"},
-    {"kind": "path", "value": "/Applications"}
-  ],
   "llm": {
     "api": "chat_completions",
     "base_url": "https://api.moonshot.cn/v1",
@@ -130,14 +128,6 @@ from whichever key is present.
     "api_key_ref": "env:CAL_LLM_API_KEY"
   }
 }
-```
-
-OpenAI Responses environment-only example:
-
-```text
-CAL_LLM_API=responses
-CAL_LLM_MODEL=gpt-5.5
-CAL_LLM_API_KEY=...
 ```
 
 Supported API values:
@@ -165,19 +155,14 @@ First-version `api_key_ref` support is intentionally narrow:
 env:<ENV_NAME>
 ```
 
-For example, `env:CAL_LLM_API_KEY` reads the key from the explicit
-`CAL_LLM_API_KEY` environment variable. Future productized builds may add local
-secret-store references such as Keychain, Secret Service, or Credential Manager
-without changing the durable config schema.
-
 Explicit `CAL_LLM_*` environment variables override durable non-secret config
 values for the current process. `CAL_LLM_API_KEY` also overrides `api_key_ref`.
 
 When no LLM configuration is set, the default LLM proposer has no client and
-targeted acquisition fails during proposal generation with `candidate_proposal_failed`.
-Partial or unsupported explicit LLM configuration fails before scan execution
-with `invalid_llm_config`. This keeps local tests, proposal replay, and rules
-baseline runs offline by default.
+targeted acquisition fails during proposal generation with
+`candidate_proposal_failed`. Partial or unsupported explicit LLM configuration
+fails before scan execution with `invalid_llm_config`. This keeps local tests,
+proposal replay, and rules baseline runs offline by default.
 
 Do not persist API keys or raw secret values in:
 
@@ -189,12 +174,21 @@ proposal fixtures
 logs
 ```
 
+## Streaming Diagnostics
+
+`CAL_LLM_STREAM=1` may enable streaming for OpenAI-compatible Chat Completions
+providers. Streaming does not change any Proposal stage contract; CAL still
+parses only the final assistant content for each stage.
+
+A separate local diagnostic switch may capture streamed reasoning/content
+deltas for latency and prompt debugging. Stream diagnostics are not CAL
+evidence and may contain provider observations or local paths.
+
 ## Modes
 
 Production default:
 
 ```text
-calctl discovery run --provider-path <provider-path>
 calctl discovery run --provider-id <provider-id>
 ```
 
@@ -204,7 +198,7 @@ secrets are present.
 Offline replay:
 
 ```text
-calctl discovery run --provider-path <provider-path> --proposal-path <proposal.json>
+calctl discovery run --provider-id <provider-id> --proposal-path <proposal.json>
 ```
 
 This replays a proposal fixture through the same Verification and Promotion
@@ -213,13 +207,13 @@ path.
 Rules baseline:
 
 ```text
-calctl discovery run --provider-path <provider-path> --mode rules
+calctl discovery run --provider-id <provider-id> --mode rules
 ```
 
 `--mode` is hidden and kept for experiments and regression tests. Rules-only
-proposal generation is not the production first attempt. Its implementation lives under
-`internal/baseline/rules`, not under the production `proposal` or `discovery`
-packages.
+proposal generation is not the production first attempt. Its implementation
+lives under `internal/baseline/rules`, not under the production `proposal` or
+`discovery` packages.
 
 ## Trace And Evaluation
 
@@ -231,21 +225,23 @@ prompt_version
 model
 schema_version
 proposal_hash
+proposal stage timings
 ```
 
-These fields explain where a proposal came from. They are not proof of correctness.
-The proof boundary remains deterministic Verification evidence.
-For live LLM calls, CAL fills these fields locally; the model must not self-report
-them. Replay proposal files may still carry metadata because replay provenance is
-part of the fixture being reproduced.
+These fields explain where a proposal came from. They are not proof of
+correctness. The proof boundary remains deterministic Verification evidence.
+For live LLM calls, CAL fills provenance locally; the model must not self-report
+it.
 
 Evaluation should count:
 
 ```text
-LLM proposer calls
-proposal parse failures
-verification pass / fail / ambiguous outcomes
-promotion outcomes
+LLM proposer calls by Proposal stage
+Proposal stage parse failures
+Verification pass / fail / ambiguous outcomes
+verify level distribution
+script fallback count
+Promotion outcomes
 future low-level action reduction after reuse
 ```
 

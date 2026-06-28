@@ -33,14 +33,14 @@ evals/cli-capability/
 The benchmark separates CAL's internal promotion gate from external scoring:
 
 ```text
-CAL verifier package -> decides whether a candidate may be promoted
-benchmark oracle     -> decides whether a held-out benchmark task succeeded
+CAL verify spec  -> decides whether a candidate may be promoted
+benchmark oracle -> decides whether a held-out benchmark task succeeded
 ```
 
-Live LLM mode may generate verifier packages, probe plans, and capability ids.
-The benchmark must not predeclare acceptable capability ids and must not trust
-generated verifier packages as final task evidence. Held-out reuse outputs are
-scored by fixed scripts under `oracles/`.
+Live LLM mode may propose verify specs, probe plans, and capability ids. The
+benchmark must not predeclare acceptable capability ids and must not trust CAL's
+internal verify checks as final task evidence. Held-out reuse outputs are scored
+by fixed scripts under `oracles/`.
 
 ## Seed Benchmark Scope
 
@@ -52,7 +52,7 @@ The seed benchmark should cover:
 - at least one provider that promotes more than one capability binding;
 - at least one capability that can be realized by two provider bindings;
 - at least one failed or rejected candidate record;
-- deterministic verifier evidence for every promoted binding;
+- deterministic verify-check evidence for every promoted binding;
 - intent-level held-out reuse through `calctl use`, with `calctl runs create`
   remaining the deterministic lower-level primitive.
 
@@ -97,7 +97,7 @@ Benchmark results should be machine-readable and include:
 - candidate count, probe pass count, probe fail count, promoted capabilities,
   promoted bindings, Use selections, verified reuses, and failed cases;
 - per-case provider path, observation sources, candidate capability id, binding
-  execution kind, verifier id, probe status, promotion action, Use selection
+  execution kind, verification level, probe status, promotion action, Use selection
   status, Use shortlist size, selected capability id, selected binding id,
   reuse status, benchmark oracle status, failure stage, and failure reason;
 - acquisition latency, Use latency, reuse latency, LLM call count, and token

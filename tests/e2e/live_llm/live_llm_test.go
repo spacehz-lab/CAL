@@ -31,7 +31,7 @@ func TestLiveLLMAcquisitionPromotesNewCapability(t *testing.T) {
 		CapabilitiesPromoted int    `json:"capabilities_promoted"`
 		BindingsPromoted     int    `json:"bindings_promoted"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" {
 		t.Fatalf("acquisition = %#v, want new capability and binding promotion", acquisition)
 	}
@@ -116,7 +116,7 @@ func TestLiveLLMAcquisitionReusesExistingCapability(t *testing.T) {
 		CapabilitiesPromoted int    `json:"capabilities_promoted"`
 		BindingsPromoted     int    `json:"bindings_promoted"`
 	}
-	e2etest.RunJSON(t, repo, env, &seed, calctlBin, "discovery", "run", "--provider-path", seedPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, seedPath, &seed, "--mode", "rules", "--json")
 	if seed.State != "succeeded" || seed.CapabilitiesPromoted != 1 || seed.BindingsPromoted != 1 {
 		t.Fatalf("seed acquisition = %#v, want seeded document.export_pdf", seed)
 	}
@@ -130,7 +130,7 @@ func TestLiveLLMAcquisitionReusesExistingCapability(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 0 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition = %#v, want existing capability reuse with new binding", acquisition)
 	}
@@ -201,7 +201,7 @@ func TestLiveLLMAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 2 || acquisition.BindingsPromoted != 2 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition = %#v, want two live LLM promoted capabilities", acquisition)
 	}
@@ -283,7 +283,7 @@ func TestLiveLLMAcquisitionGeneratesVerifierHarness(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition = %#v, want generated verifier live LLM acquisition", acquisition)
 	}

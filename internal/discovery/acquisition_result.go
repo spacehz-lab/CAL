@@ -100,11 +100,10 @@ func (run *acquisitionRun) logObserved() {
 	)
 }
 
-func (run *acquisitionRun) logProposed(catalogSize, selectedCapabilityCount int) {
+func (run *acquisitionRun) logProposed(catalogSize int) {
 	slog.Info("discovery acquisition proposed",
 		"provider_id", run.provider.ID,
 		"catalog_size", catalogSize,
-		"selected_capability_count", selectedCapabilityCount,
 		"candidate_count", len(run.candidates),
 	)
 }

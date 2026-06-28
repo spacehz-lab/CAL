@@ -12,30 +12,6 @@ import (
 	"github.com/spacehz-lab/cal/internal/core"
 )
 
-func TestScanEntriesFindsAppBundleFromConfiguredPath(t *testing.T) {
-	appDir := t.TempDir()
-	if err := os.Mkdir(filepath.Join(appDir, "Example Exporter.app"), 0o755); err != nil {
-		t.Fatalf("create fake app bundle: %v", err)
-	}
-
-	providers, err := ScanEntries(context.Background(), EntryOptions{
-		Paths: []string{appDir},
-	})
-	if err != nil {
-		t.Fatalf("ScanEntries() error = %v", err)
-	}
-	if len(providers) != 1 {
-		t.Fatalf("ScanEntries() len = %d, want 1: %#v", len(providers), providers)
-	}
-	wantPath, err := filepath.Abs(filepath.Join(appDir, "Example Exporter.app"))
-	if err != nil {
-		t.Fatalf("abs path: %v", err)
-	}
-	if providers[0].ID != core.ProviderID(runtime.GOOS, core.ProviderKindApp, wantPath) || providers[0].Kind != core.ProviderKindApp || providers[0].Path != wantPath || providers[0].Name != "Example Exporter" {
-		t.Fatalf("ScanEntries()[0] = %#v, want app bundle entry", providers[0])
-	}
-}
-
 func TestScanEntriesFindsExplicitAppBundle(t *testing.T) {
 	appDir := t.TempDir()
 	appPath := filepath.Join(appDir, "Document Tool.app")
@@ -69,7 +45,10 @@ func TestScanEntriesDoesNotMergeCLIAndAppEntries(t *testing.T) {
 	}
 
 	providers, err := ScanEntries(context.Background(), EntryOptions{
-		Paths: []string{dir},
+		Entries: []string{
+			filepath.Join(dir, "document-tool"),
+			filepath.Join(dir, "Document Tool.app"),
+		},
 	})
 	if err != nil {
 		t.Fatalf("ScanEntries() error = %v", err)

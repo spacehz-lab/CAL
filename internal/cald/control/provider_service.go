@@ -2,67 +2,23 @@ package control
 
 import (
 	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
-	"github.com/spacehz-lab/cal/internal/config"
 	"github.com/spacehz-lab/cal/internal/core"
 	"github.com/spacehz-lab/cal/internal/discovery"
 )
 
-// ProviderFindRequest filters provider entry scans.
-type ProviderFindRequest struct {
-	Kind string `json:"kind,omitempty"`
-}
-
-// ProviderFindResponse reports provider records created or updated by a scan.
-type ProviderFindResponse struct {
-	ProvidersCreated int             `json:"providers_created"`
-	ProvidersUpdated int             `json:"providers_updated"`
-	Providers        []core.Provider `json:"providers"`
-}
-
-// ListSources returns configured provider sources.
-func (svc Service) ListSources() ([]config.ProviderSource, error) {
-	cfg, err := svc.cfg.Ensure()
+// AddProvider registers one explicit provider entry path.
+func (svc Service) AddProvider(ctx context.Context, providerPath string) (core.Provider, error) {
+	provider, err := providerFromPath(ctx, providerPath)
 	if err != nil {
-		return nil, err
+		return core.Provider{}, err
 	}
-	return cfg.ProviderSources, nil
-}
-
-// AddPathSource adds a path provider source.
-func (svc Service) AddPathSource(path string) (config.Config, bool, error) {
-	return svc.cfg.AddProviderPath(path)
-}
-
-// RemovePathSource removes a path provider source.
-func (svc Service) RemovePathSource(path string) (config.Config, bool, error) {
-	return svc.cfg.RemoveProviderPath(path)
-}
-
-// FindProviders scans configured sources and writes Provider records.
-func (svc Service) FindProviders(ctx context.Context, req ProviderFindRequest) (ProviderFindResponse, error) {
-	if err := validateProviderKindFilter(req.Kind); err != nil {
-		return ProviderFindResponse{}, err
-	}
-	cfg, err := svc.cfg.Ensure()
-	if err != nil {
-		return ProviderFindResponse{}, err
-	}
-	providers, err := discovery.ScanEntries(ctx, discovery.EntryOptions{Paths: cfg.PathSources()})
-	if err != nil {
-		return ProviderFindResponse{}, err
-	}
-	providers = filterProviders(providers, req.Kind)
-	created, updated, err := svc.saveProviders(providers)
-	if err != nil {
-		return ProviderFindResponse{}, err
-	}
-	return ProviderFindResponse{
-		ProvidersCreated: created,
-		ProvidersUpdated: updated,
-		Providers:        providers,
-	}, nil
+	_, _, err = svc.saveProviders([]core.Provider{provider})
+	return provider, err
 }
 
 // ListProviders returns stored Provider records.
@@ -73,6 +29,46 @@ func (svc Service) ListProviders() ([]core.Provider, error) {
 // GetProvider returns one stored Provider record.
 func (svc Service) GetProvider(id string) (core.Provider, bool, error) {
 	return svc.store.GetProvider(id)
+}
+
+// GetProviderByPath resolves one explicit provider entry path and returns its stored Provider record.
+func (svc Service) GetProviderByPath(providerPath string) (core.Provider, bool, error) {
+	providerPath = strings.TrimSpace(providerPath)
+	if providerPath == "" {
+		return core.Provider{}, false, NewAPIError("invalid_provider_path", "provider_path is required")
+	}
+	cleanPath, err := filepath.Abs(filepath.Clean(os.ExpandEnv(providerPath)))
+	if err != nil {
+		return core.Provider{}, false, err
+	}
+	providers, err := svc.store.ListProviders()
+	if err != nil {
+		return core.Provider{}, false, err
+	}
+	for _, provider := range providers {
+		if provider.Path == cleanPath {
+			return provider, true, nil
+		}
+	}
+	return core.Provider{}, false, nil
+}
+
+func providerFromPath(ctx context.Context, providerPath string) (core.Provider, error) {
+	providerPath = strings.TrimSpace(providerPath)
+	if providerPath == "" {
+		return core.Provider{}, NewAPIError("invalid_provider_path", "provider_path is required")
+	}
+	providers, err := discovery.ScanEntries(ctx, discovery.EntryOptions{Entries: []string{providerPath}})
+	if err != nil {
+		return core.Provider{}, err
+	}
+	if len(providers) == 0 {
+		return core.Provider{}, NewAPIError("target_provider_not_found", fmt.Sprintf("provider path %q did not resolve to a CLI executable or app bundle provider", providerPath))
+	}
+	if len(providers) > 1 {
+		return core.Provider{}, NewAPIError("ambiguous_target_provider", fmt.Sprintf("provider path %q resolved to %d providers", providerPath, len(providers)))
+	}
+	return providers[0], nil
 }
 
 func (svc Service) saveProviders(providers []core.Provider) (int, int, error) {
@@ -97,27 +93,4 @@ func (svc Service) saveProviders(providers []core.Provider) (int, int, error) {
 		}
 	}
 	return created, updated, nil
-}
-
-func filterProviders(providers []core.Provider, kind string) []core.Provider {
-	kind = strings.TrimSpace(kind)
-	if kind == "" {
-		return providers
-	}
-	filtered := make([]core.Provider, 0, len(providers))
-	for _, provider := range providers {
-		if string(provider.Kind) == kind {
-			filtered = append(filtered, provider)
-		}
-	}
-	return filtered
-}
-
-func validateProviderKindFilter(kind string) error {
-	switch strings.TrimSpace(kind) {
-	case "", string(core.ProviderKindCLI), string(core.ProviderKindApp):
-		return nil
-	default:
-		return NewAPIError("unsupported_provider_kind", "provider kind must be cli or app")
-	}
 }

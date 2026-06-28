@@ -21,10 +21,6 @@ const (
 type TargetType string
 
 const (
-	// TargetConfiguredPaths runs Discovery Entry over configured paths.
-	TargetConfiguredPaths TargetType = "configured_paths"
-	// TargetProviderPath inspects one explicit provider entry path.
-	TargetProviderPath TargetType = "provider_path"
 	// TargetProvider targets one known provider.
 	TargetProvider TargetType = "provider"
 )

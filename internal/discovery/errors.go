@@ -11,7 +11,6 @@ type CodedError struct {
 const (
 	CodeObserverUnavailable     = "observer_unavailable"
 	CodeProposerUnavailable     = "proposer_unavailable"
-	CodeProbePlannerUnavailable = "probe_planner_unavailable"
 	CodeProviderNotFound        = "provider_not_found"
 	CodeUnsupportedProviderKind = "unsupported_provider_kind"
 	CodeObservationFailed       = "observation_failed"

@@ -41,7 +41,7 @@ internal/cald/httpapi
   -> HTTP routing, JSON decoding, response status codes
 
 internal/cald/control
-  -> provider sources, provider finding, discovery, runs, eval, trace reads
+  -> provider registration, discovery, runs, eval, trace reads
 
 internal/use
   -> intent-level Use request contract and local promoted-binding selection
@@ -56,8 +56,7 @@ It should not reuse HTTP handlers.
 
 ```text
 daemon status
-provider finding
-provider source configuration
+provider registration
 targeted discovery requests
 Trace writing
 verification and promotion
@@ -199,11 +198,9 @@ The initial local API should stay small:
 GET    /v1/daemon/status
 POST   /v1/daemon/stop
 
-GET    /v1/providers/sources
-POST   /v1/providers/sources/add
-POST   /v1/providers/sources/remove
-POST   /v1/providers/find
+POST   /v1/providers
 GET    /v1/providers
+GET    /v1/providers/by-path
 GET    /v1/providers/{provider_id}
 
 POST   /v1/discovery
@@ -229,15 +226,8 @@ Request body must identify exactly one provider target:
 {"provider_id": "provider_abc123"}
 ```
 
-or:
-
-```json
-{"provider_path": "/usr/bin/jq"}
-```
-
-`provider_path` must point to one provider entry, such as a CLI executable or
-app bundle. Directory scanning belongs to provider finding, not discovery
-acquisition.
+Provider path bootstrap belongs to `POST /v1/providers`. Discovery acquisition
+only runs for stored Provider records.
 
 `calctl daemon start` is not an HTTP call because it starts the process. It
 launches `cald serve`, waits for `GET /v1/daemon/status` to report ready, then
@@ -254,7 +244,7 @@ POST /v1/uses
 -> return UseResult with selection and Run result
 ```
 
-It must not trigger Discovery or create new Capability, Binding, or Verifier
+It must not trigger Discovery or create new Capability, Binding, or verification
 records. A later `GET /v1/uses/{use_id}` endpoint can be added once Use records
 are persisted; until then, the synchronous response is the source of truth for
 the first slice.
@@ -268,17 +258,8 @@ calctl daemon status
 calctl daemon stop
   -> POST /v1/daemon/stop
 
-calctl providers sources list
-  -> GET /v1/providers/sources
-
-calctl providers sources add --kind path --value <path>
-  -> POST /v1/providers/sources/add
-
-calctl providers sources remove --kind path --value <path>
-  -> POST /v1/providers/sources/remove
-
-calctl providers find --kind cli|app
-  -> POST /v1/providers/find
+calctl providers add --provider-path <provider-path>
+  -> POST /v1/providers
 
 calctl providers list
   -> GET /v1/providers
@@ -286,8 +267,8 @@ calctl providers list
 calctl providers get --provider-id <provider-id>
   -> GET /v1/providers/{provider_id}
 
-calctl discovery run --provider-path <provider-path>
-  -> POST /v1/discovery
+calctl providers get --provider-path <provider-path>
+  -> GET /v1/providers/by-path?provider_path=<provider-path>
 
 calctl discovery run --provider-id <provider-id>
   -> POST /v1/discovery
