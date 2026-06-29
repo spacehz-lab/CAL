@@ -30,13 +30,13 @@ func TestRecordsAcquisitionCountsMultiCandidateTrace(t *testing.T) {
 				{
 					CandidateIndex: 0,
 					Passed:         true,
-					Verifier:       core.Verifier{ID: "file_parse_pdf"},
+					Verify:         evalVerifySpec(core.VerifyLevelL2),
 					Evidence:       []core.EvidenceRef{{ID: "evidence_pdf"}},
 				},
 				{
 					CandidateIndex: 1,
 					Passed:         false,
-					Verifier:       core.Verifier{ID: "image_dimensions_match"},
+					Verify:         evalVerifySpec(core.VerifyLevelL2),
 					Error:          &core.RecordError{Code: "verification_failed", Message: "wrong size"},
 				},
 			},
@@ -85,8 +85,8 @@ func TestRecordsAcquisitionCountsTraceWithoutCandidates(t *testing.T) {
 				Status: caltrace.StatusFailed,
 				Hint:   "document.export_pdf",
 				Probes: []caltrace.Probe{
-					{CandidateIndex: -1, Passed: true, Verifier: core.Verifier{ID: "file_exists"}},
-					{CandidateIndex: -1, Passed: false, Verifier: core.Verifier{ID: "file_parse_pdf"}},
+					{CandidateIndex: -1, Passed: true, Verify: evalVerifySpec(core.VerifyLevelL2)},
+					{CandidateIndex: -1, Passed: false, Verify: evalVerifySpec(core.VerifyLevelL2)},
 				},
 				Promotions: []caltrace.Promotion{
 					{CapabilityID: "document.export_pdf", ProviderID: "provider_fake"},

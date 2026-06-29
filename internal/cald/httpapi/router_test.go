@@ -232,9 +232,17 @@ func testHTTPCapability(t *testing.T, providerID string) core.Capability {
 			CapabilityID: capabilityID,
 			ProviderID:   providerID,
 			Execution:    execution,
-			Verifier:     &core.Verifier{ID: "verifier_test"},
+			Verify:       testHTTPVerifySpec(),
 			Evidence:     []core.EvidenceRef{{ID: "evidence_test"}},
 			State:        core.BindingStatePromoted,
 		}},
+	}
+}
+
+func testHTTPVerifySpec() *core.VerifySpec {
+	return &core.VerifySpec{
+		Level:  core.VerifyLevelL2,
+		Method: core.VerifyMethodExecute,
+		Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
 	}
 }

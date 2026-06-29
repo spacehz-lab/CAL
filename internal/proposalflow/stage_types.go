@@ -2,7 +2,6 @@ package proposalflow
 
 import (
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/runtime"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
@@ -55,6 +54,5 @@ type probeMaterial struct {
 }
 
 type evidenceOutput struct {
-	VerifierPackages []runtime.GeneratedVerifierPackage `json:"verifier_packages,omitempty"`
-	Verifier         core.Verifier                      `json:"verifier"`
+	Verify core.VerifySpec `json:"verify"`
 }

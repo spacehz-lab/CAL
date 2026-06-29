@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/runtime"
 	calstore "github.com/spacehz-lab/cal/internal/store"
 )
 
@@ -101,7 +100,6 @@ func seedRunnableCapability(t *testing.T, home, providerPath string, kind core.E
 
 func seedCapabilityOnly(t *testing.T, home, providerID string, kind core.ExecutionKind) {
 	t.Helper()
-	installCLITestVerifier(t, home, "file_exists", fileExistsVerifierScript())
 	store, err := calstore.Open(home)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
@@ -117,7 +115,11 @@ func seedCapabilityOnly(t *testing.T, home, providerID string, kind core.Executi
 				Kind: kind,
 				Spec: map[string]any{"args": []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}},
 			},
-			Verifier: &core.Verifier{ID: "file_exists"},
+			Verify: &core.VerifySpec{
+				Level:  core.VerifyLevelL2,
+				Method: core.VerifyMethodExecute,
+				Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+			},
 			Evidence: []core.EvidenceRef{{
 				ID: "evidence_file_exists",
 			}},
@@ -169,90 +171,4 @@ func strconvQuote(value string) string {
 		panic(err)
 	}
 	return string(bytes)
-}
-
-func installCLITestVerifier(t *testing.T, home, id, verifyPY string) {
-	t.Helper()
-	t.Setenv("CAL_HOME", home)
-	if err := runtime.InstallVerifier(runtime.GeneratedVerifierPackage{
-		ID:          id,
-		Description: "test verifier",
-		VerifyPY:    verifyPY,
-	}); err != nil {
-		t.Fatalf("InstallVerifier(%s) error = %v", id, err)
-	}
-}
-
-func fileExistsVerifierScript() string {
-	return `import json
-import os
-import sys
-
-def fail(code, message):
-    print(json.dumps({"passed": False, "error": {"code": code, "message": message}}))
-    sys.exit(0)
-
-request = json.load(sys.stdin)
-verifier_id = request.get("verifier", {}).get("id", "file_exists")
-inputs = request.get("inputs") or {}
-path = inputs.get("target")
-if not isinstance(path, str) or not path:
-    fail("missing_input", 'verifier input "target" is required')
-if not os.path.exists(path):
-    fail("file_missing", f'expected file "{path}" does not exist')
-if os.path.isdir(path):
-    fail("file_is_directory", f'expected file "{path}" is a directory')
-size = os.path.getsize(path)
-print(json.dumps({
-    "passed": True,
-    "evidence": [{
-        "id": verifier_id,
-        "type": verifier_id,
-        "content": {"path": path, "size": size},
-    }],
-    "outputs": {"target": path},
-}))
-`
-}
-
-func pdfMagicVerifierScript() string {
-	return `import json
-import os
-import sys
-
-def fail(code, message):
-    print(json.dumps({"passed": False, "error": {"code": code, "message": message}}))
-    sys.exit(0)
-
-request = json.load(sys.stdin)
-verifier_id = request.get("verifier", {}).get("id", "pdf_magic_check")
-inputs = request.get("inputs") or {}
-path = inputs.get("target")
-if not isinstance(path, str) or not path:
-    fail("missing_input", 'verifier input "target" is required')
-if not os.path.exists(path):
-    fail("file_missing", f'expected artifact "{path}" does not exist')
-if os.path.isdir(path):
-    fail("file_is_directory", f'expected artifact "{path}" is a directory')
-with open(path, "rb") as handle:
-    content = handle.read().strip()
-ok = (
-    content.startswith(b"%PDF-")
-    and b"xref" in content
-    and b"trailer" in content
-    and b"startxref" in content
-    and content.endswith(b"%%EOF")
-)
-if not ok:
-    fail("parse_failed", f'artifact "{path}" did not pass pdf parse checks')
-print(json.dumps({
-    "passed": True,
-    "evidence": [{
-        "id": verifier_id,
-        "type": verifier_id,
-        "content": {"path": path, "size": os.path.getsize(path), "format": "pdf"},
-    }],
-    "outputs": {"target": path},
-}))
-`
 }

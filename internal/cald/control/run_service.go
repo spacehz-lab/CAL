@@ -12,12 +12,13 @@ import (
 
 // RunRequest describes one service-side capability execution.
 type RunRequest struct {
-	CapabilityID string         `json:"capability_id"`
-	BindingID    string         `json:"binding_id,omitempty"`
-	Inputs       map[string]any `json:"inputs"`
-	ProviderID   string         `json:"provider_id,omitempty"`
-	Strategy     string         `json:"strategy,omitempty"`
-	Verify       bool           `json:"verify,omitempty"`
+	CapabilityID   string           `json:"capability_id"`
+	BindingID      string           `json:"binding_id,omitempty"`
+	Inputs         map[string]any   `json:"inputs"`
+	ProviderID     string           `json:"provider_id,omitempty"`
+	Strategy       string           `json:"strategy,omitempty"`
+	Verify         bool             `json:"verify,omitempty"`
+	MinVerifyLevel core.VerifyLevel `json:"min_verify_level,omitempty"`
 }
 
 // Run executes a promoted capability binding and records the run.
@@ -44,7 +45,7 @@ func (svc Service) Run(ctx context.Context, req RunRequest) (core.Run, error) {
 	if !ok {
 		return svc.failRun(run, started, "capability_not_found", fmt.Sprintf("capability %q was not found", req.CapabilityID))
 	}
-	resolution, err := runner.Resolve(capability, runtime.ResolveOptions{BindingID: req.BindingID, ProviderID: req.ProviderID, Strategy: req.Strategy})
+	resolution, err := runner.Resolve(capability, runtime.ResolveOptions{BindingID: req.BindingID, ProviderID: req.ProviderID, Strategy: req.Strategy, MinVerifyLevel: req.MinVerifyLevel})
 	if err != nil {
 		return svc.failRun(run, started, "binding_not_found", err.Error())
 	}
@@ -61,16 +62,17 @@ func (svc Service) Run(ctx context.Context, req RunRequest) (core.Run, error) {
 	if err := runner.Validate(resolution.Binding, req.Inputs); err != nil {
 		return svc.failRun(run, started, "invalid_run_input", err.Error())
 	}
-	if _, err := runner.Execute(ctx, provider, resolution.Binding.Execution, req.Inputs); err != nil {
+	executionResult, err := runner.Execute(ctx, provider, resolution.Binding.Execution, req.Inputs)
+	if err != nil {
 		return svc.failRun(run, started, "execution_failed", err.Error())
 	}
 
 	run.Status = core.RunStatusSucceeded
 	if req.Verify {
-		if resolution.Binding.Verifier == nil {
-			return svc.failRun(run, started, "verification_failed", "selected binding does not declare a verifier")
+		if resolution.Binding.Verify == nil {
+			return svc.failRun(run, started, "verification_failed", "selected binding does not declare verify spec")
 		}
-		evidence, outputs, err := runner.Verify(ctx, *resolution.Binding.Verifier, req.Inputs)
+		evidence, outputs, err := runner.Verify(ctx, *resolution.Binding.Verify, req.Inputs, executionResult)
 		if err != nil {
 			return svc.failRun(run, started, "verification_failed", err.Error())
 		}

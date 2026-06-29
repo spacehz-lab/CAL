@@ -32,7 +32,6 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	e2etest.Build(t, repo, caldBin, "./cmd/cald")
 
 	home := filepath.Join(temp, "home")
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
 
@@ -59,8 +58,8 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	if !e2etest.HasObservation(trace.Observations, "help", "cupsfilter") {
 		t.Fatalf("trace observations = %#v, want help observation describing cupsfilter", trace.Observations)
 	}
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || trace.Probes[0].Verifier.ID != "file_parse_pdf" {
-		t.Fatalf("trace probes = %#v, want passing file_parse_pdf probe", trace.Probes)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probes = %#v, want passing L2+ probe", trace.Probes)
 	}
 
 	source := filepath.Join(temp, "source.txt")
@@ -77,8 +76,8 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != "file_parse_pdf" {
-		t.Fatalf("run evidence = %#v, want file_parse_pdf evidence", runSuccess.Evidence)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 
 	useTarget := filepath.Join(temp, "use-target.pdf")

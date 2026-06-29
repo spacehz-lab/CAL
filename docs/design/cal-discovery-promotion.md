@@ -143,7 +143,6 @@ Binding
   input_constraints optional
   execution
   verify
-  fallback optional
   evidence
   state
   created_at
@@ -163,7 +162,6 @@ candidate.input_constraints  -> Binding.input_constraints
 candidate.execution          -> Binding.execution
 
 probe.verify                 -> Binding.verify
-probe.fallback               -> Binding.fallback
 probe.evidence               -> Binding.evidence
 ```
 

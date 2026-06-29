@@ -12,9 +12,9 @@ func TestListCapabilitiesSummarizesPromotedBindings(t *testing.T) {
 			ID:          "document.export_pdf",
 			Description: "Export a document to PDF.",
 			Bindings: []core.Binding{
-				listBinding("binding_b", "provider_b", "pdf_exists", core.BindingStatePromoted),
-				listBinding("binding_a", "provider_a", "file_exists", core.BindingStatePromoted),
-				listBinding("binding_draft", "provider_a", "ignored", ""),
+				listBinding("binding_b", "provider_b", core.VerifyLevelL3, core.BindingStatePromoted),
+				listBinding("binding_a", "provider_a", core.VerifyLevelL2, core.BindingStatePromoted),
+				listBinding("binding_draft", "provider_a", core.VerifyLevelL1, ""),
 			},
 		},
 		{
@@ -36,8 +36,8 @@ func TestListCapabilitiesSummarizesPromotedBindings(t *testing.T) {
 	if got := bindings.ProviderIDs; len(got) != 2 || got[0] != "provider_a" || got[1] != "provider_b" {
 		t.Fatalf("ProviderIDs = %#v, want provider_a then provider_b", got)
 	}
-	if got := bindings.Verifiers; len(got) != 2 || got[0] != "file_exists" || got[1] != "pdf_exists" {
-		t.Fatalf("Verifiers = %#v, want sorted verifier ids", got)
+	if got := bindings.VerifyLevels; len(got) != 2 || got[0] != "L2" || got[1] != "L3" {
+		t.Fatalf("VerifyLevels = %#v, want sorted verify levels", got)
 	}
 }
 
@@ -46,14 +46,14 @@ func TestListCapabilitiesScopesCapabilityAndProvider(t *testing.T) {
 		{
 			ID: "document.export_pdf",
 			Bindings: []core.Binding{
-				listBinding("binding_a", "provider_a", "file_exists", core.BindingStatePromoted),
-				listBinding("binding_b", "provider_b", "file_exists", core.BindingStatePromoted),
+				listBinding("binding_a", "provider_a", core.VerifyLevelL2, core.BindingStatePromoted),
+				listBinding("binding_b", "provider_b", core.VerifyLevelL2, core.BindingStatePromoted),
 			},
 		},
 		{
 			ID: "document.print",
 			Bindings: []core.Binding{
-				listBinding("binding_print", "provider_b", "printed", core.BindingStatePromoted),
+				listBinding("binding_print", "provider_b", core.VerifyLevelL2, core.BindingStatePromoted),
 			},
 		},
 	}, ListOptions{CapabilityID: "document.export_pdf", ProviderID: "provider_b"})
@@ -67,13 +67,16 @@ func TestListCapabilitiesScopesCapabilityAndProvider(t *testing.T) {
 	}
 }
 
-func listBinding(id, providerID, verifierType string, state core.BindingState) core.Binding {
+func listBinding(id, providerID string, level core.VerifyLevel, state core.BindingState) core.Binding {
 	return core.Binding{
 		ID:           id,
 		CapabilityID: "document.export_pdf",
 		ProviderID:   providerID,
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI},
-		Verifier:     &core.Verifier{ID: verifierType},
-		State:        state,
+		Verify: &core.VerifySpec{
+			Level:  level,
+			Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+		},
+		State: state,
 	}
 }

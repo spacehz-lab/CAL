@@ -97,9 +97,13 @@ func validCapability(id string) core.Capability {
 			CapabilityID: id,
 			ProviderID:   "provider_abc123",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI},
-			Verifier:     &core.Verifier{ID: "file_exists"},
-			Evidence:     []core.EvidenceRef{{ID: "evidence_abc123"}},
-			State:        core.BindingStatePromoted,
+			Verify: &core.VerifySpec{
+				Level:  core.VerifyLevelL2,
+				Method: core.VerifyMethodExecute,
+				Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+			},
+			Evidence: []core.EvidenceRef{{ID: "evidence_abc123"}},
+			State:    core.BindingStatePromoted,
 		}},
 	}
 }

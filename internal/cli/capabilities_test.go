@@ -27,9 +27,13 @@ func TestCapabilityListReturnsPromotedSummary(t *testing.T) {
 				CapabilityID: "document.export_pdf",
 				ProviderID:   "provider_fake",
 				Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"secret": "do not expose"}},
-				Verifier:     &core.Verifier{ID: "file_exists"},
-				Evidence:     []core.EvidenceRef{{ID: "evidence_fake"}},
-				State:        core.BindingStatePromoted,
+				Verify: &core.VerifySpec{
+					Level:  core.VerifyLevelL2,
+					Method: core.VerifyMethodExecute,
+					Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+				},
+				Evidence: []core.EvidenceRef{{ID: "evidence_fake"}},
+				State:    core.BindingStatePromoted,
 			},
 		},
 	}); err != nil {
@@ -48,9 +52,9 @@ func TestCapabilityListReturnsPromotedSummary(t *testing.T) {
 		Capabilities []struct {
 			ID       string `json:"id"`
 			Bindings struct {
-				Available   int      `json:"available"`
-				ProviderIDs []string `json:"provider_ids"`
-				Verifiers   []string `json:"verifiers"`
+				Available    int      `json:"available"`
+				ProviderIDs  []string `json:"provider_ids"`
+				VerifyLevels []string `json:"verify_levels"`
 			} `json:"bindings"`
 			Execution any `json:"execution"`
 		} `json:"capabilities"`
@@ -71,8 +75,8 @@ func TestCapabilityListReturnsPromotedSummary(t *testing.T) {
 	if len(capability.Bindings.ProviderIDs) != 1 || capability.Bindings.ProviderIDs[0] != "provider_fake" {
 		t.Fatalf("provider_ids = %#v, want provider_fake", capability.Bindings.ProviderIDs)
 	}
-	if len(capability.Bindings.Verifiers) != 1 || capability.Bindings.Verifiers[0] != "file_exists" {
-		t.Fatalf("verifiers = %#v, want file_exists", capability.Bindings.Verifiers)
+	if len(capability.Bindings.VerifyLevels) != 1 || capability.Bindings.VerifyLevels[0] != "L2" {
+		t.Fatalf("verify_levels = %#v, want L2", capability.Bindings.VerifyLevels)
 	}
 }
 

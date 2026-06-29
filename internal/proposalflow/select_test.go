@@ -17,10 +17,10 @@ func TestSelectFiltersDeduplicatesLimitsAndReindexes(t *testing.T) {
 			selectCandidate("provider_cli", "text.encode", "encode"),
 		},
 		ProbePlans: []ProbePlan{
-			{CandidateIndex: 0, Verifier: core.Verifier{ID: "file_exists"}},
-			{CandidateIndex: 1, Verifier: core.Verifier{ID: "file_exists"}},
-			{CandidateIndex: 2, Verifier: core.Verifier{ID: "file_exists"}},
-			{CandidateIndex: 3, Verifier: core.Verifier{ID: "file_exists"}},
+			{CandidateIndex: 0, Verify: selectVerifySpec()},
+			{CandidateIndex: 1, Verify: selectVerifySpec()},
+			{CandidateIndex: 2, Verify: selectVerifySpec()},
+			{CandidateIndex: 3, Verify: selectVerifySpec()},
 		},
 	}
 
@@ -41,6 +41,14 @@ func TestSelectFiltersDeduplicatesLimitsAndReindexes(t *testing.T) {
 		if plan.CandidateIndex != index {
 			t.Fatalf("plan[%d].CandidateIndex = %d, want remapped index", index, plan.CandidateIndex)
 		}
+	}
+}
+
+func selectVerifySpec() core.VerifySpec {
+	return core.VerifySpec{
+		Level:  core.VerifyLevelL2,
+		Method: core.VerifyMethodExecute,
+		Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
 	}
 }
 

@@ -78,8 +78,12 @@ func testCapability(id, description, bindingID, providerID string, args []string
 				Kind: core.ExecutionKindCLI,
 				Spec: map[string]any{core.ExecutionSpecArgs: args},
 			},
-			Verifier: &core.Verifier{ID: "verifier_test"},
-			State:    core.BindingStatePromoted,
+			Verify: &core.VerifySpec{
+				Level:  core.VerifyLevelL2,
+				Method: core.VerifyMethodExecute,
+				Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+			},
+			State: core.BindingStatePromoted,
 		}},
 	}
 }

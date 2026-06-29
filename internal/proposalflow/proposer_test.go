@@ -2,8 +2,6 @@ package proposalflow
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -11,18 +9,15 @@ import (
 
 	"github.com/spacehz-lab/cal/internal/core"
 	sharedllm "github.com/spacehz-lab/cal/internal/llm"
-	"github.com/spacehz-lab/cal/internal/runtime"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
 func TestLLMProposerRunsFourStages(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("CAL_HOME", home)
 	client := &fakeStageClient{responses: [][]byte{
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document between formats.","source_surface_ids":["s1"],"confidence":"high"}]}`),
 		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document between formats.","execution":{"kind":"cli","spec":{"args":["export-pdf","--source","{{source}}","--target","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
-		[]byte(`{"verifier_packages":[{"id":"pdf_magic","description":"Check PDF magic bytes.","verify_py":"import json\nrequest=json.load(open(0))\nprint(json.dumps({\"passed\": True, \"evidence\": [{\"id\": request[\"verifier\"][\"id\"], \"type\": request[\"verifier\"][\"id\"], \"content\": {\"target\": (request.get(\"inputs\") or {}).get(\"target\")}}], \"outputs\": {\"target\": (request.get(\"inputs\") or {}).get(\"target\")}}))\n"}],"verifier":{"id":"pdf_magic"}}`),
+		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"format","params":{"format":"pdf"}}]}}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -44,14 +39,8 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 		t.Fatalf("candidate = %#v, want normalized LLM candidate", candidate)
 	}
 	plan := result.ProbePlans[0]
-	if plan.CandidateIndex != 0 || plan.Verifier.ID == "pdf_magic" || plan.Verifier.ID == "" {
-		t.Fatalf("probe plan = %#v, want generated verifier id", plan)
-	}
-	if _, err := os.Stat(filepath.Join(home, "verifiers", plan.Verifier.ID, "verify.py")); err != nil {
-		t.Fatalf("generated verifier missing: %v", err)
-	}
-	if !runtime.DefaultRegistry().Supports(plan.Verifier.ID) {
-		t.Fatalf("registry does not support generated verifier %q", plan.Verifier.ID)
+	if plan.CandidateIndex != 0 || plan.Verify.Level != core.VerifyLevelL2 || len(plan.Verify.Checks) != 1 {
+		t.Fatalf("probe plan = %#v, want L2 verify spec", plan)
 	}
 	if result.Diagnostics == nil || result.Diagnostics.SchemaVersion != cliProposalSchema || len(result.Diagnostics.Stages) != 3 {
 		t.Fatalf("diagnostics = %#v, want surface, capability, and binding stages", result.Diagnostics)
@@ -74,8 +63,8 @@ func TestLLMProposerHashesEachCandidateEvidenceIndependently(t *testing.T) {
 	surface := []byte(`{"surface_items":[{"id":"s1","kind":"command","name":"convert","description":"Convert documents.","decision":"keep"}]}`)
 	capability := []byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"}]}`)
 	binding := []byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document with mode A.","execution":{"kind":"cli","spec":{"args":["convert-a","{{source}}","{{target}}"]}}},{"capability_id":"document.convert","description":"Convert a document with mode B.","execution":{"kind":"cli","spec":{"args":["convert-b","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/a.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]},{"candidate_index":1,"inputs":{"target":"{{workdir}}/b.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`)
-	evidenceA := []byte(`{"verifier":{"id":"file_exists"}}`)
-	evidenceB := []byte(`{"verifier":{"id":"file_exists"} }`)
+	evidenceA := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}`)
+	evidenceB := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"non_empty"}]}}`)
 	client := &fakeStageClient{responses: [][]byte{surface, capability, binding, evidenceA, evidenceB}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -196,7 +185,7 @@ func TestLLMProposerDebugFilterSkipsOtherCapabilities(t *testing.T) {
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"},{"id":"s2","kind":"command","name":"encode","description":"Encode text.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"},{"capability_id":"text.encode","description":"Encode text.","source_surface_ids":["s2"],"confidence":"high"}]}`),
 		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document.","execution":{"kind":"cli","spec":{"args":["export-pdf","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
-		[]byte(`{"verifier":{"id":"file_exists"}}`),
+		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -215,33 +204,6 @@ func TestLLMProposerDebugFilterSkipsOtherCapabilities(t *testing.T) {
 	}
 	if client.index != len(client.responses) {
 		t.Fatalf("LLM calls = %d, want %d without binding skipped capability", client.index, len(client.responses))
-	}
-}
-
-func TestFinalVerifierInstallsGeneratedVerifierWithStableID(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("CAL_HOME", home)
-	hash := "test_proposal_hash"
-	localID := "unit_generated_check"
-	verifier, err := finalVerifier(evidenceOutput{
-		VerifierPackages: []runtime.GeneratedVerifierPackage{{
-			ID:       localID,
-			VerifyPY: "import json\nprint(json.dumps({\"passed\": True}))\n",
-		}},
-		Verifier: core.Verifier{ID: localID},
-	}, hash, 2, 3)
-	if err != nil {
-		t.Fatalf("finalVerifier() error = %v", err)
-	}
-	expectedID := generatedVerifierID(hash, 2, 3, localID)
-	if verifier.ID != expectedID {
-		t.Fatalf("verifier.ID = %q, want %q", verifier.ID, expectedID)
-	}
-	if !runtime.DefaultRegistry().Supports(expectedID) {
-		t.Fatalf("registry does not support generated verifier %q", expectedID)
-	}
-	if _, err := os.Stat(filepath.Join(home, "verifiers", expectedID, "verify.py")); err != nil {
-		t.Fatalf("generated verifier missing: %v", err)
 	}
 }
 
@@ -330,7 +292,7 @@ func (client *stagePromptClient) Complete(_ context.Context, prompt sharedllm.Pr
 	case prompt.System == cliBindingSystemPrompt && strings.Contains(prompt.User, `"capability_id":"text.encode"`):
 		return []byte(`{"candidates":[],"probe_material":[]}`), nil
 	case prompt.System == cliEvidenceSystemPrompt:
-		return []byte(`{"verifier":{"id":"file_exists"}}`), nil
+		return []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}`), nil
 	default:
 		return nil, sharedllm.ErrEmptyResponse
 	}

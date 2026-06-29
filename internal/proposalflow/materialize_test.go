@@ -20,7 +20,11 @@ func TestMaterializeProbePlanResolvesWorkdirAndFixtures(t *testing.T) {
 			Filename: "input.txt",
 			Content:  "hello\n",
 		}},
-		Verifier: core.Verifier{ID: "file_exists"},
+		Verify: core.VerifySpec{
+			Level:  core.VerifyLevelL2,
+			Method: core.VerifyMethodExecute,
+			Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+		},
 	})
 	if err != nil {
 		t.Fatalf("MaterializeProbePlan() error = %v", err)

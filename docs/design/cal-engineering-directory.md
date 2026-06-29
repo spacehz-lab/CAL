@@ -33,7 +33,6 @@ internal/
   baseline/
     rules/
       proposer.go
-      planner.go
 
   core/
     model.go
@@ -108,29 +107,33 @@ internal/
       observer.go
       help.go
 
-  proposal/
-    catalog.go
-    materializer.go
-    probe.go
-    proposal.go
-    prompt.go
-    schema.go
-
-    llm/
-      chat.go
-      factory.go
-      options.go
-      proposer.go
-      client.go
-      responses.go
+  proposalflow/
+    proposer.go
+    types.go
+    stage_types.go
+    profile.go
+    profile_cli.go
+    policy.go
+    policy_file.go
+    prompt_cli.go
+    surface.go
+    capability.go
+    binding.go
+    binding_check.go
+    binding_run.go
+    evidence.go
+    materialize.go
+    replay.go
+    select.go
+    logger.go
 
   runtime/
     catalog.go
     runner.go
     runner_inputs.go
     runner_execute.go
+    runner_verify.go
     registry.go
-    registry_install.go
 
   eval/
     eval.go
@@ -221,8 +224,7 @@ Eval
 `core` must not import higher-level packages.
 
 `core` does not own a verification catalog. Verify specs are data owned by
-promoted bindings, proposals, or tests. Script fallback ids are migration or
-extension data, not the default verification model.
+promoted bindings, proposals, or tests.
 
 ### `internal/trace`
 
@@ -298,14 +300,11 @@ Trace
 Probe
 ```
 
-Discovery should coordinate `observe` and `proposal`, then promote only verified bindings.
+Discovery should coordinate `observe` and `proposalflow`, then promote only verified bindings.
 
 `internal/proposalflow` owns the new four-stage Proposal flow. It returns
 candidate bindings and probe plans in one result so Discovery does not depend on
 separate proposer and probe-planner callbacks.
-
-The older `internal/proposal` package remains a migration source for replay JSON
-and current adapters until Discovery is switched to `proposalflow`.
 
 ### `internal/observe`
 
@@ -333,22 +332,12 @@ Evidence
 It should hide stage sequencing behind one `Pipeline.Propose` call and return
 candidate bindings plus probe plans as process material.
 
-### `internal/proposal`
-
-Owns the legacy replay/materializer and current adapter contracts until the
-Discovery cutover is complete.
-
-Rules-only proposal generation is intentionally outside `internal/proposal` in
-`internal/baseline/rules` so experiments and regression tests do not leak
-hard-coded behavior into production discovery.
-
 ### `internal/baseline/rules`
 
 Owns deterministic rules-only proposal generation and probe planning for evaluation baselines,
 controlled fake CLI fixtures, and regression tests.
 
-It may reference test-installed script fallback ids as fixture data, but
-production discovery must import it only for hidden baseline mode.
+Production discovery must import it only for hidden baseline mode.
 
 ### `internal/runtime`
 
@@ -403,15 +392,15 @@ fixtures, scoring, replay proposals, and runner. `evals/results` contains
 compact, commit-ready summaries selected from local runs. Generated outputs
 belong under `evals/out/`, which is ignored by git.
 
-Legacy script fallback packages may live under `CAL_HOME/verifiers/` during
-migration. Production verification should prefer `Binding.verify.checks`.
+Verification is represented by `Binding.verify` and probe `verify` specs.
+Runtime owns execution of built-in checks; Discovery owns promotion decisions.
 
 ## Naming Decisions
 
 - `calctl` is the CLI.
 - `cald` is the local service.
 - `observe` is independent because it can use CLI, CUA, or later drivers.
-- `proposal` owns candidate proposal generation and probe-plan materialization.
+- `proposalflow` owns staged proposal generation and probe-plan materialization.
 - `runtime` owns promoted binding execution, verification, catalog read-models, and binding selection.
 - There is no `actor` module.
 - There is no top-level `llm`, `infer`, `model`, `backend`, or `provider` module in the target tree.
@@ -440,14 +429,14 @@ internal/cald      -> internal/store
 internal/cald      -> internal/use
 
 internal/discovery -> internal/core
-internal/discovery -> internal/proposal
+internal/discovery -> internal/proposalflow
 internal/discovery -> internal/observe
 internal/discovery -> internal/runtime
 internal/discovery -> internal/trace
 
-internal/proposal  -> internal/core
-internal/proposal  -> internal/runtime
-internal/proposal  -> internal/trace
+internal/proposalflow -> internal/core
+internal/proposalflow -> internal/llm
+internal/proposalflow -> internal/trace
 internal/observe   -> internal/core
 internal/runtime   -> internal/core
 internal/use       -> internal/core

@@ -15,7 +15,6 @@ func TestDiscoverScanInfoLogsUseStderr(t *testing.T) {
 	t.Setenv(logging.EnvLogLevel, "")
 	home := t.TempDir()
 	startCLITestCald(t, home)
-	installCLITestVerifier(t, home, "file_parse_pdf", pdfMagicVerifierScript())
 	if err := os.WriteFile(filepath.Join(home, "config.json"), []byte(`{"logging":{"level":"info","file":{"enabled":false}}}`), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}

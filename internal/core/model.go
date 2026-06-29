@@ -55,7 +55,7 @@ type Binding struct {
 	ProviderID       string         `json:"provider_id"`
 	InputConstraints map[string]any `json:"input_constraints,omitempty"`
 	Execution        Execution      `json:"execution"`
-	Verifier         *Verifier      `json:"verifier,omitempty"`
+	Verify           *VerifySpec    `json:"verify,omitempty"`
 	Evidence         []EvidenceRef  `json:"evidence,omitempty"`
 	State            BindingState   `json:"state"`
 	CreatedAt        string         `json:"created_at,omitempty"`
@@ -65,11 +65,6 @@ type Binding struct {
 type Execution struct {
 	Kind ExecutionKind  `json:"kind"`
 	Spec map[string]any `json:"spec,omitempty"`
-}
-
-// Verifier describes a deterministic outcome check.
-type Verifier struct {
-	ID string `json:"id"`
 }
 
 // EvidenceRef points to evidence collected during discovery or run verification.

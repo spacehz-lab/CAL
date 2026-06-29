@@ -42,6 +42,9 @@ cald
 
 `calctl` should stay a thin adapter. It manages the `cald` process shape, discovers the local endpoint, calls the local HTTP control API, and renders command output. It should not call discovery, runtime, eval, store, or promotion workflows directly.
 
+Long-running synchronous discovery calls use a longer local HTTP client timeout
+than ordinary control calls. Probe execution remains bounded inside `cald`.
+
 The data model must stay the same either way.
 
 ## calctl And cald Relationship
@@ -175,8 +178,7 @@ boundaries:
   classifications.
 - `runtime binding ...`, `runtime execution ...`, `runtime verification ...`,
   and `runtime run ...` record binding resolution, provider execution,
-  verify-check evaluation or script fallback execution, and top-level run
-  completion or failure.
+  verify-check evaluation, and top-level run completion or failure.
 - `eval compute ...` records aggregate experiment record counts.
 
 ## Primary Agent Path

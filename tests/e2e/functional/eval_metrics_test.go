@@ -18,7 +18,6 @@ func TestExperimentEvalClosedLoopReportsAcquisitionAndReuse(t *testing.T) {
 	home := filepath.Join(temp, "home")
 	providerPath := filepath.Join(temp, "fake-exporter")
 	e2etest.WriteFakeExporter(t, providerPath, e2etest.WriteParseablePDFCommand())
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
@@ -111,7 +110,6 @@ func TestRuntimeRunFailureIsPersistedInEval(t *testing.T) {
   exit 73
 fi
 `+e2etest.WriteParseablePDFCommand())
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
 
@@ -181,14 +179,14 @@ func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 			t.Fatalf("promotion[%d] = %#v, want created promotion for matching candidate", index, promotion)
 		}
 	}
-	noteVerifierID := ""
+	noteProbePassed := false
 	for _, probe := range trace.Probes {
 		if probe.CandidateIndex == 1 {
-			noteVerifierID = probe.Verifier.ID
+			noteProbePassed = probe.Passed && core.VerifyLevelRank(probe.Verify.Level) >= core.VerifyLevelRank(core.VerifyLevelL2)
 		}
 	}
-	if noteVerifierID == "" {
-		t.Fatalf("trace probes = %#v, want verifier for text.write_file candidate", trace.Probes)
+	if !noteProbePassed {
+		t.Fatalf("trace probes = %#v, want passing L2+ verify for text.write_file candidate", trace.Probes)
 	}
 
 	noteTarget := filepath.Join(temp, "note.txt")
@@ -198,8 +196,8 @@ func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
 	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "text.write_file", "--inputs-json", `{"target":`+strconv.Quote(noteTarget)+`}`, "--verify", "--json")
-	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != noteVerifierID {
-		t.Fatalf("text.write_file run = %#v, want verified reuse with %q", runSuccess, noteVerifierID)
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) == 0 {
+		t.Fatalf("text.write_file run = %#v, want verified reuse", runSuccess)
 	}
 	content, err := os.ReadFile(noteTarget)
 	if err != nil {

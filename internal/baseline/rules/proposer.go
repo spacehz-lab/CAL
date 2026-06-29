@@ -45,7 +45,7 @@ func rulesResult(candidates []caltrace.Candidate) proposalflow.Result {
 			CandidateIndex: index,
 			Inputs:         probeInputs(candidate.CapabilityID),
 			Fixtures:       probeFixtures(candidate.CapabilityID),
-			Verifier:       core.Verifier{ID: verifierForCapability(candidate.CapabilityID)},
+			Verify:         verifyForCapability(candidate.CapabilityID),
 		})
 	}
 	return proposalflow.Result{
@@ -82,12 +82,12 @@ func probeFixtures(capabilityID string) []proposalflow.Fixture {
 	}}
 }
 
-func verifierForCapability(capabilityID string) string {
+func verifyForCapability(capabilityID string) core.VerifySpec {
 	switch capabilityID {
 	case "image.resize":
-		return verifierImageDimensions
+		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "png"}}}}
 	default:
-		return verifierFileParsePDF
+		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "pdf"}}}}
 	}
 }
 

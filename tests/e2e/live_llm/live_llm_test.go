@@ -4,7 +4,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/spacehz-lab/cal/internal/core"
@@ -39,7 +38,6 @@ func TestLiveLLMAcquisitionPromotesNewCapability(t *testing.T) {
 	home := e2etest.HomeFromEnv(env)
 	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
 	capabilityID := assertLiveLLMTrace(t, trace)
-	verifierID := trace.Probes[0].Verifier.ID
 	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", capabilityID+".json"))
 	if len(capability.Bindings) != 1 {
 		t.Fatalf("capability = %#v, want one promoted binding", capability)
@@ -56,7 +54,7 @@ func TestLiveLLMAcquisitionPromotesNewCapability(t *testing.T) {
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
 	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", capabilityID, "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
-	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 {
 		t.Fatalf("run success = %#v, want verified live LLM capability reuse", runSuccess)
 	}
 
@@ -107,7 +105,6 @@ func TestLiveLLMAcquisitionReusesExistingCapability(t *testing.T) {
 	e2etest.Build(t, repo, caldBin, "./cmd/cald")
 	e2etest.StartCald(t, repo, env, caldBin)
 	home := e2etest.HomeFromEnv(env)
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	seedPath := filepath.Join(temp, "seed-exporter")
 	e2etest.WriteFakeExporter(t, seedPath, e2etest.WriteParseablePDFCommand())
@@ -137,7 +134,6 @@ func TestLiveLLMAcquisitionReusesExistingCapability(t *testing.T) {
 
 	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
 	assertLiveLLMTrace(t, trace)
-	verifierID := trace.Probes[0].Verifier.ID
 	e2etest.AssertPromotionAction(t, home, acquisition.TraceID, "reused", "created")
 	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
 	if len(capability.Bindings) != 2 {
@@ -158,8 +154,8 @@ func TestLiveLLMAcquisitionReusesExistingCapability(t *testing.T) {
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified live LLM binding reuse", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
-		t.Fatalf("run evidence = %#v, want verifier evidence %q", runSuccess.Evidence, verifierID)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 
 	var metrics e2etest.EvalMetricsOutput
@@ -209,8 +205,8 @@ func TestLiveLLMAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 	home := e2etest.HomeFromEnv(env)
 	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
 	pdfCapabilityID, noteCapabilityID := assertLiveLLMMultiCapTrace(t, trace)
-	pdfVerifierID := traceVerifierForCapability(t, trace, pdfCapabilityID)
-	noteVerifierID := traceVerifierForCapability(t, trace, noteCapabilityID)
+	assertTraceVerifyForCapability(t, trace, pdfCapabilityID)
+	assertTraceVerifyForCapability(t, trace, noteCapabilityID)
 	for _, capabilityID := range []string{pdfCapabilityID, noteCapabilityID} {
 		capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", capabilityID+".json"))
 		if len(capability.Bindings) != 1 {
@@ -229,7 +225,7 @@ func TestLiveLLMAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
 	e2etest.RunJSON(t, repo, env, &pdfRun, calctlBin, "runs", "create", "--capability-id", pdfCapabilityID, "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(pdfSource)+`,"target":`+strconv.Quote(pdfTarget)+`}`, "--verify", "--json")
-	if pdfRun.Status != "succeeded" || !pdfRun.Verified || len(pdfRun.Evidence) != 1 || pdfRun.Evidence[0].ID != pdfVerifierID {
+	if pdfRun.Status != "succeeded" || !pdfRun.Verified || len(pdfRun.Evidence) != 1 {
 		t.Fatalf("pdf run = %#v, want verified %s reuse", pdfRun, pdfCapabilityID)
 	}
 
@@ -244,7 +240,7 @@ func TestLiveLLMAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
 	e2etest.RunJSON(t, repo, env, &noteRun, calctlBin, "runs", "create", "--capability-id", noteCapabilityID, "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(noteSource)+`,"target":`+strconv.Quote(noteTarget)+`}`, "--verify", "--json")
-	if noteRun.Status != "succeeded" || !noteRun.Verified || len(noteRun.Evidence) != 1 || noteRun.Evidence[0].ID != noteVerifierID {
+	if noteRun.Status != "succeeded" || !noteRun.Verified || len(noteRun.Evidence) != 1 {
 		t.Fatalf("note run = %#v, want verified %s reuse", noteRun, noteCapabilityID)
 	}
 
@@ -264,7 +260,7 @@ func TestLiveLLMAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 	}
 }
 
-func TestLiveLLMAcquisitionGeneratesVerifierHarness(t *testing.T) {
+func TestLiveLLMAcquisitionGeneratesVerifySpec(t *testing.T) {
 	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
 	repo := e2etest.RepoRoot(t)
 	temp := t.TempDir()
@@ -285,17 +281,16 @@ func TestLiveLLMAcquisitionGeneratesVerifierHarness(t *testing.T) {
 	}
 	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
-		t.Fatalf("acquisition = %#v, want generated verifier live LLM acquisition", acquisition)
+		t.Fatalf("acquisition = %#v, want verify-spec live LLM acquisition", acquisition)
 	}
 
 	home := e2etest.HomeFromEnv(env)
 	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
 	if len(trace.Candidates) != 1 || len(trace.Probes) != 1 || !trace.Probes[0].Passed {
-		t.Fatalf("trace = %#v, want one passed generated verifier probe", trace)
+		t.Fatalf("trace = %#v, want one passed verify-spec probe", trace)
 	}
-	verifierID := trace.Probes[0].Verifier.ID
-	if _, err := os.Stat(filepath.Join(home, "verifiers", verifierID, "verify.py")); err != nil {
-		t.Fatalf("generated verifier %q missing: %v", verifierID, err)
+	if core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL1) {
+		t.Fatalf("trace probe = %#v, want L1+ verify", trace.Probes[0])
 	}
 
 	source := filepath.Join(temp, "source.txt")
@@ -309,17 +304,17 @@ func TestLiveLLMAcquisitionGeneratesVerifierHarness(t *testing.T) {
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
 	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", trace.Candidates[0].CapabilityID, "--provider-id", acquisition.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
-	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
-		t.Fatalf("run success = %#v, want generated verifier reuse", runSuccess)
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run success = %#v, want verify-spec reuse", runSuccess)
 	}
 
 	var metrics e2etest.EvalMetricsOutput
 	e2etest.RunJSON(t, repo, env, &metrics, calctlBin, "eval", "--json")
 	if metrics.Summary.Providers != 1 || metrics.Summary.Capabilities != 1 || metrics.Summary.Bindings != 1 || metrics.Summary.PromotedBindings != 1 || metrics.Summary.Traces != 1 || metrics.Summary.Runs != 1 {
-		t.Fatalf("eval summary = %#v, want generated verifier closed-loop records", metrics.Summary)
+		t.Fatalf("eval summary = %#v, want verify-spec closed-loop records", metrics.Summary)
 	}
 	if metrics.Reuse.RunCount != 1 || metrics.Reuse.RunSuccessCount != 1 || metrics.Reuse.VerifiedRunCount != 1 || metrics.Reuse.VerifiedSuccessRate != 1 {
-		t.Fatalf("eval reuse = %#v, want generated verifier reuse evidence", metrics.Reuse)
+		t.Fatalf("eval reuse = %#v, want verify-spec reuse evidence", metrics.Reuse)
 	}
 }
 
@@ -362,8 +357,8 @@ func assertLiveLLMTrace(t *testing.T, trace caltrace.Trace) string {
 			t.Fatalf("candidate args[%d] = %#v, want %q", index, args[index], want)
 		}
 	}
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || !strings.HasPrefix(trace.Probes[0].Verifier.ID, "verifier_") {
-		t.Fatalf("trace probes = %#v, want passing generated verifier probe", trace.Probes)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL1) {
+		t.Fatalf("trace probes = %#v, want passing L1+ verify probe", trace.Probes)
 	}
 	promotions := e2etest.TracePromotions(trace)
 	if len(promotions) != 1 || promotions[0].CapabilityID != candidate.CapabilityID || promotions[0].BindingID == "" {
@@ -404,8 +399,8 @@ func assertLiveLLMMultiCapTrace(t *testing.T, trace caltrace.Trace) (string, str
 			t.Fatalf("probe = %#v, want valid candidate index", probe)
 		}
 		capabilityID := trace.Candidates[probe.CandidateIndex].CapabilityID
-		if !probe.Passed || !strings.HasPrefix(probe.Verifier.ID, "verifier_") {
-			t.Fatalf("probe = %#v, want passing generated verifier for %s", probe, capabilityID)
+		if !probe.Passed || core.VerifyLevelRank(probe.Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL1) {
+			t.Fatalf("probe = %#v, want passing L1+ verify for %s", probe, capabilityID)
 		}
 	}
 	for _, promotion := range e2etest.TracePromotions(trace) {
@@ -420,18 +415,17 @@ func assertLiveLLMMultiCapTrace(t *testing.T, trace caltrace.Trace) (string, str
 	return pdfCapabilityID, noteCapabilityID
 }
 
-func traceVerifierForCapability(t *testing.T, trace caltrace.Trace, capabilityID string) string {
+func assertTraceVerifyForCapability(t *testing.T, trace caltrace.Trace, capabilityID string) {
 	t.Helper()
 	for _, probe := range trace.Probes {
 		if probe.CandidateIndex < 0 || probe.CandidateIndex >= len(trace.Candidates) {
 			continue
 		}
-		if trace.Candidates[probe.CandidateIndex].CapabilityID == capabilityID {
-			return probe.Verifier.ID
+		if trace.Candidates[probe.CandidateIndex].CapabilityID == capabilityID && probe.Passed && core.VerifyLevelRank(probe.Verify.Level) >= core.VerifyLevelRank(core.VerifyLevelL1) {
+			return
 		}
 	}
-	t.Fatalf("trace probes = %#v, missing verifier for %s", trace.Probes, capabilityID)
-	return ""
+	t.Fatalf("trace probes = %#v, missing passing verify for %s", trace.Probes, capabilityID)
 }
 
 func writeLiveLLMExporter(t *testing.T, path string) {

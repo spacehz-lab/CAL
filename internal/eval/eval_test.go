@@ -33,7 +33,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 				CapabilityID: "document.export_pdf",
 				ProviderID:   "provider_fake",
 				Execution:    core.Execution{Kind: core.ExecutionKindCLI},
-				Verifier:     &core.Verifier{ID: "file_exists"},
+				Verify:       evalVerifySpecPtr(core.VerifyLevelL2),
 				Evidence:     []core.EvidenceRef{{ID: "evidence_fake"}},
 				State:        core.BindingStatePromoted,
 			},
@@ -62,7 +62,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		Probes: []caltrace.Probe{{
 			CandidateIndex: 0,
 			Passed:         true,
-			Verifier:       core.Verifier{ID: "file_exists"},
+			Verify:         evalVerifySpec(core.VerifyLevelL2),
 			Evidence:       []core.EvidenceRef{{ID: "evidence_fake"}},
 		}},
 		Promotions: []caltrace.Promotion{{
@@ -89,7 +89,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		Probes: []caltrace.Probe{{
 			CandidateIndex: 0,
 			Passed:         true,
-			Verifier:       core.Verifier{ID: "file_exists"},
+			Verify:         evalVerifySpec(core.VerifyLevelL2),
 			Evidence:       []core.EvidenceRef{{ID: "evidence_reused"}},
 		}},
 		Promotions: []caltrace.Promotion{{
@@ -117,7 +117,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		Probes: []caltrace.Probe{{
 			CandidateIndex: 0,
 			Passed:         false,
-			Verifier:       core.Verifier{ID: "file_parse_pdf"},
+			Verify:         evalVerifySpec(core.VerifyLevelL2),
 			Error:          &core.RecordError{Code: "verification_failed", Message: "invalid pdf"},
 		}},
 		Error: &core.RecordError{Code: "verification_failed", Message: "invalid pdf"},
@@ -243,4 +243,17 @@ func (store failingEvalStore) ListTraces() ([]caltrace.Trace, error) {
 		return nil, errors.New("traces failed")
 	}
 	return []caltrace.Trace{}, nil
+}
+
+func evalVerifySpecPtr(level core.VerifyLevel) *core.VerifySpec {
+	verify := evalVerifySpec(level)
+	return &verify
+}
+
+func evalVerifySpec(level core.VerifyLevel) core.VerifySpec {
+	return core.VerifySpec{
+		Level:  level,
+		Method: core.VerifyMethodExecute,
+		Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+	}
 }

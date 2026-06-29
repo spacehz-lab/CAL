@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/spacehz-lab/cal/internal/cald/control"
+	"github.com/spacehz-lab/cal/internal/core"
 )
 
 func newRunsCommand(cfg Config) *cobra.Command {
@@ -29,6 +30,7 @@ func newRunsCreateCommand(cfg Config) *cobra.Command {
 	var providerID string
 	var strategy string
 	var verifyRun bool
+	var minVerifyLevel string
 	cmd := &cobra.Command{
 		Use:   "create",
 		Short: "Execute a promoted capability",
@@ -42,12 +44,13 @@ func newRunsCreateCommand(cfg Config) *cobra.Command {
 				return writeCommandError(cmd, jsonOut, err)
 			}
 			run, err := client.Run(cmd.Context(), control.RunRequest{
-				CapabilityID: capabilityID,
-				BindingID:    bindingID,
-				Inputs:       inputs,
-				ProviderID:   providerID,
-				Strategy:     strategy,
-				Verify:       verifyRun,
+				CapabilityID:   capabilityID,
+				BindingID:      bindingID,
+				Inputs:         inputs,
+				ProviderID:     providerID,
+				Strategy:       strategy,
+				Verify:         verifyRun,
+				MinVerifyLevel: core.VerifyLevel(minVerifyLevel),
 			})
 			if err != nil {
 				return writeCommandError(cmd, jsonOut, err)
@@ -77,6 +80,7 @@ func newRunsCreateCommand(cfg Config) *cobra.Command {
 	cmd.Flags().StringVar(&providerID, "provider-id", "", "provider_id request field")
 	cmd.Flags().StringVar(&strategy, "strategy", "default", "binding resolution strategy")
 	cmd.Flags().BoolVar(&verifyRun, "verify", false, "verify the outcome after execution")
+	cmd.Flags().StringVar(&minVerifyLevel, "min-verify-level", "", "minimum verification level: L1, L2, or L3")
 	return cmd
 }
 

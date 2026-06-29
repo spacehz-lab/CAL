@@ -26,7 +26,8 @@ import (
 )
 
 const (
-	defaultTimeout = 5 * time.Minute
+	defaultTimeout   = 5 * time.Minute
+	discoveryTimeout = 20 * time.Minute
 )
 
 // Client calls the local cald HTTP API.
@@ -102,7 +103,7 @@ func (client Client) GetProviderByPath(ctx context.Context, providerPath string)
 // Discover runs synchronous provider acquisition.
 func (client Client) Discover(ctx context.Context, req control.DiscoveryRequest) (discovery.JobResult, error) {
 	var response discovery.JobResult
-	err := client.post(ctx, "/v1/discovery", req, &response)
+	err := client.withTimeout(discoveryTimeout).post(ctx, "/v1/discovery", req, &response)
 	return response, err
 }
 
@@ -217,6 +218,17 @@ func (client Client) do(req *http.Request, target any) error {
 		return fmt.Errorf("decode cald response: %w", err)
 	}
 	return nil
+}
+
+func (client Client) withTimeout(timeout time.Duration) Client {
+	if client.http == nil {
+		client.http = &http.Client{Timeout: timeout}
+		return client
+	}
+	copiedHTTP := *client.http
+	copiedHTTP.Timeout = timeout
+	client.http = &copiedHTTP
+	return client
 }
 
 func decodeAPIError(content []byte) control.APIError {

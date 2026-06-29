@@ -31,7 +31,6 @@ func TestDiscoverProviderCommandRequiresProviderID(t *testing.T) {
 func TestDiscoverProviderCommandByID(t *testing.T) {
 	home := t.TempDir()
 	startCLITestCald(t, home)
-	installCLITestVerifier(t, home, "file_parse_pdf", pdfMagicVerifierScript())
 	store := newTestStoreWithHome(t, home)
 	if err := store.PutProvider(testCLIProvider("provider_cli", writeAcquisitionScript(t))); err != nil {
 		t.Fatalf("PutProvider() error = %v", err)

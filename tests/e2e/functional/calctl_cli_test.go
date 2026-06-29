@@ -27,7 +27,6 @@ func TestCALCLISmoke(t *testing.T) {
 	if err := os.MkdirAll(home, 0o755); err != nil {
 		t.Fatalf("create CAL_HOME: %v", err)
 	}
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 

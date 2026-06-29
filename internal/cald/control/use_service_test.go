@@ -157,7 +157,7 @@ func useTestCapability(id, description, providerID string, execution core.Execut
 			CapabilityID: id,
 			ProviderID:   providerID,
 			Execution:    execution,
-			Verifier:     &core.Verifier{ID: "verifier_test"},
+			Verify:       testVerifySpec(),
 			Evidence:     []core.EvidenceRef{{ID: "evidence_test"}},
 			State:        core.BindingStatePromoted,
 		}},

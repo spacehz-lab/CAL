@@ -11,17 +11,11 @@ import (
 
 var (
 	capabilityIDPattern = regexp.MustCompile(`^[a-z0-9_]+\.[a-z0-9_]+$`)
-	verifierIDPattern   = regexp.MustCompile(`^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$`)
 )
 
 // ValidCapabilityID reports whether id matches the CAL capability id shape.
 func ValidCapabilityID(id string) bool {
 	return capabilityIDPattern.MatchString(id)
-}
-
-// ValidVerifierID reports whether id matches the verifier package id shape.
-func ValidVerifierID(id string) bool {
-	return verifierIDPattern.MatchString(id)
 }
 
 // ProviderID derives a deterministic provider id from entry facts.

@@ -86,11 +86,11 @@ locally.
 ```text
 verify
   level L0 | L1 | L2 | L3
+  method execute | contract
   checks[]
     subject
     predicate
     params optional
-  fallback optional
 ```
 
 `level` describes the strength of deterministic evidence:
@@ -111,6 +111,12 @@ L0 unsupported
 
 CAL owns final level validation. A model-suggested level is process material,
 not proof.
+
+`method` describes evidence collection. `execute` runs the probe and evaluates
+built-in checks locally. `contract` records weak evidence without executing the
+probe when real execution would install, remove, update, edit, start services,
+require network, require interaction, or change external state. Contract
+verification cannot exceed `L1` and must not include checks.
 
 ## Built-In Checks
 
@@ -140,17 +146,9 @@ Checks must reference only evidence subjects available in the probe context.
 They must not require hidden probe-only values that future `run --verify` calls
 cannot supply or reproduce.
 
-## Fallback
-
-Script or plugin fallback is allowed only when built-in checks cannot
-express the outcome.
-
-Script fallback packages are local deterministic code. They are not model
-judgment and do not bypass CAL execution, timeout, JSON decoding, evidence
-recording, or pass/fail handling.
-
-Legacy replay fixtures may still reference old `verifier` fields during
-migration. New Proposal output should prefer `verify.checks`.
+Each execute probe has a bounded timeout and records `execution_timeout` when
+the candidate command exceeds it. A single probe timeout should fail that
+candidate, not cancel unrelated candidates.
 
 ## Output
 
@@ -177,7 +175,6 @@ probe
   candidate_index
   passed
   verify
-  fallback optional
   evidence
   reason optional
   error optional
@@ -195,11 +192,7 @@ passed
   Whether the candidate passed deterministic verification.
 
 verify
-  Deterministic checks and level used for the probe.
-
-fallback optional
-  Script or plugin fallback used only when checks cannot express the outcome or
-  when replaying legacy fixtures.
+  Verification level, method, and deterministic checks used for the probe.
 
 evidence
   Evidence collected during execution and verification.

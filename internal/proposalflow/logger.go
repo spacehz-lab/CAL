@@ -24,7 +24,8 @@ const (
 	logKeyIndex           = "index"
 	logKeyTimeoutMS       = "timeout_ms"
 	logKeyCandidateIndex  = "candidate_index"
-	logKeyVerifierID      = "verifier_id"
+	logKeyVerifyLevel     = "verify_level"
+	logKeyVerifyMethod    = "verify_method"
 )
 
 type logger struct {
@@ -115,13 +116,14 @@ func (log logger) evidenceStarted(capabilityID string, candidateIndex int) {
 	)
 }
 
-func (log logger) evidenceCompleted(capabilityID string, candidateIndex int, started time.Time, verifierID string) {
+func (log logger) evidenceCompleted(capabilityID string, candidateIndex int, started time.Time, verifyLevel, verifyMethod string) {
 	log.info("proposal evidence completed",
 		logKeyStage, string(caltrace.ProposalStageEvidence),
 		logKeyCapabilityID, capabilityID,
 		logKeyCandidateIndex, candidateIndex,
 		logKeyDurationMS, time.Since(started).Milliseconds(),
-		logKeyVerifierID, verifierID,
+		logKeyVerifyLevel, verifyLevel,
+		logKeyVerifyMethod, verifyMethod,
 	)
 }
 

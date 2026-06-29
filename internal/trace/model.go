@@ -141,7 +141,7 @@ type Probe struct {
 	CandidateIndex int                `json:"candidate_index"`
 	Passed         bool               `json:"passed"`
 	Inputs         map[string]any     `json:"inputs,omitempty"`
-	Verifier       core.Verifier      `json:"verifier"`
+	Verify         core.VerifySpec    `json:"verify"`
 	Evidence       []core.EvidenceRef `json:"evidence,omitempty"`
 	Reason         string             `json:"reason,omitempty"`
 	Error          *core.RecordError  `json:"error,omitempty"`

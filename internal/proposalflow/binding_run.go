@@ -69,7 +69,7 @@ func (run bindingRun) run(ctx context.Context, capabilities []capabilityPlan) (R
 			defer cancel()
 			pipelineStarted := time.Now()
 			run.log.bindingStarted(capability.CapabilityID, index, len(capabilities), run.prof.bindingTimeout)
-			results[index] = run.runOne(pipelineCtx, capability, index)
+			results[index] = run.runOne(pipelineCtx, capability)
 			done := completed.Add(1)
 			if results[index].err != nil {
 				run.log.bindingFailed(capability.CapabilityID, done, len(capabilities), len(results[index].result.Candidates), pipelineStarted, results[index].err)
@@ -102,7 +102,7 @@ func (run bindingRun) context(ctx context.Context) (context.Context, context.Can
 	return context.WithTimeout(ctx, run.prof.bindingTimeout)
 }
 
-func (run bindingRun) runOne(ctx context.Context, capability capabilityPlan, capabilityIndex int) bindingRunResult {
+func (run bindingRun) runOne(ctx context.Context, capability capabilityPlan) bindingRunResult {
 	binding, bindingRaw, bindingStage, err := run.proposer.draftBinding(ctx, run.req, run.prof, capability, run.surfaces)
 	if err != nil {
 		return bindingRunResult{stages: []caltrace.ProposalStage{bindingStage}, err: err}
@@ -122,21 +122,15 @@ func (run bindingRun) runOne(ctx context.Context, capability capabilityPlan, cap
 			run.log.evidenceFailed(capability.CapabilityID, localIndex, evidenceStarted, err)
 			return bindingRunResult{stages: []caltrace.ProposalStage{bindingStage}, err: err}
 		}
-		candidateRaw := append(append([]byte{}, raw...), evidenceRaw...)
-		hash := proposalHash(candidateRaw)
-		verifier, err := finalVerifier(evidence, hash, capabilityIndex, localIndex)
-		if err != nil {
-			run.log.evidenceFailed(capability.CapabilityID, localIndex, evidenceStarted, err)
-			return bindingRunResult{stages: []caltrace.ProposalStage{bindingStage}, err: err}
-		}
-		run.log.evidenceCompleted(capability.CapabilityID, localIndex, evidenceStarted, verifier.ID)
+		hash := proposalHash(append(append([]byte{}, raw...), evidenceRaw...))
+		run.log.evidenceCompleted(capability.CapabilityID, localIndex, evidenceStarted, string(evidence.Verify.Level), string(evidence.Verify.Method))
 		candidate = run.proposer.attachProvenance(candidate, hash)
 		result.Candidates = append(result.Candidates, candidate)
 		result.ProbePlans = append(result.ProbePlans, ProbePlan{
 			CandidateIndex: len(result.Candidates) - 1,
 			Inputs:         material.Inputs,
 			Fixtures:       material.Fixtures,
-			Verifier:       verifier,
+			Verify:         evidence.Verify,
 		})
 	}
 	return bindingRunResult{result: result, stages: []caltrace.ProposalStage{bindingStage}}

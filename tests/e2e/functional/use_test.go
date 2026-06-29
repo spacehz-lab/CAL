@@ -18,7 +18,6 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 	secondPath := filepath.Join(temp, "second-exporter")
 	e2etest.WriteFakeExporter(t, firstPath, e2etest.WriteParseablePDFCommand())
 	e2etest.WriteFakeExporter(t, secondPath, e2etest.WriteParseablePDFCommand())
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)

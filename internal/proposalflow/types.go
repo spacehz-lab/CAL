@@ -30,10 +30,10 @@ type Result struct {
 
 // ProbePlan is the proposed probe context for one candidate.
 type ProbePlan struct {
-	CandidateIndex int            `json:"candidate_index"`
-	Inputs         map[string]any `json:"inputs,omitempty"`
-	Fixtures       []Fixture      `json:"fixtures,omitempty"`
-	Verifier       core.Verifier  `json:"verifier"`
+	CandidateIndex int             `json:"candidate_index"`
+	Inputs         map[string]any  `json:"inputs,omitempty"`
+	Fixtures       []Fixture       `json:"fixtures,omitempty"`
+	Verify         core.VerifySpec `json:"verify"`
 }
 
 // Fixture describes one file to materialize inside the probe workdir.

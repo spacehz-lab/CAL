@@ -218,7 +218,6 @@ probe
   candidate_index
   passed
   verify
-  fallback optional
   evidence
   reason optional
   error optional

@@ -40,12 +40,13 @@ func (svc Service) Use(ctx context.Context, req caluse.Request) (caluse.Result, 
 	}
 
 	run, err := svc.Run(ctx, RunRequest{
-		CapabilityID: resolution.Selection.CapabilityID,
-		BindingID:    resolution.Selection.BindingID,
-		Inputs:       inputs,
-		ProviderID:   req.ProviderID,
-		Strategy:     req.Strategy,
-		Verify:       req.Verify,
+		CapabilityID:   resolution.Selection.CapabilityID,
+		BindingID:      resolution.Selection.BindingID,
+		Inputs:         inputs,
+		ProviderID:     req.ProviderID,
+		Strategy:       req.Strategy,
+		Verify:         req.Verify,
+		MinVerifyLevel: req.MinVerifyLevel,
 	})
 	if err != nil {
 		return caluse.Result{}, err

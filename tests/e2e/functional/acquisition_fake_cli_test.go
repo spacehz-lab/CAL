@@ -19,7 +19,6 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 	home := filepath.Join(temp, "home")
 	providerPath := filepath.Join(temp, "fake-exporter")
 	e2etest.WriteFakeExporter(t, providerPath, e2etest.WriteParseablePDFCommand())
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
@@ -40,11 +39,11 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 	if len(trace.Probes) != 1 {
 		t.Fatalf("trace probes = %#v, want one probe", trace.Probes)
 	}
-	if !trace.Probes[0].Passed || trace.Probes[0].Verifier.ID != "file_parse_pdf" {
-		t.Fatalf("trace probe = %#v, want passing file_parse_pdf verifier", trace.Probes[0])
+	if !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probe = %#v, want passing L2+ verify", trace.Probes[0])
 	}
-	if len(trace.Probes[0].Evidence) != 1 || trace.Probes[0].Evidence[0].ID != "file_parse_pdf" {
-		t.Fatalf("trace probe evidence = %#v, want file_parse_pdf evidence", trace.Probes[0].Evidence)
+	if len(trace.Probes[0].Evidence) != 1 {
+		t.Fatalf("trace probe evidence = %#v, want one evidence", trace.Probes[0].Evidence)
 	}
 
 	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
@@ -55,8 +54,8 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 	if binding.State != core.BindingStatePromoted || binding.ProviderID != provider.ID {
 		t.Fatalf("binding = %#v, want promoted binding for provider %s", binding, provider.ID)
 	}
-	if binding.Verifier == nil || binding.Verifier.ID != "file_parse_pdf" {
-		t.Fatalf("binding verifier = %#v, want file_parse_pdf", binding.Verifier)
+	if binding.Verify == nil || core.VerifyLevelRank(binding.Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("binding verify = %#v, want L2+", binding.Verify)
 	}
 
 	source := filepath.Join(temp, "source.txt")
@@ -73,8 +72,8 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != "file_parse_pdf" {
-		t.Fatalf("run evidence = %#v, want file_parse_pdf evidence", runSuccess.Evidence)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 }
 
@@ -85,7 +84,6 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 	home := filepath.Join(temp, "home")
 	providerPath := filepath.Join(temp, "fake-exporter")
 	e2etest.WriteMarkerFreeFakeExporter(t, providerPath, e2etest.WriteParseablePDFCommand())
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
@@ -128,13 +126,13 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 			t.Fatalf("candidate args[%d] = %#v, want %q", index, args[index], want)
 		}
 	}
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || trace.Probes[0].Verifier.ID != "file_parse_pdf" {
-		t.Fatalf("trace probes = %#v, want passing file_parse_pdf probe", trace.Probes)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probes = %#v, want passing L2+ probe", trace.Probes)
 	}
 
 	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
-	if len(capability.Bindings) != 1 || capability.Bindings[0].Verifier == nil || capability.Bindings[0].Verifier.ID != "file_parse_pdf" {
-		t.Fatalf("capability = %#v, want one parse-verified binding", capability)
+	if len(capability.Bindings) != 1 || capability.Bindings[0].Verify == nil || core.VerifyLevelRank(capability.Bindings[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("capability = %#v, want one L2+ verified binding", capability)
 	}
 
 	source := filepath.Join(temp, "source.txt")
@@ -151,8 +149,8 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != "file_parse_pdf" {
-		t.Fatalf("run evidence = %#v, want file_parse_pdf evidence", runSuccess.Evidence)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 }
 
@@ -201,10 +199,9 @@ func TestReplayProposalAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 			t.Fatalf("candidate args[%d] = %#v, want %q", index, args[index], want)
 		}
 	}
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || !strings.HasPrefix(trace.Probes[0].Verifier.ID, "verifier_pdf_magic_check_") {
-		t.Fatalf("trace probes = %#v, want passing generated verifier probe", trace.Probes)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probes = %#v, want passing L2+ verify probe", trace.Probes)
 	}
-	verifierID := trace.Probes[0].Verifier.ID
 
 	source := filepath.Join(temp, "source.txt")
 	target := filepath.Join(temp, "target.pdf")
@@ -220,8 +217,8 @@ func TestReplayProposalAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
-		t.Fatalf("run evidence = %#v, want verifier evidence %q", runSuccess.Evidence, verifierID)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 
 	var metrics struct {
@@ -241,14 +238,14 @@ func TestReplayProposalAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 	}
 }
 
-func TestReplayProposalAcquisitionPromotesGeneratedVerifierBinding(t *testing.T) {
+func TestReplayProposalAcquisitionPromotesVerifySpecBinding(t *testing.T) {
 	repo, calctlBin, caldBin := functionalBinaries(t)
 	temp := t.TempDir()
 
 	home := filepath.Join(temp, "home")
 	providerPath := filepath.Join(temp, "proposal-exporter")
 	e2etest.WriteProposalBackedExporter(t, providerPath)
-	proposalPath := e2etest.WriteReplayGeneratedVerifierProposal(t, filepath.Join(temp, "proposal-generated-verifier.json"))
+	proposalPath := e2etest.WriteReplayVerifySpecProposal(t, filepath.Join(temp, "proposal-verify-spec.json"))
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
 
@@ -261,19 +258,15 @@ func TestReplayProposalAcquisitionPromotesGeneratedVerifierBinding(t *testing.T)
 	}
 	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
-		t.Fatalf("acquisition discovery = %#v, want generated-verifier promoted binding", acquisition)
+		t.Fatalf("acquisition discovery = %#v, want verify-spec promoted binding", acquisition)
 	}
 	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || !strings.HasPrefix(trace.Probes[0].Verifier.ID, "verifier_pdf_magic_check_") {
-		t.Fatalf("trace probes = %#v, want passing generated verifier probe", trace.Probes)
-	}
-	verifierID := trace.Probes[0].Verifier.ID
-	if _, err := os.Stat(filepath.Join(home, "verifiers", verifierID, "verify.py")); err != nil {
-		t.Fatalf("generated verifier missing: %v", err)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probes = %#v, want passing L2+ verify probe", trace.Probes)
 	}
 	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
-	if len(capability.Bindings) != 1 || capability.Bindings[0].Verifier == nil || capability.Bindings[0].Verifier.ID != verifierID {
-		t.Fatalf("capability = %#v, want generated verifier binding", capability)
+	if len(capability.Bindings) != 1 || capability.Bindings[0].Verify == nil || core.VerifyLevelRank(capability.Bindings[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("capability = %#v, want verify-spec binding", capability)
 	}
 
 	source := filepath.Join(temp, "source.txt")
@@ -287,8 +280,8 @@ func TestReplayProposalAcquisitionPromotesGeneratedVerifierBinding(t *testing.T)
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
 	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
-	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != verifierID {
-		t.Fatalf("run success = %#v, want verified generated verifier reuse", runSuccess)
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run success = %#v, want verified verify-spec reuse", runSuccess)
 	}
 }
 
@@ -299,7 +292,6 @@ func TestControlledAcquisitionRejectsInvalidPDF(t *testing.T) {
 	home := filepath.Join(temp, "home")
 	providerPath := filepath.Join(temp, "fake-exporter")
 	e2etest.WriteFakeExporter(t, providerPath, `printf '%s\n' 'not a pdf' > "$target"`)
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)

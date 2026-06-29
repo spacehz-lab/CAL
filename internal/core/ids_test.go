@@ -22,38 +22,6 @@ func TestStableIDsUseShortHashPrefixes(t *testing.T) {
 	}
 }
 
-func TestValidVerifierID(t *testing.T) {
-	valid := []string{
-		"file_exists",
-		"file_parse_pdf",
-		"base64_encode_matches_source",
-		"file_hash_sha1_matches_source",
-		"a1_b2",
-	}
-	for _, id := range valid {
-		if !ValidVerifierID(id) {
-			t.Fatalf("ValidVerifierID(%q) = false, want true", id)
-		}
-	}
-
-	invalid := []string{
-		"",
-		"FileExists",
-		"file-exists",
-		"file.exists",
-		"file exists",
-		"_file_exists",
-		"file_exists_",
-		"file__exists",
-		"1_file_exists",
-	}
-	for _, id := range invalid {
-		if ValidVerifierID(id) {
-			t.Fatalf("ValidVerifierID(%q) = true, want false", id)
-		}
-	}
-}
-
 func TestBindingIDForExecutionIncludesSpec(t *testing.T) {
 	first, err := BindingIDForExecution("document.export_pdf", "provider_cli", Execution{
 		Kind: ExecutionKindCLI,

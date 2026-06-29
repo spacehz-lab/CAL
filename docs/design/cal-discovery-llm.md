@@ -240,7 +240,7 @@ LLM proposer calls by Proposal stage
 Proposal stage parse failures
 Verification pass / fail / ambiguous outcomes
 verify level distribution
-script fallback count
+contract verification count
 Promotion outcomes
 future low-level action reduction after reuse
 ```

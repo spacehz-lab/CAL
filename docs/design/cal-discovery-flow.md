@@ -152,8 +152,14 @@ bootstrap belongs to `calctl providers add --provider-path`.
 
 `--capability-id` is only a debug filter. Proposal replay is schema-validated
 and still uses CAL execution plus deterministic verification. New proposals
-should prefer built-in `verify.checks`; script fallback packages are fallback
-for outcomes that checks cannot express.
+should prefer `method=execute` with built-in `verify.checks`. Use
+`method=contract` only for weak evidence when real probing would change state,
+require network, require interaction, or be otherwise unsafe. Contract verify
+specs do not carry checks.
+
+Synchronous targeted discovery may take longer than ordinary control calls, so
+the client uses an extended timeout. Individual execute probes still have their
+own shorter timeout so one slow command does not dominate verification.
 
 Targeted acquisition writes a completed Trace only after promotion succeeds. If
 observation, Proposal, Verification, or Promotion fails after a provider is

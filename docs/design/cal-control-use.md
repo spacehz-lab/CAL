@@ -218,7 +218,7 @@ The resolver must not:
 ```text
 create a Capability
 create a Binding
-create a script fallback
+create a verify spec
 rewrite Binding.execution
 trigger Discovery
 call provider commands directly
@@ -253,7 +253,7 @@ You select one promoted binding for a user intent.
 Choose only from the provided capabilities and bindings.
 Only add inputs_patch values that are explicitly present in the intent.
 Do not include target in inputs_patch; CAL creates missing target paths locally.
-Do not create capability_id, binding_id, verify checks, script fallback, execution, or proof.
+Do not create capability_id, binding_id, verify checks, execution, or proof.
 Do not invent or overwrite user inputs.
 Do not modify execution.
 Do not claim execution success.
@@ -318,7 +318,6 @@ binding resolution when only capability_id is supplied
 input validation
 provider execution
 optional verify.checks evaluation
-optional script fallback execution
 Run record persistence
 ```
 

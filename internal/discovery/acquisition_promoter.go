@@ -74,8 +74,11 @@ func (promoter acquisitionPromoter) promotedCapability(candidate caltrace.Candid
 	if candidate.Execution.Kind == "" {
 		return core.Capability{}, core.Binding{}, fmt.Errorf("candidate execution is required")
 	}
-	if probe.Verifier.ID == "" {
-		return core.Capability{}, core.Binding{}, fmt.Errorf("probe verifier is required")
+	if probe.Verify.Level == core.VerifyLevelL0 {
+		return core.Capability{}, core.Binding{}, fmt.Errorf("cannot promote L0 verification")
+	}
+	if err := core.ValidateVerifySpec(probe.Verify); err != nil {
+		return core.Capability{}, core.Binding{}, fmt.Errorf("probe verify spec: %w", err)
 	}
 	if len(probe.Evidence) == 0 {
 		return core.Capability{}, core.Binding{}, fmt.Errorf("probe evidence is required")
@@ -91,7 +94,7 @@ func (promoter acquisitionPromoter) promotedCapability(candidate caltrace.Candid
 		ProviderID:       candidate.ProviderID,
 		InputConstraints: candidate.InputConstraints,
 		Execution:        candidate.Execution,
-		Verifier:         &probe.Verifier,
+		Verify:           &probe.Verify,
 		Evidence:         probe.Evidence,
 		State:            core.BindingStatePromoted,
 	}

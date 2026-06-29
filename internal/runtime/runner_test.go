@@ -98,8 +98,12 @@ func promotedBinding(id, providerID string, kind core.ExecutionKind) core.Bindin
 		CapabilityID: "document.export_pdf",
 		ProviderID:   providerID,
 		Execution:    core.Execution{Kind: kind},
-		Verifier:     &core.Verifier{ID: "file_exists"},
-		Evidence:     []core.EvidenceRef{{ID: "evidence_" + id}},
-		State:        core.BindingStatePromoted,
+		Verify: &core.VerifySpec{
+			Level:  core.VerifyLevelL2,
+			Method: core.VerifyMethodExecute,
+			Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+		},
+		Evidence: []core.EvidenceRef{{ID: "evidence_" + id}},
+		State:    core.BindingStatePromoted,
 	}
 }

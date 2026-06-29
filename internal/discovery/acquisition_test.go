@@ -12,7 +12,6 @@ import (
 	"github.com/spacehz-lab/cal/internal/core"
 	"github.com/spacehz-lab/cal/internal/observe"
 	"github.com/spacehz-lab/cal/internal/proposalflow"
-	"github.com/spacehz-lab/cal/internal/runtime"
 	calstore "github.com/spacehz-lab/cal/internal/store"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
@@ -586,7 +585,7 @@ func proposalResult(providerID string, candidates []caltrace.Candidate) proposal
 		probePlans = append(probePlans, proposalflow.ProbePlan{
 			CandidateIndex: index,
 			Inputs:         map[string]any{"target": "{{workdir}}/output.any"},
-			Verifier:       core.Verifier{ID: "file_exists"},
+			Verify:         fileExistsVerifySpec(),
 		})
 	}
 	return proposalflow.Result{
@@ -606,34 +605,7 @@ func newAcquisitionTestStore(t *testing.T) *calstore.Store {
 	if err := store.Ensure(); err != nil {
 		t.Fatalf("Ensure() error = %v", err)
 	}
-	installAcquisitionRunnerTestVerifier(t)
 	return store
-}
-
-func installAcquisitionRunnerTestVerifier(t *testing.T) {
-	t.Helper()
-	err := runtime.InstallVerifier(runtime.GeneratedVerifierPackage{
-		ID: "file_exists",
-		VerifyPY: `import json
-import os
-import sys
-
-request = json.load(sys.stdin)
-verifier_id = request["verifier"]["id"]
-target = (request.get("inputs") or {}).get("target")
-if not isinstance(target, str) or not os.path.exists(target):
-    print(json.dumps({"passed": False, "error": {"code": "file_missing", "message": "target file is missing"}}))
-    sys.exit(0)
-print(json.dumps({
-    "passed": True,
-    "evidence": [{"id": verifier_id, "type": verifier_id, "content": {"target": target}}],
-    "outputs": {"target": target},
-}))
-`,
-	})
-	if err != nil {
-		t.Fatalf("InstallVerifier(file_exists) error = %v", err)
-	}
 }
 
 func putCLIProvider(t *testing.T, store *calstore.Store, path string) error {

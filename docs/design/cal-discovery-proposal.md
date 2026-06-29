@@ -231,19 +231,17 @@ input_constraints only reference execution inputs
 target artifacts are produced by execution before checks reference them
 verify checks reference only available inputs, outputs, or evidence subjects
 verify level is derived or validated locally
+contract verification is capped at L1
 ```
 
-The model may suggest `verify.level`, but CAL owns the final accepted level.
+The model may suggest `verify.level` and `verify.method`, but CAL owns the final
+accepted verification contract.
 
 ## Replay Compatibility
 
 Replay proposal JSON should follow the same final process contract as live
-Proposal output. Legacy replay fixtures that use the old `verifier` fields may
-be supported as script fallback during migration, but new replay fixtures should
-prefer `verify`.
-
-Script fallback is not the default verification model. It exists for outcomes
-that cannot be expressed with built-in checks.
+Proposal output. New replay fixtures should use `verify.level`,
+`verify.method`, and built-in checks.
 
 ## Boundary
 

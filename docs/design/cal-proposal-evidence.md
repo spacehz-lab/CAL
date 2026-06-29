@@ -2,8 +2,8 @@
 
 Proposal Evidence is the fourth internal Proposal stage.
 
-It receives candidate binding material and proposes the deterministic evidence
-checks that Verification should run after executing the probe.
+It receives candidate binding material and proposes how Verification should
+collect evidence.
 
 Evidence is a planning stage. It does not execute providers and does not decide
 pass/fail.
@@ -25,15 +25,18 @@ Evidence outputs a `verify` spec:
 ```text
 verify
   level L0 | L1 | L2 | L3
+  method execute | contract
   checks[]
     subject
     predicate
     params optional
-  fallback optional
 ```
 
 Prompt payloads may use a compact check array form, but CAL should normalize the
 accepted result to named fields before storing it in core records.
+
+`level` describes confidence and promotion/use policy. `method` describes how
+evidence is collected.
 
 ## Verification Levels
 
@@ -57,6 +60,21 @@ L0 unsupported
 The model may suggest a level, but CAL owns final level validation. Checks such
 as `exists` and `non_empty` must not be treated as L3 unless the capability
 semantics are only artifact creation.
+
+## Verification Methods
+
+```text
+execute
+  CAL executes the probe and evaluates built-in checks locally.
+
+contract
+  CAL does not execute the probe. It records weak contract evidence from
+  observations when execution would install, remove, update, edit, start
+  services, require network, require interaction, or change external state.
+```
+
+`contract` cannot exceed `L1` and must not include checks. `contract + L0` is
+not promoted. `execute + L1` still executes the probe and must include checks.
 
 ## Evidence Subjects
 
@@ -98,11 +116,19 @@ bytes_equal_transform
 hash_line_matches
 ```
 
+Predicate params are part of the contract and must be validated before
+Verification runs. `equals`, `not_equals`, and `contains` use `params.value`;
+`contains_any` uses `params.values`; `regex` uses `params.pattern`; `format`
+uses `params.format`; `bytes_equal_transform` uses `params.source` and
+`params.transform`; `hash_line_matches` uses `params.source` and
+`params.algorithm`.
+
 Examples:
 
 ```json
 {
   "level": "L3",
+  "method": "execute",
   "checks": [
     {
       "subject": "target",
@@ -119,6 +145,7 @@ Examples:
 ```json
 {
   "level": "L3",
+  "method": "execute",
   "checks": [
     {
       "subject": "stdout",
@@ -135,6 +162,7 @@ Examples:
 ```json
 {
   "level": "L2",
+  "method": "execute",
   "checks": [
     {"subject": "target", "predicate": "exists"},
     {"subject": "target", "predicate": "non_empty"},
@@ -143,21 +171,16 @@ Examples:
 }
 ```
 
-## Fallback
+For a state-changing command that is well documented but unsafe to probe:
 
-If built-in checks cannot express the required outcome, Evidence may request a
-script or plugin fallback:
-
-```text
-verify.fallback
-  type script | plugin
-  id
+```json
+{
+  "level": "L1",
+  "method": "contract"
+}
 ```
 
-Fallback is not the default path. It must be reported separately in evaluation
-and should not be used when built-in checks can express the evidence relation.
-
-If neither built-in checks nor fallback can provide deterministic evidence,
+If neither built-in checks nor contract evidence can provide reliable evidence,
 Evidence should return `L0` and the candidate should not be promoted by default.
 
 ## Boundary

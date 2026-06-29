@@ -3,7 +3,6 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 )
 
@@ -80,11 +79,6 @@ func writeDiscoveryProposal(t *testing.T, providerID string) string {
 	}
 	content := `{
   "metadata": {"source": "replay"},
-  "verifier_packages": [{
-    "id": "pdf_magic_check",
-    "description": "Check that the generated artifact is a PDF file.",
-    "verify_py": ` + strconv.Quote(pdfMagicVerifierScript()) + `
-  }],
   "candidates": [{
     ` + providerField + `
     "capability_id": "document.export_pdf",
@@ -98,7 +92,7 @@ func writeDiscoveryProposal(t *testing.T, providerID string) string {
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verifier": {"id": "pdf_magic_check"}
+    "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"format","params":{"format":"pdf"}}]}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
