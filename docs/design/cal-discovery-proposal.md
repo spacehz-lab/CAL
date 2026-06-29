@@ -68,12 +68,16 @@ capability ids.
 ```text
 surface items
 existing Capability ids
+preferred subject and operation policy
 optional debug capability filter
 -> capability plan
 ```
 
 Capability is the only Proposal stage that owns `capability_id` selection,
 reuse, and deduplication. Later stages must not rename capability ids.
+It should prefer configured subject and operation terms, and only create a new
+term when the observed reusable capability cannot be expressed by the preferred
+vocabulary.
 
 ### Binding
 

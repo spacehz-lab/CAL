@@ -27,8 +27,7 @@
             "{{target}}"
           ]
         }
-      },
-      "rationale": "Benchmark replay proposal for base64 decoding."
+      }
     }
   ],
   "probe_plans": [

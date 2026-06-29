@@ -52,12 +52,16 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 	if !runtime.DefaultRegistry().Supports(plan.Verifier.ID) {
 		t.Fatalf("registry does not support generated verifier %q", plan.Verifier.ID)
 	}
-	if result.Diagnostics == nil || result.Diagnostics.SchemaVersion != cliProposalSchema || len(result.Diagnostics.Stages) != 1 {
-		t.Fatalf("diagnostics = %#v, want one proposal stage", result.Diagnostics)
+	if result.Diagnostics == nil || result.Diagnostics.SchemaVersion != cliProposalSchema || len(result.Diagnostics.Stages) != 2 {
+		t.Fatalf("diagnostics = %#v, want surface and capability stages", result.Diagnostics)
 	}
 	stage := result.Diagnostics.Stages[0]
 	if stage.Name != caltrace.ProposalStageSurface || stage.Summary[caltrace.ProposalSummaryRaw] != 1 || stage.Summary[caltrace.ProposalSummarySelected] != 1 || len(stage.Items) != 1 || stage.Items[0].Name != "export-pdf" {
 		t.Fatalf("surface diagnostics = %#v, want exported Stage1 item", stage)
+	}
+	capabilityStage := result.Diagnostics.Stages[1]
+	if capabilityStage.Name != caltrace.ProposalStageCapability || capabilityStage.Summary[caltrace.ProposalSummaryRaw] != 1 || capabilityStage.Summary[caltrace.ProposalSummarySelected] != 1 {
+		t.Fatalf("capability diagnostics = %#v, want selected Stage2 item", capabilityStage)
 	}
 }
 
@@ -65,8 +69,8 @@ func TestLLMProposerHashesEachCandidateEvidenceIndependently(t *testing.T) {
 	surface := []byte(`{"surface_items":[{"id":"s1","kind":"command","name":"convert","description":"Convert documents.","decision":"keep"}]}`)
 	capability := []byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"}]}`)
 	binding := []byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document with mode A.","execution":{"kind":"cli","spec":{"args":["convert-a","{{source}}","{{target}}"]}}},{"capability_id":"document.convert","description":"Convert a document with mode B.","execution":{"kind":"cli","spec":{"args":["convert-b","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/a.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]},{"candidate_index":1,"inputs":{"target":"{{workdir}}/b.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`)
-	evidenceA := []byte(`{"verifier":{"id":"file_exists"},"rationale":"first candidate"}`)
-	evidenceB := []byte(`{"verifier":{"id":"file_exists"},"rationale":"second candidate"}`)
+	evidenceA := []byte(`{"verifier":{"id":"file_exists"}}`)
+	evidenceB := []byte(`{"verifier":{"id":"file_exists"} }`)
 	client := &fakeStageClient{responses: [][]byte{surface, capability, binding, evidenceA, evidenceB}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -135,6 +139,31 @@ func TestLLMProposerReturnsDiagnosticsWhenSurfaceHasNoKeptItems(t *testing.T) {
 	stage := result.Diagnostics.Stages[0]
 	if stage.Summary[caltrace.ProposalSummaryRaw] != 2 || stage.Summary[caltrace.ProposalSummaryDefer] != 1 || stage.Summary[caltrace.ProposalSummarySkip] != 1 || stage.Summary[caltrace.ProposalSummarySelected] != 0 {
 		t.Fatalf("surface diagnostics = %#v, want deferred/skipped summary", stage)
+	}
+}
+
+func TestLLMProposerReturnsCapabilityDiagnosticsWhenCapabilityHasNoKeptItems(t *testing.T) {
+	client := &fakeStageClient{responses: [][]byte{
+		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","decision":"keep"}]}`),
+		[]byte(`{"capabilities":[{"capability_id":"document.export_pdf","description":"Export PDF.","source_surface_ids":["s1"],"confidence":"high"}]}`),
+	}}
+
+	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
+		Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
+		Observations: []caltrace.Observation{{
+			Type:    "cli_output",
+			Content: map[string]any{"text": "export-pdf"},
+		}},
+	})
+	if err == nil || !strings.Contains(err.Error(), "capability stage returned no capabilities") {
+		t.Fatalf("Propose() error = %v, want no capabilities error", err)
+	}
+	if result.Diagnostics == nil || len(result.Diagnostics.Stages) != 2 {
+		t.Fatalf("diagnostics = %#v, want surface and capability diagnostics on error", result.Diagnostics)
+	}
+	stage := result.Diagnostics.Stages[1]
+	if stage.Name != caltrace.ProposalStageCapability || stage.Summary[caltrace.ProposalSummarySkip] != 1 || stage.Summary[caltrace.ProposalSummarySelected] != 0 {
+		t.Fatalf("capability diagnostics = %#v, want skipped invalid capability", stage)
 	}
 }
 

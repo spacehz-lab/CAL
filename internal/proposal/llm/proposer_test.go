@@ -237,8 +237,7 @@ func llmProposalJSON() string {
 			"execution": {
 				"kind": "cli",
 				"spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-			},
-			"rationale": "llm maps the observed CLI to PDF export"
+			}
 		}],
 		"probe_plans": [{
 			"candidate_index": 0,
@@ -263,8 +262,7 @@ func llmGeneratedVerifierProposalJSON() string {
 			"execution": {
 				"kind": "cli",
 				"spec": {"args": ["write-marker", "--out", "{{target}}"]}
-			},
-			"rationale": "llm maps the observed CLI to marker file creation"
+			}
 		}],
 		"probe_plans": [{
 			"candidate_index": 0,

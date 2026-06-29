@@ -172,7 +172,6 @@ func (materializer Materializer) Propose(_ context.Context, request Request) (Re
 			Provenance:       materializer.provenance(source),
 			InputConstraints: candidate.InputConstraints,
 			Execution:        candidate.Execution,
-			Rationale:        candidate.Rationale,
 		})
 	}
 	slog.Info("proposal candidates selected",

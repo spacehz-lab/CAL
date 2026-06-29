@@ -51,8 +51,8 @@ func TestNewAcquisitionRunnerRejectsInvalidProposalPolicy(t *testing.T) {
     "skip_patterns": []
   },
   "capability": {
-    "allowed_subjects": [],
-    "blocked_subjects": []
+    "preferred_subjects": ["file"],
+    "preferred_operations": ["read"]
   }
 }`), 0o644); err != nil {
 		t.Fatalf("write proposal policy: %v", err)

@@ -41,7 +41,6 @@ surface_items[]
   description optional
   evidence_source
   decision keep | defer | skip
-  rationale optional
 ```
 
 `keep` means the item is documented enough to consider for capability planning.
@@ -91,8 +90,22 @@ It is a complete policy file, not an incremental override. The default file is:
     "skip_patterns": []
   },
   "capability": {
-    "allowed_subjects": [],
-    "blocked_subjects": []
+    "preferred_subjects": [
+      "file", "directory", "path", "text", "bytes", "json", "xml", "csv",
+      "yaml", "document", "pdf", "image", "audio", "video", "archive",
+      "package", "source", "repository", "database", "table", "http", "url",
+      "network", "process", "system", "environment", "key", "certificate",
+      "container", "project"
+    ],
+    "preferred_operations": [
+      "read", "write", "copy", "move", "remove", "list", "find", "inspect",
+      "identify", "count", "search", "filter", "query", "extract",
+      "transform", "convert", "render", "encode", "decode", "compress",
+      "decompress", "create", "checksum", "sign", "verify", "encrypt",
+      "decrypt", "download", "upload", "request", "sync", "install",
+      "update", "build", "test", "run", "format", "validate", "sort",
+      "deduplicate", "compare"
+    ]
   }
 }
 ```
@@ -124,7 +137,6 @@ trace.proposal.stages[]
     kind
     name
     decision
-    rationale optional
 ```
 
 `items[]` records final Stage1 decisions after local policy. A model-returned

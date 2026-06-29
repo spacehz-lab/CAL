@@ -92,8 +92,7 @@ func writeDiscoveryProposal(t *testing.T, providerID string) string {
     "execution": {
       "kind": "cli",
       "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-    },
-    "rationale": "replayed proposal maps make-pdf to PDF export"
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,

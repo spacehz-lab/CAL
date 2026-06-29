@@ -33,15 +33,13 @@ The JSON object must match this contract:
         "args": ["<subcommand-or-arg>", "{{source}}", "{{target}}"],
         "stdout_path_input": "<optional input key, for stdout-producing commands>"
       }
-    },
-    "rationale": "<why the observed provider supports this capability>"
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.artifact"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello"}],
-    "verifier": {"id": "<verifier package id from verifier_packages>"},
-    "rationale": "<why this probe checks the candidate outcome>"
+    "verifier": {"id": "<verifier package id from verifier_packages>"}
   }]
 }
 

@@ -29,8 +29,7 @@
             "{{target}}"
           ]
         }
-      },
-      "rationale": "Benchmark replay proposal for OpenSSL Base64 decoding."
+      }
     }
   ],
   "probe_plans": [

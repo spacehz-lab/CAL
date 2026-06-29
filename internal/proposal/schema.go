@@ -29,7 +29,6 @@ type Candidate struct {
 	Source           string         `json:"source,omitempty"`
 	InputConstraints map[string]any `json:"input_constraints,omitempty"`
 	Execution        core.Execution `json:"execution"`
-	Rationale        string         `json:"rationale,omitempty"`
 }
 
 // ProbePlanSpec is a proposed probe context, not a verification result.
@@ -38,7 +37,6 @@ type ProbePlanSpec struct {
 	Inputs         map[string]any `json:"inputs,omitempty"`
 	Fixtures       []Fixture      `json:"fixtures,omitempty"`
 	Verifier       core.Verifier  `json:"verifier"`
-	Rationale      string         `json:"rationale,omitempty"`
 }
 
 // Fixture describes one file that CAL should materialize inside the probe workdir.

@@ -28,7 +28,6 @@ candidates[]
   description
   input_constraints optional
   execution
-  rationale optional
 
 probe_material[]
   candidate_index

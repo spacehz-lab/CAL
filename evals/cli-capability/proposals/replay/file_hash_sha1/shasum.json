@@ -26,8 +26,7 @@
           ],
           "stdout_path_input": "target"
         }
-      },
-      "rationale": "Benchmark replay proposal for shasum."
+      }
     }
   ],
   "probe_plans": [

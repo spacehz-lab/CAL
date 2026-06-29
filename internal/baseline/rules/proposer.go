@@ -104,7 +104,7 @@ func candidateFromHelp(providerID, capabilityID, text string) (caltrace.Candidat
 		if len(args) == 0 {
 			return caltrace.Candidate{}, false, fmt.Errorf("CAL_COMMAND marker is empty")
 		}
-		return newCLIHelpCandidate(providerID, capability, descriptionForCapability(capability), args, "rules:cli_help_marker", "CLI help exposed CAL_CAPABILITY and CAL_COMMAND markers"), true, nil
+		return newCLIHelpCandidate(providerID, capability, descriptionForCapability(capability), args, "rules:cli_help_marker"), true, nil
 	}
 
 	if candidate, ok, err := sipsImageResizeFromHelp(providerID, capabilityID, text); ok || err != nil {
@@ -128,7 +128,7 @@ func sipsImageResizeFromHelp(providerID, capabilityID, text string) (caltrace.Ca
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"-z", "{{height}}", "{{width}}", "{{source}}", "--out", "{{target}}"}
-	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_sips_resize", "CLI help exposed sips image resize with output path option"), true, nil
+	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_sips_resize"), true, nil
 }
 
 func cupsfilterDocumentExportPDFFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {
@@ -144,7 +144,7 @@ func cupsfilterDocumentExportPDFFromHelp(providerID, capabilityID, text string) 
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"-i", "text/plain", "-m", "application/pdf", "{{source}}"}
-	candidate := newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_docs_cupsfilter_pdf", "CLI documentation exposed cupsfilter PDF conversion through stdout")
+	candidate := newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_docs_cupsfilter_pdf")
 	candidate.Execution.Spec[core.ExecutionSpecStdoutPathInput] = "target"
 	return candidate, true, nil
 }
@@ -161,14 +161,14 @@ func markerFreeDocumentExportPDFFromHelp(providerID, capabilityID, text string) 
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}
-	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_export_pdf", "CLI help exposed an export-pdf command with source and target path options"), true, nil
+	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_export_pdf"), true, nil
 }
 
 func matchesCapabilityHint(hint, capabilityID string) bool {
 	return hint == "" || hint == capabilityID
 }
 
-func newCLIHelpCandidate(providerID, capabilityID, description string, args []string, source, rationale string) caltrace.Candidate {
+func newCLIHelpCandidate(providerID, capabilityID, description string, args []string, source string) caltrace.Candidate {
 	return caltrace.Candidate{
 		ProviderID:   providerID,
 		CapabilityID: capabilityID,
@@ -180,7 +180,6 @@ func newCLIHelpCandidate(providerID, capabilityID, description string, args []st
 				core.ExecutionSpecArgs: args,
 			},
 		},
-		Rationale: rationale,
 	}
 }
 

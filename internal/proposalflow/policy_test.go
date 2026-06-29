@@ -40,8 +40,8 @@ func TestLoadPolicyFileReadsCompletePolicy(t *testing.T) {
     "skip_patterns": ["^debug-"]
   },
   "capability": {
-    "allowed_subjects": ["file"],
-    "blocked_subjects": ["network"]
+    "preferred_subjects": ["file"],
+    "preferred_operations": ["checksum"]
   }
 }`), 0o644); err != nil {
 		t.Fatalf("write policy: %v", err)
@@ -54,7 +54,7 @@ func TestLoadPolicyFileReadsCompletePolicy(t *testing.T) {
 	if len(policy.Surface.AllowedKinds) != 2 || policy.Surface.SkipPatterns[0] != "^debug-" {
 		t.Fatalf("surface policy = %#v, want configured policy", policy.Surface)
 	}
-	if policy.Capability.AllowedSubjects[0] != "file" || policy.Capability.BlockedSubjects[0] != "network" {
+	if policy.Capability.PreferredSubjects[0] != "file" || policy.Capability.PreferredOperations[0] != "checksum" {
 		t.Fatalf("capability policy = %#v, want configured policy", policy.Capability)
 	}
 }
@@ -79,14 +79,14 @@ func TestValidatePolicyRejectsInvalidSurfacePolicy(t *testing.T) {
 	}{
 		{
 			name:   "empty allowed kinds",
-			policy: Policy{Surface: SurfacePolicy{}},
+			policy: Policy{Surface: SurfacePolicy{}, Capability: defaultCapabilityPolicyForTest()},
 			want:   "allowed_kinds",
 		},
 		{
 			name: "unsupported kind",
 			policy: Policy{Surface: SurfacePolicy{
 				AllowedKinds: []string{"command", "widget"},
-			}},
+			}, Capability: defaultCapabilityPolicyForTest()},
 			want: "unsupported",
 		},
 		{
@@ -94,8 +94,24 @@ func TestValidatePolicyRejectsInvalidSurfacePolicy(t *testing.T) {
 			policy: Policy{Surface: SurfacePolicy{
 				AllowedKinds: []string{"command"},
 				SkipPatterns: []string{"["},
-			}},
+			}, Capability: defaultCapabilityPolicyForTest()},
 			want: "invalid proposal surface skip pattern",
+		},
+		{
+			name: "empty preferred subjects",
+			policy: Policy{
+				Surface:    defaultSurfacePolicyForTest(),
+				Capability: CapabilityPolicy{PreferredOperations: []string{"read"}},
+			},
+			want: "preferred_subjects",
+		},
+		{
+			name: "invalid preferred operation",
+			policy: Policy{
+				Surface:    defaultSurfacePolicyForTest(),
+				Capability: CapabilityPolicy{PreferredSubjects: []string{"file"}, PreferredOperations: []string{"export_pdf"}},
+			},
+			want: "invalid proposal capability operation",
 		},
 	}
 	for _, test := range tests {
@@ -105,5 +121,16 @@ func TestValidatePolicyRejectsInvalidSurfacePolicy(t *testing.T) {
 				t.Fatalf("ValidatePolicy() error = %v, want %q", err, test.want)
 			}
 		})
+	}
+}
+
+func defaultSurfacePolicyForTest() SurfacePolicy {
+	return SurfacePolicy{AllowedKinds: []string{"command"}}
+}
+
+func defaultCapabilityPolicyForTest() CapabilityPolicy {
+	return CapabilityPolicy{
+		PreferredSubjects:   []string{"file"},
+		PreferredOperations: []string{"read"},
 	}
 }

@@ -51,14 +51,12 @@ func normalizeSurfaceStage(input []surfaceItem, policy SurfacePolicy, prof profi
 		item = normalizeSurfaceItem(item)
 		if item.ID == "" || item.Name == "" {
 			item.Decision = caltrace.ProposalDecisionSkip
-			item.Rationale = appendRationale(item.Rationale, "missing surface id or name")
 			stage.Items = append(stage.Items, surfaceTraceItem(item))
 			stage.Summary[caltrace.ProposalSummarySkip]++
 			continue
 		}
 		if item.Decision != caltrace.ProposalDecisionKeep && item.Decision != caltrace.ProposalDecisionDefer && item.Decision != caltrace.ProposalDecisionSkip {
 			item.Decision = caltrace.ProposalDecisionSkip
-			item.Rationale = appendRationale(item.Rationale, "invalid surface decision")
 		}
 		if item.Decision == caltrace.ProposalDecisionKeep {
 			nameKey := strings.ToLower(item.Name)
@@ -69,19 +67,14 @@ func normalizeSurfaceStage(input []surfaceItem, policy SurfacePolicy, prof profi
 			switch {
 			case !kindAllowed:
 				item.Decision = caltrace.ProposalDecisionSkip
-				item.Rationale = appendRationale(item.Rationale, "filtered by local surface policy: kind not allowed")
 			case skippedName:
 				item.Decision = caltrace.ProposalDecisionSkip
-				item.Rationale = appendRationale(item.Rationale, "filtered by local surface policy: name skipped")
 			case matchesAny(skipPatterns, item.Name):
 				item.Decision = caltrace.ProposalDecisionSkip
-				item.Rationale = appendRationale(item.Rationale, "filtered by local surface policy: pattern matched")
 			case duplicate:
 				item.Decision = caltrace.ProposalDecisionSkip
-				item.Rationale = appendRationale(item.Rationale, "filtered by local surface policy: duplicate")
 			case prof.maxSurfaceItems > 0 && len(items) >= prof.maxSurfaceItems:
 				item.Decision = caltrace.ProposalDecisionDefer
-				item.Rationale = appendRationale(item.Rationale, "deferred by local surface policy: max_surface_items reached")
 			default:
 				seen[key] = struct{}{}
 				items = append(items, item)
@@ -107,12 +100,11 @@ func normalizeSurfaceItem(item surfaceItem) surfaceItem {
 	if item.Decision == "" {
 		item.Decision = caltrace.ProposalDecisionKeep
 	}
-	item.Rationale = strings.TrimSpace(item.Rationale)
 	return item
 }
 
 func compileSurfacePolicy(policy SurfacePolicy) (map[string]struct{}, map[string]struct{}, []*regexp.Regexp, error) {
-	if err := ValidatePolicy(Policy{Surface: policy}); err != nil {
+	if err := validateSurfacePolicy(policy); err != nil {
 		return nil, nil, nil, err
 	}
 	allowedKinds := map[string]struct{}{}
@@ -163,17 +155,9 @@ func summaryKeyForDecision(decision caltrace.ProposalDecision) caltrace.Proposal
 
 func surfaceTraceItem(item surfaceItem) caltrace.ProposalItem {
 	return caltrace.ProposalItem{
-		ID:        item.ID,
-		Kind:      item.Kind,
-		Name:      item.Name,
-		Decision:  item.Decision,
-		Rationale: item.Rationale,
+		ID:       item.ID,
+		Kind:     item.Kind,
+		Name:     item.Name,
+		Decision: item.Decision,
 	}
-}
-
-func appendRationale(current, extra string) string {
-	if current == "" {
-		return extra
-	}
-	return current + "; " + extra
 }

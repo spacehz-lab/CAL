@@ -108,9 +108,9 @@ func TestNormalizeSurfaceStageRecordsFinalDecisions(t *testing.T) {
 	policy := DefaultPolicy()
 	policy.Surface.SkipNames = []string{"help"}
 	items, stage, err := normalizeSurfaceStage([]surfaceItem{
-		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep, Rationale: "documented command"},
+		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep},
 		{ID: "s2", Kind: "command", Name: "server", Decision: caltrace.ProposalDecisionDefer},
-		{ID: "s3", Kind: "command", Name: "help", Decision: caltrace.ProposalDecisionKeep, Rationale: "model kept it"},
+		{ID: "s3", Kind: "command", Name: "help", Decision: caltrace.ProposalDecisionKeep},
 		{ID: "s4", Kind: "command", Name: "ignored", Decision: caltrace.ProposalDecisionSkip},
 	}, policy.Surface, profile{})
 	if err != nil {

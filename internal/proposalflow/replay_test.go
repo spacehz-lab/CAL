@@ -149,8 +149,7 @@ func replayJSON() string {
 			"execution": {
 				"kind": "cli",
 				"spec": {"args": ["sha1", "{{target}}"]}
-			},
-			"rationale": "replay fixture"
+			}
 		}],
 		"probe_plans": [{
 			"candidate_index": 0,

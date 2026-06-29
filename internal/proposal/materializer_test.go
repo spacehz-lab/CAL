@@ -169,15 +169,13 @@ func proposalJSON(command, source string) string {
 			"execution": {
 				"kind": "cli",
 				"spec": {"args": ["` + command + `", "--in", "{{source}}", "--out", "{{target}}"]}
-			},
-			"rationale": "proposal maps the observed command to PDF export"
+			}
 		}],
 		"probe_plans": [{
 			"candidate_index": 0,
 			"inputs": {"target": "{{workdir}}/output.pdf"},
 			"fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-			"verifier": {"id": "file_parse_pdf"},
-			"rationale": "a parseable PDF proves the export result"
+			"verifier": {"id": "file_parse_pdf"}
 		}]
 	}`
 }

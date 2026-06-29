@@ -446,15 +446,13 @@ func WriteReplayProposal(t *testing.T, path string) string {
     "execution": {
       "kind": "cli",
       "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-    },
-    "rationale": "replayed proposal maps make-pdf to PDF export"
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verifier": {"id": "pdf_magic_check"},
-    "rationale": "PDF parsing is deterministic evidence"
+    "verifier": {"id": "pdf_magic_check"}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -480,15 +478,13 @@ func WriteReplayGeneratedVerifierProposal(t *testing.T, path string) string {
     "execution": {
       "kind": "cli",
       "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-    },
-    "rationale": "replayed proposal maps make-pdf to PDF export"
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verifier": {"id": "pdf_magic_check"},
-    "rationale": "the generated verifier checks the PDF marker"
+    "verifier": {"id": "pdf_magic_check"}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -629,28 +625,24 @@ func WriteMultiCapabilityProposal(t *testing.T, path string) string {
     {
       "capability_id": "document.export_pdf",
     "description": "Export a document to a PDF artifact.",
-      "execution": {"kind": "cli", "spec": {"args": ["make-pdf", "--out", "{{target}}"]}},
-      "rationale": "provider can create a PDF file"
+      "execution": {"kind": "cli", "spec": {"args": ["make-pdf", "--out", "{{target}}"]}}
     },
     {
       "capability_id": "text.write_file",
       "description": "Write a text file artifact.",
-      "execution": {"kind": "cli", "spec": {"args": ["write-note", "--out", "{{target}}"]}},
-      "rationale": "provider can write a text note"
+      "execution": {"kind": "cli", "spec": {"args": ["write-note", "--out", "{{target}}"]}}
     }
   ],
   "probe_plans": [
     {
       "candidate_index": 0,
       "inputs": {"target": "{{workdir}}/output.pdf"},
-      "verifier": {"id": "pdf_magic_check"},
-      "rationale": "PDF parser validates the generated file"
+      "verifier": {"id": "pdf_magic_check"}
     },
     {
       "candidate_index": 1,
       "inputs": {"target": "{{workdir}}/note.txt"},
-      "verifier": {"id": "file_exists_check"},
-      "rationale": "file existence validates note creation"
+      "verifier": {"id": "file_exists_check"}
     }
   ]
 }`

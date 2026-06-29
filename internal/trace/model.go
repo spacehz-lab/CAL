@@ -56,6 +56,8 @@ type ProposalStageName string
 const (
 	// ProposalStageSurface records Stage1 surface inventory decisions.
 	ProposalStageSurface ProposalStageName = "surface"
+	// ProposalStageCapability records Stage2 capability planning decisions.
+	ProposalStageCapability ProposalStageName = "capability"
 )
 
 // ProposalSummaryKey identifies proposal-stage summary counters.
@@ -72,6 +74,12 @@ const (
 	ProposalSummarySkip ProposalSummaryKey = "skip"
 	// ProposalSummarySelected counts items passed to the next Proposal stage.
 	ProposalSummarySelected ProposalSummaryKey = "selected"
+	// ProposalSummaryReused counts items that reuse an existing catalog capability id.
+	ProposalSummaryReused ProposalSummaryKey = "reused"
+	// ProposalSummaryCreated counts items that introduce a new capability id.
+	ProposalSummaryCreated ProposalSummaryKey = "created"
+	// ProposalSummaryOutOfPolicy counts kept items using a subject or operation outside the policy range.
+	ProposalSummaryOutOfPolicy ProposalSummaryKey = "out_of_policy"
 )
 
 // ProposalStage records one proposal stage's parsed decisions.
@@ -96,11 +104,10 @@ const (
 
 // ProposalItem records a non-executable proposal-stage decision.
 type ProposalItem struct {
-	ID        string           `json:"id,omitempty"`
-	Kind      string           `json:"kind,omitempty"`
-	Name      string           `json:"name,omitempty"`
-	Decision  ProposalDecision `json:"decision,omitempty"`
-	Rationale string           `json:"rationale,omitempty"`
+	ID       string           `json:"id,omitempty"`
+	Kind     string           `json:"kind,omitempty"`
+	Name     string           `json:"name,omitempty"`
+	Decision ProposalDecision `json:"decision,omitempty"`
 }
 
 // Candidate records one inferred candidate binding in a trace.
@@ -112,7 +119,6 @@ type Candidate struct {
 	Provenance       *CandidateProvenance `json:"provenance,omitempty"`
 	InputConstraints map[string]any       `json:"input_constraints,omitempty"`
 	Execution        core.Execution       `json:"execution"`
-	Rationale        string               `json:"rationale,omitempty"`
 	CreatedAt        string               `json:"created_at,omitempty"`
 }
 

@@ -134,7 +134,6 @@ input constraints
 raw UI selectors
 paths that are not needed for selection
 Trace references
-candidate rationale
 probe internals
 ```
 

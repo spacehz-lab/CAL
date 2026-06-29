@@ -167,7 +167,6 @@ proposal_item
   kind optional
   name optional
   decision optional
-  rationale optional
 ```
 
 Proposal diagnostics record parsed stage decisions that are useful for
@@ -186,7 +185,6 @@ candidate
   provenance optional
   input_constraints optional
   execution
-  rationale optional
   created_at
 ```
 

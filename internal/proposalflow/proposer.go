@@ -49,17 +49,17 @@ func (proposer *LLMProposer) Propose(ctx context.Context, req Request) (Result, 
 	if err != nil {
 		return Result{Diagnostics: proposer.diagnostics(surfaceStage)}, err
 	}
-	capabilities, capabilityRaw, err := proposer.planCapabilities(ctx, req, prof, surfaces)
+	capabilities, capabilityRaw, capabilityStage, err := proposer.planCapabilities(ctx, req, prof, surfaces)
 	if err != nil {
-		return Result{Diagnostics: proposer.diagnostics(surfaceStage)}, err
+		return Result{Diagnostics: proposer.diagnostics(surfaceStage, capabilityStage)}, err
 	}
 	raw := append([]byte{}, surfaceRaw...)
 	raw = append(raw, capabilityRaw...)
 	result, err := proposer.proposeBindings(ctx, req, prof, surfaces, capabilities, raw)
 	if err != nil {
-		return Result{Diagnostics: proposer.diagnostics(surfaceStage)}, err
+		return Result{Diagnostics: proposer.diagnostics(surfaceStage, capabilityStage)}, err
 	}
-	result.Diagnostics = proposer.diagnostics(surfaceStage)
+	result.Diagnostics = proposer.diagnostics(surfaceStage, capabilityStage)
 	return Select(result, SelectOptions{
 		ProviderID:  req.Provider.ID,
 		DebugFilter: req.DebugFilter,
