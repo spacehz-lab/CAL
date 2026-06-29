@@ -81,6 +81,7 @@ type acquisitionRun struct {
 
 	provider     core.Provider
 	observations []caltrace.Observation
+	proposal     *caltrace.ProposalTrace
 	candidates   []caltrace.Candidate
 	probePlans   []proposalflow.ProbePlan
 	probes       []caltrace.Probe
@@ -172,6 +173,7 @@ func (run *acquisitionRun) propose(ctx context.Context) CodedError {
 		DebugFilter:  run.opts.CapabilityID,
 	})
 	run.proposalMS = time.Since(started).Milliseconds()
+	run.proposal = result.Diagnostics
 	if err != nil {
 		return newCodedError(CodeCandidateProposalFailed, err.Error())
 	}

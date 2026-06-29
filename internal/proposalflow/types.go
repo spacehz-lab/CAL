@@ -23,8 +23,9 @@ type Request struct {
 // Result is the selected, executable Proposal output consumed by discovery.
 // Candidates and ProbePlans must be one-to-one after filtering, de-duplication, limiting, and re-indexing.
 type Result struct {
-	Candidates []caltrace.Candidate
-	ProbePlans []ProbePlan
+	Candidates  []caltrace.Candidate
+	ProbePlans  []ProbePlan
+	Diagnostics *caltrace.ProposalTrace
 }
 
 // ProbePlan is the proposed probe context for one candidate.

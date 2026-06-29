@@ -51,9 +51,9 @@ github.com/openai/openai-go/v3
 ```
 
 Provider transport lives in `internal/llm` behind the `llm.Client` interface.
-The proposal adapter lives in `internal/proposal/llm`; it owns live Proposal
-orchestration and implements `proposal.Proposer` plus `proposal.ProbePlanner`
-by calling `llm.Client` and parsing strict JSON stage outputs. `discovery` and
+The live proposal adapter lives in `internal/proposalflow`; it owns the
+four-stage Proposal orchestration and implements `proposalflow.Proposer` by
+calling `llm.Client` and parsing strict JSON stage outputs. `discovery` and
 `cli` do not import provider SDKs.
 
 The Chat Completions adapter calls an OpenAI-compatible Chat Completions API

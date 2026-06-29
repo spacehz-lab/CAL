@@ -43,3 +43,14 @@ CAL_LLM_API_KEY=<api key> \
 
 `CAL_LLM_API_KEY` must stay in the environment. Do not write it into repository
 files, traces, logs, or committed artifacts.
+
+Live Proposal Stage1 check:
+
+```sh
+CAL_LIVE_LLM_STAGE1=1 \
+CAL_LLM_API=chat_completions \
+CAL_LLM_BASE_URL=<openai-compatible base url> \
+CAL_LLM_MODEL=<model> \
+CAL_LLM_API_KEY=<api key> \
+  go test ./internal/proposalflow -run TestLiveLLMStage1OpenSSL -count=1 -v
+```

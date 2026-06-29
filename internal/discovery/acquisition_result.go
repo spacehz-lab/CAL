@@ -17,6 +17,7 @@ func (run *acquisitionRun) fail(stage string, codedErr CodedError) (JobResult, e
 		Hint:         run.opts.CapabilityID,
 		ProviderIDs:  run.providerIDs(),
 		Observations: run.observations,
+		Proposal:     run.proposal,
 		Candidates:   run.candidates,
 		Probes:       run.probes,
 		Error: &core.RecordError{
@@ -41,6 +42,7 @@ func (run *acquisitionRun) complete() (JobResult, error) {
 		Hint:         run.opts.CapabilityID,
 		ProviderIDs:  run.providerIDs(),
 		Observations: run.observations,
+		Proposal:     run.proposal,
 		Candidates:   run.candidates,
 		Probes:       run.probes,
 		Promotions:   run.promotions,

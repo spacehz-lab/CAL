@@ -53,6 +53,15 @@ CAL_LLM_API_KEY=<api key> \
   go test ./tests/e2e/live_llm -count=1 -v
 ```
 
+```sh
+CAL_LIVE_LLM_STAGE1=1 \
+CAL_LLM_API=chat_completions \
+CAL_LLM_BASE_URL=<openai-compatible base url> \
+CAL_LLM_MODEL=<model> \
+CAL_LLM_API_KEY=<api key> \
+  go test ./internal/proposalflow -run TestLiveLLMStage1OpenSSL -count=1 -v
+```
+
 Keep live API keys in the environment only.
 
 ## Evaluation Runners

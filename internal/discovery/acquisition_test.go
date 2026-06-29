@@ -2,6 +2,7 @@ package discovery
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -348,6 +349,55 @@ func TestAcquisitionRunnerUsesProposalProbePlan(t *testing.T) {
 	}
 }
 
+func TestAcquisitionRunnerWritesProposalDiagnosticsToTrace(t *testing.T) {
+	store := newAcquisitionTestStore(t)
+	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
+		t.Fatalf("put provider: %v", err)
+	}
+	runner := NewAcquisitionRunner(fakeObserver{}, diagnosticProposer{})
+
+	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
+	if err != nil {
+		t.Fatalf("AcquisitionRunner.Run() error = %v", err)
+	}
+	trace, ok, err := store.GetTrace(result.TraceID)
+	if err != nil {
+		t.Fatalf("GetTrace() error = %v", err)
+	}
+	if !ok || trace.Proposal == nil || len(trace.Proposal.Stages) != 1 {
+		t.Fatalf("trace proposal = %#v, %v, want one proposal stage", trace.Proposal, ok)
+	}
+	stage := trace.Proposal.Stages[0]
+	if stage.Name != caltrace.ProposalStageSurface || stage.Summary[caltrace.ProposalSummaryRaw] != 2 || stage.Summary[caltrace.ProposalSummarySelected] != 1 {
+		t.Fatalf("proposal stage = %#v, want surface summary", stage)
+	}
+	if len(stage.Items) != 2 || stage.Items[0].Decision != caltrace.ProposalDecisionKeep || stage.Items[1].Decision != caltrace.ProposalDecisionDefer {
+		t.Fatalf("proposal items = %#v, want keep and defer decisions", stage.Items)
+	}
+}
+
+func TestAcquisitionRunnerWritesProposalDiagnosticsOnProposalFailure(t *testing.T) {
+	store := newAcquisitionTestStore(t)
+	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
+		t.Fatalf("put provider: %v", err)
+	}
+	runner := NewAcquisitionRunner(fakeObserver{}, failingDiagnosticProposer{})
+
+	_, err := runner.Run(context.Background(), store, AcquisitionOptions{
+		ProviderID:   "provider_cli",
+		CapabilityID: "document.export_pdf",
+	})
+	assertCodedError(t, err, CodeCandidateProposalFailed)
+	trace := assertSingleFailedTrace(t, store, CodeCandidateProposalFailed)
+	if trace.Proposal == nil || len(trace.Proposal.Stages) != 1 {
+		t.Fatalf("trace proposal = %#v, want proposal diagnostics on failure", trace.Proposal)
+	}
+	stage := trace.Proposal.Stages[0]
+	if stage.Summary[caltrace.ProposalSummarySelected] != 0 || stage.Summary[caltrace.ProposalSummaryDefer] != 1 {
+		t.Fatalf("proposal stage = %#v, want deferred surface diagnostics", stage)
+	}
+}
+
 func acquisitionTestRunner(capabilityID string) AcquisitionRunner {
 	return NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: capabilityID})
 }
@@ -442,6 +492,67 @@ func (proposer multiProposer) Propose(_ context.Context, request proposalflow.Re
 		})
 	}
 	return proposalResult(request.Provider.ID, candidates), nil
+}
+
+type diagnosticProposer struct{}
+
+func (diagnosticProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+	result := proposalResult(request.Provider.ID, []caltrace.Candidate{{
+		ProviderID:   request.Provider.ID,
+		CapabilityID: "document.export_pdf",
+		Description:  testCapabilityDescription("document.export_pdf"),
+		Execution: core.Execution{
+			Kind: core.ExecutionKindCLI,
+			Spec: map[string]any{
+				"args": []string{"export-pdf", "--target", "{{target}}"},
+			},
+		},
+	}})
+	result.Diagnostics = &caltrace.ProposalTrace{
+		SchemaVersion: "proposalflow.v1",
+		PromptVersion: "test-prompt",
+		Model:         "test-model",
+		Stages: []caltrace.ProposalStage{{
+			Name: caltrace.ProposalStageSurface,
+			Summary: map[caltrace.ProposalSummaryKey]int{
+				caltrace.ProposalSummaryRaw:      2,
+				caltrace.ProposalSummaryKeep:     1,
+				caltrace.ProposalSummaryDefer:    1,
+				caltrace.ProposalSummarySelected: 1,
+			},
+			Items: []caltrace.ProposalItem{
+				{ID: "s1", Kind: "option", Name: "-lint", Decision: caltrace.ProposalDecisionKeep},
+				{ID: "s2", Kind: "option", Name: "-convert", Decision: caltrace.ProposalDecisionDefer},
+			},
+		}},
+	}
+	return result, nil
+}
+
+type failingDiagnosticProposer struct{}
+
+func (failingDiagnosticProposer) Propose(context.Context, proposalflow.Request) (proposalflow.Result, error) {
+	return proposalflow.Result{
+		Diagnostics: &caltrace.ProposalTrace{
+			SchemaVersion: "proposalflow.v1",
+			PromptVersion: "test-prompt",
+			Model:         "test-model",
+			Stages: []caltrace.ProposalStage{{
+				Name: caltrace.ProposalStageSurface,
+				Summary: map[caltrace.ProposalSummaryKey]int{
+					caltrace.ProposalSummaryRaw:      1,
+					caltrace.ProposalSummaryDefer:    1,
+					caltrace.ProposalSummarySelected: 0,
+				},
+				Items: []caltrace.ProposalItem{{
+					ID:       "s1",
+					Kind:     "command",
+					Name:     "server",
+					Decision: caltrace.ProposalDecisionDefer,
+				}},
+			}},
+		},
+	}, errors.New("surface stage returned no kept surface items")
 }
 
 func testCapabilityDescription(capabilityID string) string {

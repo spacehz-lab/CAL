@@ -11,6 +11,7 @@ type Trace struct {
 	Hint         string            `json:"hint,omitempty"`
 	ProviderIDs  []string          `json:"provider_ids,omitempty"`
 	Observations []Observation     `json:"observations,omitempty"`
+	Proposal     *ProposalTrace    `json:"proposal,omitempty"`
 	Candidates   []Candidate       `json:"candidates,omitempty"`
 	Probes       []Probe           `json:"probes,omitempty"`
 	Promotions   []Promotion       `json:"promotions,omitempty"`
@@ -39,6 +40,67 @@ type Observation struct {
 	Content    map[string]any    `json:"content,omitempty"`
 	Error      *core.RecordError `json:"error,omitempty"`
 	CreatedAt  string            `json:"created_at,omitempty"`
+}
+
+// ProposalTrace records proposal-stage diagnostics that are not executable candidates.
+type ProposalTrace struct {
+	SchemaVersion string          `json:"schema_version,omitempty"`
+	PromptVersion string          `json:"prompt_version,omitempty"`
+	Model         string          `json:"model,omitempty"`
+	Stages        []ProposalStage `json:"stages,omitempty"`
+}
+
+// ProposalStageName identifies a proposal diagnostics stage.
+type ProposalStageName string
+
+const (
+	// ProposalStageSurface records Stage1 surface inventory decisions.
+	ProposalStageSurface ProposalStageName = "surface"
+)
+
+// ProposalSummaryKey identifies proposal-stage summary counters.
+type ProposalSummaryKey string
+
+const (
+	// ProposalSummaryRaw counts parsed items before local filtering.
+	ProposalSummaryRaw ProposalSummaryKey = "raw"
+	// ProposalSummaryKeep counts items whose final decision is keep.
+	ProposalSummaryKeep ProposalSummaryKey = "keep"
+	// ProposalSummaryDefer counts items whose final decision is defer.
+	ProposalSummaryDefer ProposalSummaryKey = "defer"
+	// ProposalSummarySkip counts items whose final decision is skip.
+	ProposalSummarySkip ProposalSummaryKey = "skip"
+	// ProposalSummarySelected counts items passed to the next Proposal stage.
+	ProposalSummarySelected ProposalSummaryKey = "selected"
+)
+
+// ProposalStage records one proposal stage's parsed decisions.
+type ProposalStage struct {
+	Name       ProposalStageName          `json:"name"`
+	Items      []ProposalItem             `json:"items,omitempty"`
+	Summary    map[ProposalSummaryKey]int `json:"summary,omitempty"`
+	DurationMS int64                      `json:"duration_ms,omitempty"`
+}
+
+// ProposalDecision records whether a proposal item should continue to the next stage.
+type ProposalDecision string
+
+const (
+	// ProposalDecisionKeep marks an item selected for the next Proposal stage.
+	ProposalDecisionKeep ProposalDecision = "keep"
+	// ProposalDecisionDefer marks an item observed but deferred from this run.
+	ProposalDecisionDefer ProposalDecision = "defer"
+	// ProposalDecisionSkip marks an item filtered out of Proposal planning.
+	ProposalDecisionSkip ProposalDecision = "skip"
+)
+
+// ProposalItem records a non-executable proposal-stage decision.
+type ProposalItem struct {
+	ID        string           `json:"id,omitempty"`
+	Kind      string           `json:"kind,omitempty"`
+	Name      string           `json:"name,omitempty"`
+	Decision  ProposalDecision `json:"decision,omitempty"`
+	Rationale string           `json:"rationale,omitempty"`
 }
 
 // Candidate records one inferred candidate binding in a trace.

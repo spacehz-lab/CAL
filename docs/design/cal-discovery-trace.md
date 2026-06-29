@@ -56,6 +56,7 @@ Entry
 
 Proposal
 -> append observations[]
+-> append proposal stage diagnostics
 -> append candidates[]
 
 Verification
@@ -118,6 +119,7 @@ Trace
   hint optional
   provider_ids optional
   observations[]
+  proposal optional
   candidates[]
   probes[]
   promotions[]
@@ -144,6 +146,34 @@ observation
   error optional
   created_at
 ```
+
+Proposal diagnostics:
+
+```text
+proposal
+  schema_version optional
+  prompt_version optional
+  model optional
+  stages[]
+
+proposal_stage
+  name
+  items[]
+  summary optional
+  duration_ms optional
+
+proposal_item
+  id optional
+  kind optional
+  name optional
+  decision optional
+  rationale optional
+```
+
+Proposal diagnostics record parsed stage decisions that are useful for
+debugging and evaluation but are not executable candidates. For Surface,
+`decision` records the final keep/defer/skip result after local policy, and
+`summary.selected` records how many items were passed to Capability planning.
 
 Candidate:
 

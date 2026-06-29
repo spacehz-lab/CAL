@@ -52,3 +52,35 @@ func TestPromotionCandidateIndexIsSerializedWhenZero(t *testing.T) {
 		t.Fatalf("trace JSON = %s, want explicit candidate_index=0", data)
 	}
 }
+
+func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
+	record := Trace{
+		ID:     "trace_abc",
+		Status: StatusCompleted,
+		Proposal: &ProposalTrace{
+			Stages: []ProposalStage{{
+				Name: ProposalStageSurface,
+				Summary: map[ProposalSummaryKey]int{
+					ProposalSummaryRaw:      2,
+					ProposalSummarySelected: 1,
+				},
+				Items: []ProposalItem{{
+					ID:       "s1",
+					Name:     "-lint",
+					Decision: ProposalDecisionKeep,
+				}},
+			}},
+		},
+	}
+
+	data, err := json.Marshal(record)
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+	text := string(data)
+	for _, want := range []string{`"name":"surface"`, `"raw":2`, `"selected":1`, `"decision":"keep"`} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("trace JSON = %s, want %s", data, want)
+		}
+	}
+}

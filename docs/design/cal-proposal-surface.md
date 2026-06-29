@@ -69,6 +69,80 @@ aliases that do not add operation coverage
 For complex CLIs, Surface should keep a bounded number of documented primary
 commands or command families instead of enumerating every variant flag.
 
+## Local Policy
+
+CAL applies a local policy gate after the LLM Surface stage and before
+Capability planning. This policy filters Surface items, not raw observations.
+Raw observations remain process evidence.
+
+The policy file is:
+
+```text
+CAL_HOME/proposal_policy.json
+```
+
+It is a complete policy file, not an incremental override. The default file is:
+
+```json
+{
+  "surface": {
+    "allowed_kinds": ["command", "subcommand", "mode", "option"],
+    "skip_names": ["help", "version", "usage"],
+    "skip_patterns": []
+  },
+  "capability": {
+    "allowed_subjects": [],
+    "blocked_subjects": []
+  }
+}
+```
+
+Surface currently consumes only:
+
+```text
+surface.allowed_kinds
+surface.skip_names
+surface.skip_patterns
+```
+
+Capability policy fields are reserved for the Capability stage.
+
+## Trace Diagnostics
+
+Surface writes parsed Stage1 decisions into the discovery trace:
+
+```text
+trace.proposal.stages[]
+  name = surface
+  summary.raw
+  summary.keep
+  summary.defer
+  summary.skip
+  summary.selected
+  items[]
+    id
+    kind
+    name
+    decision
+    rationale optional
+```
+
+`items[]` records final Stage1 decisions after local policy. A model-returned
+`keep` may become `skip` when blocked by local policy, for example
+`help/version/usage`.
+
+Only `selected` `keep` items enter Capability planning. Deferred and skipped
+items stay in trace diagnostics so operators can distinguish:
+
+```text
+not observed
+observed but deferred
+observed but skipped
+selected for Capability planning
+```
+
+Surface diagnostics must not store raw LLM response text by default.
+
 ## Boundary
 
 Surface can conclude:

@@ -29,8 +29,9 @@ func Select(result Result, opts SelectOptions) (Result, error) {
 
 	seen := make(map[string]struct{}, len(result.Candidates))
 	selected := Result{
-		Candidates: make([]caltrace.Candidate, 0, len(result.Candidates)),
-		ProbePlans: make([]ProbePlan, 0, len(result.Candidates)),
+		Candidates:  make([]caltrace.Candidate, 0, len(result.Candidates)),
+		ProbePlans:  make([]ProbePlan, 0, len(result.Candidates)),
+		Diagnostics: result.Diagnostics,
 	}
 	for index, candidate := range result.Candidates {
 		if opts.ProviderID != "" && candidate.ProviderID != opts.ProviderID {
