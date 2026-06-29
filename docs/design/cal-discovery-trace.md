@@ -167,12 +167,16 @@ proposal_item
   kind optional
   name optional
   decision optional
+  reason optional
 ```
 
 Proposal diagnostics record parsed stage decisions that are useful for
 debugging and evaluation but are not executable candidates. For Surface,
 `decision` records the final keep/defer/skip result after local policy, and
 `summary.selected` records how many items were passed to Capability planning.
+Capability and Binding stages use the same decision vocabulary for local
+normalization and filtering before later Proposal stages.
+`reason` is optional local diagnostics for skipped or deferred items.
 
 Candidate:
 

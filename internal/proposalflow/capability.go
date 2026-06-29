@@ -10,23 +10,23 @@ import (
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
-func (proposer *LLMProposer) planCapabilities(ctx context.Context, req Request, prof profile, surfaces []surfaceItem) ([]capabilityPlanItem, []byte, caltrace.ProposalStage, error) {
+func (proposer *LLMProposer) draftCapabilities(ctx context.Context, req Request, prof profile, surfaces []surface) ([]capabilityPlan, []byte, caltrace.ProposalStage, error) {
 	content, err := proposer.client.Complete(ctx, cliCapabilityPrompt(req, prof, proposer.policy.Capability, surfaces))
 	if err != nil {
 		return nil, nil, caltrace.ProposalStage{}, fmt.Errorf("capability stage: %w", err)
 	}
-	var output capabilityStageOutput
+	var output capabilityOutput
 	if err := json.Unmarshal(content, &output); err != nil {
 		return nil, content, caltrace.ProposalStage{}, fmt.Errorf("decode capability stage: %w", err)
 	}
-	items, stage := normalizeCapabilityStage(output.Capabilities, proposer.policy.Capability, surfaces, req, prof)
+	items, stage := normalizeCapabilities(output.Capabilities, proposer.policy.Capability, surfaces, req, prof)
 	if len(items) == 0 {
 		return nil, content, stage, fmt.Errorf("capability stage returned no capabilities")
 	}
 	return items, content, stage, nil
 }
 
-func normalizeCapabilityStage(input []capabilityPlanItem, policy CapabilityPolicy, surfaces []surfaceItem, req Request, prof profile) ([]capabilityPlanItem, caltrace.ProposalStage) {
+func normalizeCapabilities(input []capabilityPlan, policy CapabilityPolicy, surfaces []surface, req Request, prof profile) ([]capabilityPlan, caltrace.ProposalStage) {
 	surfaceIDs := surfaceIDSet(surfaces)
 	existingIDs := existingCapabilityIDSet(req)
 	subjects := capabilityTermSet(policy.PreferredSubjects)
@@ -39,9 +39,9 @@ func normalizeCapabilityStage(input []capabilityPlanItem, policy CapabilityPolic
 	}
 
 	byID := map[string]int{}
-	items := make([]capabilityPlanItem, 0, len(input))
+	items := make([]capabilityPlan, 0, len(input))
 	for index, item := range input {
-		item = normalizeCapabilityPlanItem(item)
+		item = normalizeCapabilityPlan(item)
 		traceItem := capabilityTraceItem(index, item)
 		switch {
 		case item.CapabilityID == "" || !core.ValidCapabilityID(item.CapabilityID):
@@ -81,8 +81,8 @@ func normalizeCapabilityStage(input []capabilityPlanItem, policy CapabilityPolic
 	return items, stage
 }
 
-func existingCapabilities(req Request, limit int) []existingCapabilityItem {
-	items := make([]existingCapabilityItem, 0, len(req.Catalog))
+func existingCapabilities(req Request, limit int) []existingCapabilityRef {
+	items := make([]existingCapabilityRef, 0, len(req.Catalog))
 	seen := map[string]struct{}{}
 	if req.DebugFilter != "" {
 		for _, capability := range req.Catalog {
@@ -109,8 +109,8 @@ func existingCapabilities(req Request, limit int) []existingCapabilityItem {
 	return items
 }
 
-func existingCapability(capability core.Capability) existingCapabilityItem {
-	return existingCapabilityItem{
+func existingCapability(capability core.Capability) existingCapabilityRef {
+	return existingCapabilityRef{
 		ID:          capability.ID,
 		Description: strings.TrimSpace(capability.Description),
 	}
@@ -120,7 +120,7 @@ func validExistingCapabilityID(id string) bool {
 	return core.ValidCapabilityID(id) && validCapabilityParts(id)
 }
 
-func normalizeCapabilityPlanItem(item capabilityPlanItem) capabilityPlanItem {
+func normalizeCapabilityPlan(item capabilityPlan) capabilityPlan {
 	item.CapabilityID = strings.ToLower(strings.TrimSpace(item.CapabilityID))
 	item.Description = strings.TrimSpace(item.Description)
 	item.Confidence = strings.ToLower(strings.TrimSpace(item.Confidence))
@@ -145,7 +145,7 @@ func validCapabilitySources(ids []string, surfaceIDs map[string]struct{}) bool {
 	return true
 }
 
-func capabilityTraceItem(index int, item capabilityPlanItem) caltrace.ProposalItem {
+func capabilityTraceItem(index int, item capabilityPlan) caltrace.ProposalItem {
 	id := item.CapabilityID
 	if id == "" {
 		id = fmt.Sprintf("c%d", index+1)
@@ -157,7 +157,7 @@ func capabilityTraceItem(index int, item capabilityPlanItem) caltrace.ProposalIt
 	}
 }
 
-func surfaceIDSet(surfaces []surfaceItem) map[string]struct{} {
+func surfaceIDSet(surfaces []surface) map[string]struct{} {
 	ids := make(map[string]struct{}, len(surfaces))
 	for _, surface := range surfaces {
 		ids[surface.ID] = struct{}{}

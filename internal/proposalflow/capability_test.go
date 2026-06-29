@@ -12,19 +12,19 @@ func TestNormalizeCapabilityStageFiltersAndMerges(t *testing.T) {
 		PreferredSubjects:   []string{"document", "text"},
 		PreferredOperations: []string{"convert", "encode"},
 	}
-	surfaces := []surfaceItem{
+	surfaces := []surface{
 		{ID: "s1", Name: "convert"},
 		{ID: "s2", Name: "export"},
 		{ID: "s3", Name: "encode"},
 	}
-	input := []capabilityPlanItem{
+	input := []capabilityPlan{
 		{CapabilityID: "document.convert", SourceSurfaceIDs: []string{"s1"}},
 		{CapabilityID: "document.convert", SourceSurfaceIDs: []string{"s2"}},
 		{CapabilityID: "document.export_pdf", SourceSurfaceIDs: []string{"s2"}},
 		{CapabilityID: "text.encode", SourceSurfaceIDs: []string{"missing"}},
 	}
 
-	items, stage := normalizeCapabilityStage(input, policy, surfaces, Request{}, profile{maxCapabilities: 10})
+	items, stage := normalizeCapabilities(input, policy, surfaces, Request{}, profile{maxCapabilities: 10})
 
 	if len(items) != 1 || items[0].CapabilityID != "document.convert" {
 		t.Fatalf("items = %#v, want merged document.convert only", items)
@@ -45,16 +45,16 @@ func TestNormalizeCapabilityStageMarksCreatedReusedAndOutOfPolicy(t *testing.T) 
 		PreferredSubjects:   []string{"document"},
 		PreferredOperations: []string{"convert"},
 	}
-	surfaces := []surfaceItem{{ID: "s1", Name: "convert"}, {ID: "s2", Name: "sign"}}
+	surfaces := []surface{{ID: "s1", Name: "convert"}, {ID: "s2", Name: "sign"}}
 	req := Request{
 		Catalog: []core.Capability{{ID: "document.convert"}},
 	}
-	input := []capabilityPlanItem{
+	input := []capabilityPlan{
 		{CapabilityID: "document.convert", SourceSurfaceIDs: []string{"s1"}},
 		{CapabilityID: "certificate.sign", SourceSurfaceIDs: []string{"s2"}},
 	}
 
-	items, stage := normalizeCapabilityStage(input, policy, surfaces, req, profile{maxCapabilities: 10})
+	items, stage := normalizeCapabilities(input, policy, surfaces, req, profile{maxCapabilities: 10})
 
 	if len(items) != 2 {
 		t.Fatalf("items = %#v, want two kept capabilities", items)
@@ -69,14 +69,14 @@ func TestNormalizeCapabilityStageAppliesDebugFilter(t *testing.T) {
 		PreferredSubjects:   []string{"document", "text"},
 		PreferredOperations: []string{"convert", "encode"},
 	}
-	surfaces := []surfaceItem{{ID: "s1", Name: "convert"}, {ID: "s2", Name: "encode"}}
+	surfaces := []surface{{ID: "s1", Name: "convert"}, {ID: "s2", Name: "encode"}}
 	req := Request{DebugFilter: "text.encode"}
-	input := []capabilityPlanItem{
+	input := []capabilityPlan{
 		{CapabilityID: "document.convert", SourceSurfaceIDs: []string{"s1"}},
 		{CapabilityID: "text.encode", SourceSurfaceIDs: []string{"s2"}},
 	}
 
-	items, stage := normalizeCapabilityStage(input, policy, surfaces, req, profile{maxCapabilities: 10})
+	items, stage := normalizeCapabilities(input, policy, surfaces, req, profile{maxCapabilities: 10})
 
 	if len(items) != 1 || items[0].CapabilityID != "text.encode" {
 		t.Fatalf("items = %#v, want debug-filtered text.encode", items)

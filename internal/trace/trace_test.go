@@ -68,7 +68,14 @@ func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
 					ID:       "s1",
 					Name:     "-lint",
 					Decision: ProposalDecisionKeep,
+					Reason:   "local_policy",
 				}},
+			}, {
+				Name: ProposalStageBinding,
+				Summary: map[ProposalSummaryKey]int{
+					ProposalSummaryRaw:      1,
+					ProposalSummarySelected: 1,
+				},
 			}},
 		},
 	}
@@ -78,7 +85,7 @@ func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
 		t.Fatalf("Marshal() error = %v", err)
 	}
 	text := string(data)
-	for _, want := range []string{`"name":"surface"`, `"raw":2`, `"selected":1`, `"decision":"keep"`} {
+	for _, want := range []string{`"name":"surface"`, `"name":"binding"`, `"raw":2`, `"selected":1`, `"decision":"keep"`, `"reason":"local_policy"`} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("trace JSON = %s, want %s", data, want)
 		}

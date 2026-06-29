@@ -44,7 +44,8 @@ surface_items[]
 ```
 
 `keep` means the item is documented enough to consider for capability planning.
-`defer` means the item may require deeper observation or unsafe interaction.
+`defer` means the item may require deeper observation before CAL can infer a
+stable semantic operation.
 `skip` means the item should not enter Capability planning.
 
 ## Rules
@@ -54,16 +55,22 @@ Surface must not propose `capability_id`.
 Surface must not produce candidate executions, probe inputs, or verify checks.
 
 Surface should prefer broad command or action coverage over semantic depth, but
-it must still prune:
+it must still prune or defer:
 
 ```text
 interactive-only surfaces
 server/listener modes
-network actions without controlled fixtures
-destructive operations
+ambiguous or low-level utility surfaces
 metadata-only commands
 aliases that do not add operation coverage
 ```
+
+Surface must not defer solely because a command modifies state, needs network
+access, may be destructive, or may require confirmation. Those risks belong to
+Binding, Verification, and Use policy. Core documented operations such as
+package install, update, upgrade, uninstall, link, unlink, pin, unpin, tap,
+untap, and cleanup should enter Capability planning when their command name or
+description clearly identifies the operation.
 
 For complex CLIs, Surface should keep a bounded number of documented primary
 commands or command families instead of enumerating every variant flag.

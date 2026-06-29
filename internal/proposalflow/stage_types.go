@@ -6,11 +6,11 @@ import (
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
-type surfaceStageOutput struct {
-	SurfaceItems []surfaceItem `json:"surface_items"`
+type surfaceOutput struct {
+	SurfaceItems []surface `json:"surface_items"`
 }
 
-type surfaceItem struct {
+type surface struct {
 	ID             string                    `json:"id"`
 	Kind           string                    `json:"kind,omitempty"`
 	Name           string                    `json:"name"`
@@ -20,30 +20,30 @@ type surfaceItem struct {
 	Metadata       map[string]any            `json:"metadata,omitempty"`
 }
 
-type capabilitySurfaceItem struct {
+type capabilitySurface struct {
 	ID          string `json:"id"`
 	Kind        string `json:"kind,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 }
 
-type existingCapabilityItem struct {
+type existingCapabilityRef struct {
 	ID          string `json:"id"`
 	Description string `json:"description,omitempty"`
 }
 
-type capabilityStageOutput struct {
-	Capabilities []capabilityPlanItem `json:"capabilities"`
+type capabilityOutput struct {
+	Capabilities []capabilityPlan `json:"capabilities"`
 }
 
-type capabilityPlanItem struct {
+type capabilityPlan struct {
 	CapabilityID     string   `json:"capability_id"`
 	Description      string   `json:"description,omitempty"`
 	SourceSurfaceIDs []string `json:"source_surface_ids,omitempty"`
 	Confidence       string   `json:"confidence,omitempty"`
 }
 
-type bindingStageOutput struct {
+type bindingOutput struct {
 	Candidates     []caltrace.Candidate `json:"candidates"`
 	ProbeMaterials []probeMaterial      `json:"probe_material"`
 }
@@ -54,7 +54,7 @@ type probeMaterial struct {
 	Fixtures       []Fixture      `json:"fixtures,omitempty"`
 }
 
-type evidenceStageOutput struct {
+type evidenceOutput struct {
 	VerifierPackages []runtime.GeneratedVerifierPackage `json:"verifier_packages,omitempty"`
 	Verifier         core.Verifier                      `json:"verifier"`
 }

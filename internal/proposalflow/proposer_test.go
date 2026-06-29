@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/spacehz-lab/cal/internal/core"
 	sharedllm "github.com/spacehz-lab/cal/internal/llm"
@@ -52,8 +53,8 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 	if !runtime.DefaultRegistry().Supports(plan.Verifier.ID) {
 		t.Fatalf("registry does not support generated verifier %q", plan.Verifier.ID)
 	}
-	if result.Diagnostics == nil || result.Diagnostics.SchemaVersion != cliProposalSchema || len(result.Diagnostics.Stages) != 2 {
-		t.Fatalf("diagnostics = %#v, want surface and capability stages", result.Diagnostics)
+	if result.Diagnostics == nil || result.Diagnostics.SchemaVersion != cliProposalSchema || len(result.Diagnostics.Stages) != 3 {
+		t.Fatalf("diagnostics = %#v, want surface, capability, and binding stages", result.Diagnostics)
 	}
 	stage := result.Diagnostics.Stages[0]
 	if stage.Name != caltrace.ProposalStageSurface || stage.Summary[caltrace.ProposalSummaryRaw] != 1 || stage.Summary[caltrace.ProposalSummarySelected] != 1 || len(stage.Items) != 1 || stage.Items[0].Name != "export-pdf" {
@@ -62,6 +63,10 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 	capabilityStage := result.Diagnostics.Stages[1]
 	if capabilityStage.Name != caltrace.ProposalStageCapability || capabilityStage.Summary[caltrace.ProposalSummaryRaw] != 1 || capabilityStage.Summary[caltrace.ProposalSummarySelected] != 1 {
 		t.Fatalf("capability diagnostics = %#v, want selected Stage2 item", capabilityStage)
+	}
+	bindingStage := result.Diagnostics.Stages[2]
+	if bindingStage.Name != caltrace.ProposalStageBinding || bindingStage.Summary[caltrace.ProposalSummaryRaw] != 1 || bindingStage.Summary[caltrace.ProposalSummarySelected] != 1 {
+		t.Fatalf("binding diagnostics = %#v, want selected Stage3 item", bindingStage)
 	}
 }
 
@@ -181,8 +186,8 @@ func TestLLMProposerRejectsBindingCandidateWithoutProbeMaterial(t *testing.T) {
 			Content: map[string]any{"text": "export-pdf"},
 		}},
 	})
-	if err == nil || !strings.Contains(err.Error(), "binding candidate 0 has no probe material") {
-		t.Fatalf("Propose() error = %v, want missing probe material error", err)
+	if err == nil || !strings.Contains(err.Error(), "binding stage returned no usable candidates") {
+		t.Fatalf("Propose() error = %v, want unusable binding error", err)
 	}
 }
 
@@ -218,7 +223,7 @@ func TestFinalVerifierInstallsGeneratedVerifierWithStableID(t *testing.T) {
 	t.Setenv("CAL_HOME", home)
 	hash := "test_proposal_hash"
 	localID := "unit_generated_check"
-	verifier, err := finalVerifier(evidenceStageOutput{
+	verifier, err := finalVerifier(evidenceOutput{
 		VerifierPackages: []runtime.GeneratedVerifierPackage{{
 			ID:       localID,
 			VerifyPY: "import json\nprint(json.dumps({\"passed\": True}))\n",
@@ -270,10 +275,27 @@ func TestLLMProposerKeepsSuccessfulCapabilityWhenAnotherPipelineFails(t *testing
 	}
 }
 
+func TestProposeBindingsTimesOutSlowBindingPipeline(t *testing.T) {
+	proposer := NewLLMProposer(&blockingStageClient{})
+	req := Request{Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI}}
+	run := proposer.newBindingRun(req, profile{concurrency: 1, bindingTimeout: 10 * time.Millisecond}, nil, nil, newLogger("provider_cli"))
+	_, _, err := run.run(context.Background(), []capabilityPlan{{CapabilityID: "text.encode", Description: "Encode text."}})
+	if err == nil || !strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
+		t.Fatalf("bindingRun.run() error = %v, want deadline exceeded", err)
+	}
+}
+
 type fakeStageClient struct {
 	responses [][]byte
 	index     int
 	mu        sync.Mutex
+}
+
+type blockingStageClient struct{}
+
+func (client *blockingStageClient) Complete(ctx context.Context, _ sharedllm.Prompt) ([]byte, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
 }
 
 func (client *fakeStageClient) Complete(context.Context, sharedllm.Prompt) ([]byte, error) {

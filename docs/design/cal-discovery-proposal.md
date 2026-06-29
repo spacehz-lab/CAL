@@ -214,6 +214,11 @@ Failure in one per-capability pipeline should not fail the provider acquisition
 if another pipeline yields a verifiable candidate. The provider acquisition
 fails only when no candidate can pass Verification and Promotion.
 
+Binding locally filters invalid candidate executions before Evidence planning.
+It should cap candidates per capability and skip outputs whose probe material
+does not cover execution inputs. This keeps Evidence calls bounded and prevents
+LLM-produced execution/probe mismatches from reaching Verification.
+
 ## Validation Gates
 
 CAL must validate Proposal material before Verification:
@@ -222,6 +227,7 @@ CAL must validate Proposal material before Verification:
 capability_id shape and ownership
 candidate execution completeness
 probe inputs cover execution placeholders
+input_constraints only reference execution inputs
 target artifacts are produced by execution before checks reference them
 verify checks reference only available inputs, outputs, or evidence subjects
 verify level is derived or validated locally

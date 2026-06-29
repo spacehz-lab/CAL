@@ -58,6 +58,10 @@ const (
 	ProposalStageSurface ProposalStageName = "surface"
 	// ProposalStageCapability records Stage2 capability planning decisions.
 	ProposalStageCapability ProposalStageName = "capability"
+	// ProposalStageBinding records Stage3 candidate binding decisions.
+	ProposalStageBinding ProposalStageName = "binding"
+	// ProposalStageEvidence identifies Stage4 verification planning work.
+	ProposalStageEvidence ProposalStageName = "evidence"
 )
 
 // ProposalSummaryKey identifies proposal-stage summary counters.
@@ -108,6 +112,7 @@ type ProposalItem struct {
 	Kind     string           `json:"kind,omitempty"`
 	Name     string           `json:"name,omitempty"`
 	Decision ProposalDecision `json:"decision,omitempty"`
+	Reason   string           `json:"reason,omitempty"`
 }
 
 // Candidate records one inferred candidate binding in a trace.

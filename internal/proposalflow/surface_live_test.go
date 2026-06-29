@@ -39,7 +39,7 @@ func TestLiveLLMStage1OpenSSL(t *testing.T) {
 	defer cancel()
 
 	started := time.Now()
-	items, raw, _, err := NewLLMProposer(client).extractSurface(ctx, Request{
+	items, raw, _, err := NewLLMProposer(client).draftSurface(ctx, Request{
 		Provider: core.Provider{
 			ID:   "provider_openssl",
 			Name: "openssl",
@@ -55,7 +55,7 @@ func TestLiveLLMStage1OpenSSL(t *testing.T) {
 	}, cliProfile())
 	elapsed := time.Since(started)
 	if err != nil {
-		t.Fatalf("extractSurface() error after %s = %v\nraw=%s", elapsed, err, raw)
+		t.Fatalf("draftSurface() error after %s = %v\nraw=%s", elapsed, err, raw)
 	}
 	t.Logf("stage1 openssl elapsed=%s raw_bytes=%d kept_surface_items=%d", elapsed, len(raw), len(items))
 
@@ -75,7 +75,7 @@ func TestLiveLLMStage1OpenSSL(t *testing.T) {
 	}
 }
 
-func surfaceNames(items []surfaceItem) map[string]bool {
+func surfaceNames(items []surface) map[string]bool {
 	names := make(map[string]bool, len(items))
 	for _, item := range items {
 		names[item.Name] = true

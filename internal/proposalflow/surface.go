@@ -10,16 +10,16 @@ import (
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
-func (proposer *LLMProposer) extractSurface(ctx context.Context, req Request, prof profile) ([]surfaceItem, []byte, caltrace.ProposalStage, error) {
+func (proposer *LLMProposer) draftSurface(ctx context.Context, req Request, prof profile) ([]surface, []byte, caltrace.ProposalStage, error) {
 	content, err := proposer.client.Complete(ctx, cliSurfacePrompt(req, prof))
 	if err != nil {
 		return nil, nil, caltrace.ProposalStage{}, fmt.Errorf("surface stage: %w", err)
 	}
-	var output surfaceStageOutput
+	var output surfaceOutput
 	if err := json.Unmarshal(content, &output); err != nil {
 		return nil, content, caltrace.ProposalStage{}, fmt.Errorf("decode surface stage: %w", err)
 	}
-	items, stage, err := normalizeSurfaceStage(output.SurfaceItems, proposer.policy.Surface, prof)
+	items, stage, err := normalizeSurfaces(output.SurfaceItems, proposer.policy.Surface, prof)
 	if err != nil {
 		return nil, content, stage, err
 	}
@@ -29,17 +29,12 @@ func (proposer *LLMProposer) extractSurface(ctx context.Context, req Request, pr
 	return items, content, stage, nil
 }
 
-func normalizeSurfaceItems(input []surfaceItem, policy SurfacePolicy, prof profile) ([]surfaceItem, error) {
-	items, _, err := normalizeSurfaceStage(input, policy, prof)
-	return items, err
-}
-
-func normalizeSurfaceStage(input []surfaceItem, policy SurfacePolicy, prof profile) ([]surfaceItem, caltrace.ProposalStage, error) {
+func normalizeSurfaces(input []surface, policy SurfacePolicy, prof profile) ([]surface, caltrace.ProposalStage, error) {
 	allowedKinds, skipNames, skipPatterns, err := compileSurfacePolicy(policy)
 	if err != nil {
 		return nil, caltrace.ProposalStage{}, err
 	}
-	items := make([]surfaceItem, 0, len(input))
+	items := make([]surface, 0, len(input))
 	stage := caltrace.ProposalStage{
 		Name: caltrace.ProposalStageSurface,
 		Summary: map[caltrace.ProposalSummaryKey]int{
@@ -87,7 +82,7 @@ func normalizeSurfaceStage(input []surfaceItem, policy SurfacePolicy, prof profi
 	return items, stage, nil
 }
 
-func normalizeSurfaceItem(item surfaceItem) surfaceItem {
+func normalizeSurfaceItem(item surface) surface {
 	item.ID = strings.TrimSpace(item.ID)
 	item.Kind = normalizePolicyToken(item.Kind)
 	if item.Kind == "" {
@@ -153,7 +148,7 @@ func summaryKeyForDecision(decision caltrace.ProposalDecision) caltrace.Proposal
 	}
 }
 
-func surfaceTraceItem(item surfaceItem) caltrace.ProposalItem {
+func surfaceTraceItem(item surface) caltrace.ProposalItem {
 	return caltrace.ProposalItem{
 		ID:       item.ID,
 		Kind:     item.Kind,

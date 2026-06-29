@@ -10,7 +10,7 @@ import (
 )
 
 func TestCLICapabilityPromptUsesSlimSurfaces(t *testing.T) {
-	prompt := cliCapabilityPrompt(Request{}, profile{}, DefaultPolicy().Capability, []surfaceItem{{
+	prompt := cliCapabilityPrompt(Request{}, profile{}, DefaultPolicy().Capability, []surface{{
 		ID:             "s1",
 		Kind:           "command",
 		Name:           "dgst",
@@ -25,7 +25,7 @@ func TestCLICapabilityPromptUsesSlimSurfaces(t *testing.T) {
 	}
 
 	var payload struct {
-		SurfaceItems []capabilitySurfaceItem `json:"surface_items"`
+		SurfaceItems []capabilitySurface `json:"surface_items"`
 	}
 	if err := json.Unmarshal([]byte(prompt.User), &payload); err != nil {
 		t.Fatalf("decode prompt user: %v", err)
@@ -59,7 +59,7 @@ func TestCLICapabilityPromptIncludesExistingCapabilityDescriptions(t *testing.T)
 	prompt := cliCapabilityPrompt(req, profile{maxCapabilities: 4}, DefaultPolicy().Capability, nil)
 
 	var payload struct {
-		ExistingCapabilities []existingCapabilityItem `json:"existing_capabilities"`
+		ExistingCapabilities []existingCapabilityRef `json:"existing_capabilities"`
 	}
 	if err := json.Unmarshal([]byte(prompt.User), &payload); err != nil {
 		t.Fatalf("decode prompt user: %v", err)
