@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/spacehz-lab/cal/internal/core"
@@ -318,6 +319,81 @@ func TestLiveLLMAcquisitionGeneratesVerifySpec(t *testing.T) {
 	}
 }
 
+func TestLiveLLMAcquisitionHandlesNestedCommandContractAndExecute(t *testing.T) {
+	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
+	repo := e2etest.RepoRoot(t)
+	temp := t.TempDir()
+	calctlBin := filepath.Join(temp, "calctl")
+	caldBin := filepath.Join(temp, "cald")
+	e2etest.Build(t, repo, calctlBin, "./cmd/calctl")
+	e2etest.Build(t, repo, caldBin, "./cmd/cald")
+	e2etest.StartCald(t, repo, env, caldBin)
+
+	providerPath := filepath.Join(temp, "live-nested-pm")
+	writeLiveLLMNestedPackageManager(t, providerPath)
+
+	var contractAcquisition struct {
+		State                string                    `json:"state"`
+		TraceID              string                    `json:"trace_id"`
+		CapabilitiesPromoted int                       `json:"capabilities_promoted"`
+		BindingsPromoted     int                       `json:"bindings_promoted"`
+		Providers            []e2etest.ProviderSummary `json:"providers"`
+	}
+	provider := runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &contractAcquisition, "--capability-id", "package.install", "--json")
+	if contractAcquisition.State != "succeeded" || contractAcquisition.CapabilitiesPromoted != 1 || contractAcquisition.BindingsPromoted < 1 || contractAcquisition.TraceID == "" || len(contractAcquisition.Providers) != 1 {
+		t.Fatalf("contract acquisition = %#v, want package.install contract binding", contractAcquisition)
+	}
+
+	home := e2etest.HomeFromEnv(env)
+	contractTrace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", contractAcquisition.TraceID, "trace.json"))
+	assertLiveLLMCapabilityProbe(t, contractTrace, "package.install", core.VerifyLevelL1, core.VerifyMethodContract)
+
+	var contractRun struct {
+		Status string `json:"status"`
+		Error  struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	e2etest.RunFailJSON(t, repo, env, &contractRun, calctlBin, "runs", "create", "--capability-id", "package.install", "--provider-id", provider.ID, "--inputs-json", `{"package":"cal-contract-example"}`, "--json")
+	if contractRun.Status != "failed" || contractRun.Error.Code != "binding_not_found" {
+		t.Fatalf("package.install default run = %#v, want L1 contract binding filtered by default L2 threshold", contractRun)
+	}
+
+	var executeAcquisition struct {
+		State                string                    `json:"state"`
+		TraceID              string                    `json:"trace_id"`
+		CapabilitiesPromoted int                       `json:"capabilities_promoted"`
+		BindingsPromoted     int                       `json:"bindings_promoted"`
+		Providers            []e2etest.ProviderSummary `json:"providers"`
+	}
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &executeAcquisition, "--capability-id", "system.validate", "--json")
+	if executeAcquisition.State != "succeeded" || executeAcquisition.CapabilitiesPromoted != 1 || executeAcquisition.BindingsPromoted < 1 || executeAcquisition.TraceID == "" || len(executeAcquisition.Providers) != 1 {
+		t.Fatalf("execute acquisition = %#v, want system.validate execute binding", executeAcquisition)
+	}
+
+	executeTrace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", executeAcquisition.TraceID, "trace.json"))
+	assertLiveLLMCapabilityProbe(t, executeTrace, "system.validate", core.VerifyLevelL2, core.VerifyMethodExecute)
+
+	var inspectRun struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+		Outputs  map[string]any     `json:"outputs"`
+	}
+	reportPath := filepath.Join(temp, "doctor-report.json")
+	e2etest.RunJSON(t, repo, env, &inspectRun, calctlBin, "runs", "create", "--capability-id", "system.validate", "--provider-id", executeAcquisition.Providers[0].ID, "--inputs-json", `{"target":`+strconv.Quote(reportPath)+`}`, "--verify", "--json")
+	if inspectRun.Status != "succeeded" || !inspectRun.Verified || len(inspectRun.Evidence) != 1 {
+		t.Fatalf("system.validate run = %#v, want verified L2 nested command reuse", inspectRun)
+	}
+	report, err := os.ReadFile(reportPath)
+	if err != nil {
+		t.Fatalf("read doctor report: %v", err)
+	}
+	if !strings.Contains(string(report), `"status":"ok"`) {
+		t.Fatalf("doctor report = %s, want status ok", report)
+	}
+}
+
 func liveLLMEnv(t *testing.T, home string) []string {
 	t.Helper()
 	if os.Getenv("CAL_LIVE_LLM_E2E") != "1" {
@@ -426,6 +502,26 @@ func assertTraceVerifyForCapability(t *testing.T, trace caltrace.Trace, capabili
 		}
 	}
 	t.Fatalf("trace probes = %#v, missing passing verify for %s", trace.Probes, capabilityID)
+}
+
+func assertLiveLLMCapabilityProbe(t *testing.T, trace caltrace.Trace, capabilityID string, level core.VerifyLevel, method core.VerifyMethod) {
+	t.Helper()
+	for _, probe := range trace.Probes {
+		if probe.CandidateIndex < 0 || probe.CandidateIndex >= len(trace.Candidates) {
+			continue
+		}
+		if trace.Candidates[probe.CandidateIndex].CapabilityID != capabilityID {
+			continue
+		}
+		if !probe.Passed || probe.Verify.Level != level || probe.Verify.Method != method {
+			t.Fatalf("probe for %s = %#v, want passed %s %s", capabilityID, probe, level, method)
+		}
+		if len(probe.Evidence) != 1 {
+			t.Fatalf("probe for %s evidence = %#v, want one evidence", capabilityID, probe.Evidence)
+		}
+		return
+	}
+	t.Fatalf("trace probes = %#v, missing probe for %s", trace.Probes, capabilityID)
 }
 
 func writeLiveLLMExporter(t *testing.T, path string) {
@@ -573,5 +669,59 @@ exit 64
 `
 	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
 		t.Fatalf("write live llm marker writer: %v", err)
+	}
+}
+
+func writeLiveLLMNestedPackageManager(t *testing.T, path string) {
+	t.Helper()
+	script := `#!/bin/sh
+if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
+  echo "Live Nested Package Manager"
+  echo "Usage:"
+  echo "  live-nested-pm package install <name>"
+  echo "  live-nested-pm package remove <name>"
+  echo "  live-nested-pm package update"
+  echo "  live-nested-pm package upgrade"
+  echo "  live-nested-pm system doctor --json --output <report.json>"
+  echo "Commands:"
+  echo "  package install <name>   Install a package. Modifies local package state and may contact remote registries."
+  echo "  package remove <name>    Remove an installed package. Modifies local package state."
+  echo "  package update           Refresh package metadata from remote registries and modifies local metadata state."
+  echo "  package upgrade          Upgrade installed packages and modifies local package state."
+  echo "  system doctor --json --output <report.json>  Validate local package-manager configuration without changing state. Writes a JSON report with status=\"ok\" and checks[]."
+  exit 0
+fi
+if [ "$1" = "system" ] && [ "$2" = "doctor" ]; then
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --output)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$target" ]; then
+    exit 2
+  fi
+  printf '%s\n' '{"status":"ok","checks":[{"name":"prefix","result":"ok"},{"name":"cache","result":"ok"}]}' > "$target"
+  printf '%s\n' "wrote $target"
+  exit $?
+fi
+if [ "$1" = "package" ]; then
+  case "$2" in
+    install|remove|update|upgrade)
+      printf '%s\n' "refusing to run state-changing package command in test fixture" >&2
+      exit 70
+      ;;
+  esac
+fi
+exit 64
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write live llm nested package manager: %v", err)
 	}
 }

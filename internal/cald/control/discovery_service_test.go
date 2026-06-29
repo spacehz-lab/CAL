@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/spacehz-lab/cal/internal/config"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 )
 
 func TestDiscoverRejectsInvalidTargetShape(t *testing.T) {
@@ -34,7 +34,7 @@ func TestNewAcquisitionRunnerBuildsDefaultLLMRunner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("newAcquisitionRunner(default) error = %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(svc.Home(), proposalflow.PolicyFileName)); err != nil {
+	if _, err := os.Stat(filepath.Join(svc.Home(), proposal.PolicyFileName)); err != nil {
 		t.Fatalf("proposal policy was not written: %v", err)
 	}
 }
@@ -44,7 +44,7 @@ func TestNewAcquisitionRunnerRejectsInvalidProposalPolicy(t *testing.T) {
 	t.Setenv(config.EnvLLMModel, "test-model")
 	t.Setenv(config.EnvLLMAPIKey, "test-key")
 	svc := newTestService(t)
-	if err := os.WriteFile(filepath.Join(svc.Home(), proposalflow.PolicyFileName), []byte(`{
+	if err := os.WriteFile(filepath.Join(svc.Home(), proposal.PolicyFileName), []byte(`{
   "surface": {
     "allowed_kinds": ["widget"],
     "skip_names": [],

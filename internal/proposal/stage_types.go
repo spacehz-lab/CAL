@@ -1,4 +1,4 @@
-package proposalflow
+package proposal
 
 import (
 	"github.com/spacehz-lab/cal/internal/core"

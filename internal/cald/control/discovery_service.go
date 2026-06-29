@@ -10,7 +10,7 @@ import (
 	"github.com/spacehz-lab/cal/internal/discovery"
 	sharedllm "github.com/spacehz-lab/cal/internal/llm"
 	observecli "github.com/spacehz-lab/cal/internal/observe/cli"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 )
 
 const (
@@ -47,7 +47,7 @@ func (svc Service) Discover(ctx context.Context, req DiscoveryRequest) (discover
 
 func (svc Service) newAcquisitionRunner(req DiscoveryRequest) (discovery.AcquisitionRunner, error) {
 	if strings.TrimSpace(req.ProposalPath) != "" {
-		replay, err := proposalflow.LoadReplayFile(req.ProposalPath)
+		replay, err := proposal.LoadReplayFile(req.ProposalPath)
 		if err != nil {
 			return discovery.AcquisitionRunner{}, NewAPIError("invalid_discovery_proposal", err.Error())
 		}
@@ -72,11 +72,11 @@ func (svc Service) newAcquisitionRunner(req DiscoveryRequest) (discovery.Acquisi
 		if client == nil {
 			return discovery.AcquisitionRunner{}, NewAPIError("invalid_llm_config", "llm client is not configured")
 		}
-		policy, err := proposalflow.EnsurePolicyFile(filepath.Join(svc.Home(), proposalflow.PolicyFileName))
+		policy, err := proposal.EnsurePolicyFile(filepath.Join(svc.Home(), proposal.PolicyFileName))
 		if err != nil {
 			return discovery.AcquisitionRunner{}, NewAPIError("invalid_proposal_policy", err.Error())
 		}
-		return discovery.NewAcquisitionRunner(observecli.Observer{}, proposalflow.NewLLMProposerWithPolicy(client, policy)), nil
+		return discovery.NewAcquisitionRunner(observecli.Observer{}, proposal.NewLLMProposerWithPolicy(client, policy)), nil
 	default:
 		return discovery.AcquisitionRunner{}, NewAPIError("invalid_discovery_mode", fmt.Sprintf("unsupported discovery mode %q", req.Mode))
 	}

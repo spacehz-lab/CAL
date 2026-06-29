@@ -1,13 +1,13 @@
-package proposalflow
+package proposal
 
 import (
 	"time"
 )
 
 const (
-	cliPromptVersion      = "proposalflow-cli-v1"
+	cliPromptVersion      = "proposal-cli-v1"
 	cliProposalSource     = "llm"
-	cliProposalSchema     = "proposalflow.v1"
+	cliProposalSchema     = "proposal.v1"
 	defaultMaxSurface     = 40
 	defaultMaxCapability  = 12
 	defaultMaxCandidate   = 2

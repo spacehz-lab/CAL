@@ -285,6 +285,80 @@ func TestReplayProposalAcquisitionPromotesVerifySpecBinding(t *testing.T) {
 	}
 }
 
+func TestReplayProposalContractBindingRequiresExplicitL1Reuse(t *testing.T) {
+	repo, calctlBin, caldBin := functionalBinaries(t)
+	temp := t.TempDir()
+
+	home := filepath.Join(temp, "home")
+	providerPath := filepath.Join(temp, "contract-exporter")
+	e2etest.WriteProposalBackedExporter(t, providerPath)
+	proposalPath := e2etest.WriteContractReplayProposal(t, filepath.Join(temp, "contract-proposal.json"))
+	env := e2etest.WithHomeEnv(os.Environ(), home)
+	e2etest.StartCald(t, repo, env, caldBin)
+
+	var acquisition struct {
+		State                string                    `json:"state"`
+		TraceID              string                    `json:"trace_id"`
+		CapabilitiesPromoted int                       `json:"capabilities_promoted"`
+		BindingsPromoted     int                       `json:"bindings_promoted"`
+		Providers            []e2etest.ProviderSummary `json:"providers"`
+	}
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
+	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
+		t.Fatalf("acquisition discovery = %#v, want contract-promoted binding", acquisition)
+	}
+	trace := e2etest.ReadJSONFile[caltrace.Trace](t, filepath.Join(home, "discovery", acquisition.TraceID, "trace.json"))
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || trace.Probes[0].Verify.Level != core.VerifyLevelL1 || trace.Probes[0].Verify.Method != core.VerifyMethodContract || len(trace.Probes[0].Verify.Checks) != 0 {
+		t.Fatalf("trace probes = %#v, want passing L1 contract probe", trace.Probes)
+	}
+	if len(trace.Probes[0].Evidence) != 1 || trace.Probes[0].Evidence[0].Type != "contract" {
+		t.Fatalf("trace probe evidence = %#v, want contract evidence", trace.Probes[0].Evidence)
+	}
+
+	source := filepath.Join(temp, "source.txt")
+	target := filepath.Join(temp, "target.pdf")
+	if err := os.WriteFile(source, []byte("hello\n"), 0o644); err != nil {
+		t.Fatalf("write source: %v", err)
+	}
+	inputs := `{"source":` + strconv.Quote(source) + `,"target":` + strconv.Quote(target) + `}`
+	var defaultFailure struct {
+		Status string `json:"status"`
+		Error  struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	e2etest.RunFailJSON(t, repo, env, &defaultFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", inputs, "--json")
+	if defaultFailure.Status != "failed" || defaultFailure.Error.Code != "binding_not_found" {
+		t.Fatalf("default run failure = %#v, want binding_not_found below default L2 threshold", defaultFailure)
+	}
+
+	var l1Run struct {
+		Status   string             `json:"status"`
+		Verified bool               `json:"verified"`
+		Evidence []core.EvidenceRef `json:"evidence"`
+	}
+	e2etest.RunJSON(t, repo, env, &l1Run, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--min-verify-level", "L1", "--inputs-json", inputs, "--json")
+	if l1Run.Status != "succeeded" || l1Run.Verified || len(l1Run.Evidence) != 0 {
+		t.Fatalf("L1 run = %#v, want unverified execution through explicit L1 threshold", l1Run)
+	}
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("L1 run target missing: %v", err)
+	}
+
+	verifyTarget := filepath.Join(temp, "verify-target.pdf")
+	verifyInputs := `{"source":` + strconv.Quote(source) + `,"target":` + strconv.Quote(verifyTarget) + `}`
+	var verifyFailure struct {
+		Status string `json:"status"`
+		Error  struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	e2etest.RunFailJSON(t, repo, env, &verifyFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--min-verify-level", "L1", "--inputs-json", verifyInputs, "--verify", "--json")
+	if verifyFailure.Status != "failed" || verifyFailure.Error.Code != "verification_failed" {
+		t.Fatalf("contract verify failure = %#v, want verification_failed", verifyFailure)
+	}
+}
+
 func TestControlledAcquisitionRejectsInvalidPDF(t *testing.T) {
 	repo, calctlBin, caldBin := functionalBinaries(t)
 	temp := t.TempDir()

@@ -141,7 +141,11 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 		if needle == "" {
 			return fmt.Errorf("verify contains requires params.value")
 		}
-		if !strings.Contains(fmt.Sprint(subject.value), needle) {
+		text, err := subjectText(subject)
+		if err != nil {
+			return err
+		}
+		if !strings.Contains(text, needle) {
 			return fmt.Errorf("verify %s contains failed", check.Subject)
 		}
 	case core.VerifyPredicateContainsAny:
@@ -149,7 +153,10 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 		if len(values) == 0 {
 			return fmt.Errorf("verify contains_any requires params.values")
 		}
-		text := fmt.Sprint(subject.value)
+		text, err := subjectText(subject)
+		if err != nil {
+			return err
+		}
 		for _, value := range values {
 			if strings.Contains(text, value) {
 				return nil
@@ -161,7 +168,11 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 		if pattern == "" {
 			return fmt.Errorf("verify regex requires params.pattern")
 		}
-		ok, err := regexp.MatchString(pattern, fmt.Sprint(subject.value))
+		text, err := subjectText(subject)
+		if err != nil {
+			return err
+		}
+		ok, err := regexp.MatchString(pattern, text)
 		if err != nil {
 			return fmt.Errorf("verify regex pattern: %w", err)
 		}
@@ -188,6 +199,17 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 		return fmt.Errorf("verify predicate %q is not supported", check.Predicate)
 	}
 	return nil
+}
+
+func subjectText(subject checkSubject) (string, error) {
+	if subject.path == "" {
+		return fmt.Sprint(subject.value), nil
+	}
+	content, err := os.ReadFile(subject.path)
+	if err != nil {
+		return "", fmt.Errorf("verify subject read: %w", err)
+	}
+	return string(content), nil
 }
 
 func checkFormat(path, format string) error {

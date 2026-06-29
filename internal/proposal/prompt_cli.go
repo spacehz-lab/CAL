@@ -1,4 +1,4 @@
-package proposalflow
+package proposal
 
 import (
 	"encoding/json"
@@ -99,7 +99,7 @@ Reuse an existing_capabilities id only when its id and description follow these 
 description must be provider-independent and must describe exactly the selected semantic capability. It must not add unsupported operations, hide opposite operations, or narrow capability_id with a format, encoding, algorithm, mode, or target artifact discriminator.
 If debug_filter is set, only return that exact capability_id when the supplied surfaces support it and it satisfies these rules. Otherwise return no capabilities.`
 
-const cliBindingSystemPrompt = `Return only JSON. For one planned capability, produce provider-specific CLI candidate executions and safe probe material.
+const cliBindingSystemPrompt = `Return only JSON. For one planned capability, produce provider-specific CLI candidate executions and probe material.
 Response shape: {"candidates":[{"provider_id":"optional","capability_id":"same as plan","description":"...","input_constraints":{},"execution":{"kind":"cli","spec":{"args":["subcommand","{{source}}","{{target}}"],"stdout_path_input":"optional"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.artifact"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}.
 Only produce provider-specific candidate executions and probe material. Do not verify, produce verifier material, or claim success. For CLI providers, execution.kind must be "cli". CLI args must be argument array only and must not include the provider executable path or executable name. Every {{placeholder}} in args or stdout_path_input must have a probe input or fixture. input_constraints may only describe inputs referenced by execution. Prefer one candidate. Return more than one candidate only when observations clearly show different execution families or input modes, and never exceed max_candidates_per_capability. If the primary output is stdout and later verification needs a file artifact, set stdout_path_input to the output path input. If an output artifact is checked later, execution must produce it through an arg placeholder or stdout_path_input. Description must be provider-independent and no broader than the execution.`
 

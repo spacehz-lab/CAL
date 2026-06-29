@@ -1,4 +1,4 @@
-package proposalflow
+package proposal
 
 import (
 	"log/slog"

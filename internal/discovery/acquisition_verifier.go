@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 	"github.com/spacehz-lab/cal/internal/runtime"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
@@ -25,7 +25,7 @@ const (
 type probeVerification struct {
 	Provider       core.Provider
 	Candidate      caltrace.Candidate
-	Plan           proposalflow.ProbePlan
+	Plan           proposal.ProbePlan
 	CandidateIndex int
 	WorkDir        string
 	Now            time.Time
@@ -41,7 +41,7 @@ func verifyProbe(ctx context.Context, verification probeVerification) (caltrace.
 	}
 	workDir := filepath.Clean(verification.WorkDir)
 
-	plan, err := proposalflow.MaterializeProbePlan(workDir, verification.Plan)
+	plan, err := proposal.MaterializeProbePlan(workDir, verification.Plan)
 	if err != nil {
 		return failedProbe(verification.CandidateIndex, nil, plan.Verify, "probe_plan_failed", err, verification.Now), err
 	}

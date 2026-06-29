@@ -151,8 +151,8 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		BindingID:    "binding_promoted",
 		ProviderID:   "provider_fake",
 		Status:       core.RunStatusFailed,
-		Verified:     true,
 		DurationMS:   30,
+		Error:        &core.RecordError{Code: "verification_failed", Message: "invalid pdf"},
 	}); err != nil {
 		t.Fatalf("PutRun(verified failed) error = %v", err)
 	}

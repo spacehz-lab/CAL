@@ -1,4 +1,4 @@
-package proposalflow
+package proposal
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
-// Replay is proposalflow's minimal replay JSON contract.
+// Replay is proposal's minimal replay JSON contract.
 type Replay struct {
 	Metadata     Metadata             `json:"metadata,omitempty"`
 	Candidates   []caltrace.Candidate `json:"candidates"`
@@ -27,20 +27,20 @@ type Metadata struct {
 	SchemaVersion string `json:"schema_version,omitempty"`
 }
 
-// LoadReplayFile reads a proposalflow replay JSON file.
+// LoadReplayFile reads a proposal replay JSON file.
 func LoadReplayFile(path string) (Replay, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return Replay{}, fmt.Errorf("read proposalflow replay: %w", err)
+		return Replay{}, fmt.Errorf("read proposal replay: %w", err)
 	}
 	return ParseReplay(content)
 }
 
-// ParseReplay decodes proposalflow replay JSON.
+// ParseReplay decodes proposal replay JSON.
 func ParseReplay(content []byte) (Replay, error) {
 	var replay Replay
 	if err := json.Unmarshal(content, &replay); err != nil {
-		return Replay{}, fmt.Errorf("decode proposalflow replay: %w", err)
+		return Replay{}, fmt.Errorf("decode proposal replay: %w", err)
 	}
 	replay.proposalHash = proposalHash(content)
 	if err := replay.validate(); err != nil {
@@ -99,28 +99,28 @@ func normalizeCandidate(provider core.Provider, candidate caltrace.Candidate) ca
 
 func (replay Replay) validate() error {
 	if len(replay.Candidates) == 0 {
-		return fmt.Errorf("proposalflow replay must include at least one candidate")
+		return fmt.Errorf("proposal replay must include at least one candidate")
 	}
 	if len(replay.ProbePlans) == 0 {
-		return fmt.Errorf("proposalflow replay must include at least one probe plan")
+		return fmt.Errorf("proposal replay must include at least one probe plan")
 	}
 	for index, candidate := range replay.Candidates {
 		if candidate.CapabilityID == "" {
-			return fmt.Errorf("proposalflow replay candidate %d capability_id is required", index)
+			return fmt.Errorf("proposal replay candidate %d capability_id is required", index)
 		}
 		if candidate.Description == "" {
-			return fmt.Errorf("proposalflow replay candidate %d description is required", index)
+			return fmt.Errorf("proposal replay candidate %d description is required", index)
 		}
 		if candidate.Execution.Kind == "" {
-			return fmt.Errorf("proposalflow replay candidate %d execution is required", index)
+			return fmt.Errorf("proposal replay candidate %d execution is required", index)
 		}
 	}
 	for index, plan := range replay.ProbePlans {
 		if plan.CandidateIndex < 0 || plan.CandidateIndex >= len(replay.Candidates) {
-			return fmt.Errorf("proposalflow replay probe_plan %d candidate_index %d is out of range", index, plan.CandidateIndex)
+			return fmt.Errorf("proposal replay probe_plan %d candidate_index %d is out of range", index, plan.CandidateIndex)
 		}
 		if err := core.ValidateVerifySpec(plan.Verify); err != nil {
-			return fmt.Errorf("proposalflow replay probe_plan %d verify: %w", index, err)
+			return fmt.Errorf("proposal replay probe_plan %d verify: %w", index, err)
 		}
 	}
 	return nil

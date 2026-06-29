@@ -107,7 +107,7 @@ internal/
       observer.go
       help.go
 
-  proposalflow/
+  proposal/
     proposer.go
     types.go
     stage_types.go
@@ -300,9 +300,9 @@ Trace
 Probe
 ```
 
-Discovery should coordinate `observe` and `proposalflow`, then promote only verified bindings.
+Discovery should coordinate `observe` and `proposal`, then promote only verified bindings.
 
-`internal/proposalflow` owns the new four-stage Proposal flow. It returns
+`internal/proposal` owns the new four-stage Proposal flow. It returns
 candidate bindings and probe plans in one result so Discovery does not depend on
 separate proposer and probe-planner callbacks.
 
@@ -318,7 +318,7 @@ observe/cli
 
 Keep observation separate from discovery because different providers require different drivers.
 
-### `internal/proposalflow`
+### `internal/proposal`
 
 Owns the four-stage Proposal contract:
 
@@ -400,7 +400,7 @@ Runtime owns execution of built-in checks; Discovery owns promotion decisions.
 - `calctl` is the CLI.
 - `cald` is the local service.
 - `observe` is independent because it can use CLI, CUA, or later drivers.
-- `proposalflow` owns staged proposal generation and probe-plan materialization.
+- `proposal` owns staged proposal generation and probe-plan materialization.
 - `runtime` owns promoted binding execution, verification, catalog read-models, and binding selection.
 - There is no `actor` module.
 - There is no top-level `llm`, `infer`, `model`, `backend`, or `provider` module in the target tree.
@@ -429,14 +429,14 @@ internal/cald      -> internal/store
 internal/cald      -> internal/use
 
 internal/discovery -> internal/core
-internal/discovery -> internal/proposalflow
+internal/discovery -> internal/proposal
 internal/discovery -> internal/observe
 internal/discovery -> internal/runtime
 internal/discovery -> internal/trace
 
-internal/proposalflow -> internal/core
-internal/proposalflow -> internal/llm
-internal/proposalflow -> internal/trace
+internal/proposal -> internal/core
+internal/proposal -> internal/llm
+internal/proposal -> internal/trace
 internal/observe   -> internal/core
 internal/runtime   -> internal/core
 internal/use       -> internal/core

@@ -11,7 +11,7 @@ import (
 
 	"github.com/spacehz-lab/cal/internal/core"
 	"github.com/spacehz-lab/cal/internal/observe"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 	calstore "github.com/spacehz-lab/cal/internal/store"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
@@ -433,9 +433,9 @@ type fakeProposer struct {
 	capabilityID string
 }
 
-func (proposer fakeProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+func (proposer fakeProposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	if proposer.capabilityID == "" {
-		return proposalflow.Result{}, nil
+		return proposal.Result{}, nil
 	}
 	return proposalResult(request.Provider.ID, []caltrace.Candidate{{
 		ProviderID:   request.Provider.ID,
@@ -455,12 +455,12 @@ type slowProposer struct {
 	delay        time.Duration
 }
 
-func (proposer slowProposer) Propose(ctx context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+func (proposer slowProposer) Propose(ctx context.Context, request proposal.Request) (proposal.Result, error) {
 	timer := time.NewTimer(proposer.delay)
 	defer timer.Stop()
 	select {
 	case <-ctx.Done():
-		return proposalflow.Result{}, ctx.Err()
+		return proposal.Result{}, ctx.Err()
 	case <-timer.C:
 		return fakeProposer{capabilityID: proposer.capabilityID}.Propose(ctx, request)
 	}
@@ -471,7 +471,7 @@ type multiProposer struct {
 	badIndexes    map[int]struct{}
 }
 
-func (proposer multiProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+func (proposer multiProposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	candidates := make([]caltrace.Candidate, 0, len(proposer.capabilityIDs))
 	for index, capabilityID := range proposer.capabilityIDs {
 		args := []string{"export-pdf", "--target", "{{target}}"}
@@ -495,7 +495,7 @@ func (proposer multiProposer) Propose(_ context.Context, request proposalflow.Re
 
 type diagnosticProposer struct{}
 
-func (diagnosticProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+func (diagnosticProposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	result := proposalResult(request.Provider.ID, []caltrace.Candidate{{
 		ProviderID:   request.Provider.ID,
 		CapabilityID: "document.export_pdf",
@@ -508,7 +508,7 @@ func (diagnosticProposer) Propose(_ context.Context, request proposalflow.Reques
 		},
 	}})
 	result.Diagnostics = &caltrace.ProposalTrace{
-		SchemaVersion: "proposalflow.v1",
+		SchemaVersion: "proposal.v1",
 		PromptVersion: "test-prompt",
 		Model:         "test-model",
 		Stages: []caltrace.ProposalStage{{
@@ -530,10 +530,10 @@ func (diagnosticProposer) Propose(_ context.Context, request proposalflow.Reques
 
 type failingDiagnosticProposer struct{}
 
-func (failingDiagnosticProposer) Propose(context.Context, proposalflow.Request) (proposalflow.Result, error) {
-	return proposalflow.Result{
+func (failingDiagnosticProposer) Propose(context.Context, proposal.Request) (proposal.Result, error) {
+	return proposal.Result{
 		Diagnostics: &caltrace.ProposalTrace{
-			SchemaVersion: "proposalflow.v1",
+			SchemaVersion: "proposal.v1",
 			PromptVersion: "test-prompt",
 			Model:         "test-model",
 			Stages: []caltrace.ProposalStage{{
@@ -570,25 +570,25 @@ type capturingProposer struct {
 	debugFilter string
 }
 
-func (proposer *capturingProposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+func (proposer *capturingProposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	proposer.catalog = append([]core.Capability(nil), request.Catalog...)
 	proposer.debugFilter = request.DebugFilter
-	return proposalflow.Result{}, nil
+	return proposal.Result{}, nil
 }
 
-func proposalResult(providerID string, candidates []caltrace.Candidate) proposalflow.Result {
-	probePlans := make([]proposalflow.ProbePlan, 0, len(candidates))
+func proposalResult(providerID string, candidates []caltrace.Candidate) proposal.Result {
+	probePlans := make([]proposal.ProbePlan, 0, len(candidates))
 	for index := range candidates {
 		if candidates[index].ProviderID == "" {
 			candidates[index].ProviderID = providerID
 		}
-		probePlans = append(probePlans, proposalflow.ProbePlan{
+		probePlans = append(probePlans, proposal.ProbePlan{
 			CandidateIndex: index,
 			Inputs:         map[string]any{"target": "{{workdir}}/output.any"},
 			Verify:         fileExistsVerifySpec(),
 		})
 	}
-	return proposalflow.Result{
+	return proposal.Result{
 		Candidates: candidates,
 		ProbePlans: probePlans,
 	}

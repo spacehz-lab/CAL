@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
@@ -164,29 +164,29 @@ func TestAcquisitionVerifierRejectsL0WithoutExecution(t *testing.T) {
 	}
 }
 
-func targetProbePlan() proposalflow.ProbePlan {
-	return proposalflow.ProbePlan{
+func targetProbePlan() proposal.ProbePlan {
+	return proposal.ProbePlan{
 		Inputs: map[string]any{"target": "{{workdir}}/output.pdf"},
 		Verify: fileExistsVerifySpec(),
 	}
 }
 
-func contractProbePlan() proposalflow.ProbePlan {
-	return proposalflow.ProbePlan{
+func contractProbePlan() proposal.ProbePlan {
+	return proposal.ProbePlan{
 		Inputs: map[string]any{"target": "{{workdir}}/output.pdf"},
 		Verify: core.VerifySpec{Level: core.VerifyLevelL1, Method: core.VerifyMethodContract},
 	}
 }
 
-func invalidContractProbePlan() proposalflow.ProbePlan {
-	return proposalflow.ProbePlan{
+func invalidContractProbePlan() proposal.ProbePlan {
+	return proposal.ProbePlan{
 		Inputs: map[string]any{"target": "{{workdir}}/output.pdf"},
 		Verify: core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodContract},
 	}
 }
 
-func l0ProbePlan() proposalflow.ProbePlan {
-	return proposalflow.ProbePlan{
+func l0ProbePlan() proposal.ProbePlan {
+	return proposal.ProbePlan{
 		Inputs: map[string]any{"target": "{{workdir}}/output.pdf"},
 		Verify: core.VerifySpec{Level: core.VerifyLevelL0, Method: core.VerifyMethodContract},
 	}

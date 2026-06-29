@@ -147,6 +147,75 @@ fi
 	}
 }
 
+func TestRuntimeVerifyFailureIsPersistedInEval(t *testing.T) {
+	repo, calctlBin, caldBin := functionalBinaries(t)
+	temp := t.TempDir()
+
+	home := filepath.Join(temp, "home")
+	providerPath := filepath.Join(temp, "conditional-pdf")
+	e2etest.WriteConditionalPDFExporter(t, providerPath)
+	proposalPath := e2etest.WriteReplayProposal(t, filepath.Join(temp, "proposal.json"))
+	env := e2etest.WithHomeEnv(os.Environ(), home)
+	e2etest.StartCald(t, repo, env, caldBin)
+
+	var acquisition struct {
+		State                string `json:"state"`
+		TraceID              string `json:"trace_id"`
+		CapabilitiesPromoted int    `json:"capabilities_promoted"`
+		BindingsPromoted     int    `json:"bindings_promoted"`
+	}
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--proposal-path", proposalPath, "--json")
+	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" {
+		t.Fatalf("acquisition = %#v, want promoted binding before runtime verifier failure", acquisition)
+	}
+
+	source := filepath.Join(temp, "bad-source.txt")
+	target := filepath.Join(temp, "bad-target.pdf")
+	if err := os.WriteFile(source, []byte("bad-runtime-pdf\n"), 0o644); err != nil {
+		t.Fatalf("write bad source: %v", err)
+	}
+	var runFailure struct {
+		ID       string `json:"id"`
+		Status   string `json:"status"`
+		Verified bool   `json:"verified"`
+		Error    struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	e2etest.RunFailJSON(t, repo, env, &runFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	if runFailure.Status != "failed" || runFailure.Verified || runFailure.Error.Code != "verification_failed" || runFailure.ID == "" {
+		t.Fatalf("run failure = %#v, want persisted verification_failed run", runFailure)
+	}
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("target missing after verifier failure: %v", err)
+	}
+
+	var storedRun struct {
+		ID       string `json:"id"`
+		Status   string `json:"status"`
+		Verified bool   `json:"verified"`
+		Error    struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	e2etest.RunJSON(t, repo, env, &storedRun, calctlBin, "runs", "get", "--run-id", runFailure.ID, "--json")
+	if storedRun.ID != runFailure.ID || storedRun.Status != "failed" || storedRun.Verified || storedRun.Error.Code != "verification_failed" {
+		t.Fatalf("stored run = %#v, want persisted verification_failed run %s", storedRun, runFailure.ID)
+	}
+
+	var metrics e2etest.EvalMetricsOutput
+	e2etest.RunJSON(t, repo, env, &metrics, calctlBin, "eval", "--json")
+	if metrics.Summary.Runs != 1 {
+		t.Fatalf("eval summary = %#v, want one persisted verifier-failed run", metrics.Summary)
+	}
+	if metrics.Reuse.RunCount != 1 || metrics.Reuse.RunSuccessCount != 0 || metrics.Reuse.RunFailureCount != 1 || metrics.Reuse.VerifiedRunCount != 1 || metrics.Reuse.VerifierFailCount != 1 {
+		t.Fatalf("eval reuse = %#v, want one verifier-failed run", metrics.Reuse)
+	}
+	if metrics.Reuse.VerifierFailureRate != 1 {
+		t.Fatalf("eval verifier failure rate = %v, want 1", metrics.Reuse.VerifierFailureRate)
+	}
+}
+
 func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 	repo, calctlBin, caldBin := functionalBinaries(t)
 	temp := t.TempDir()

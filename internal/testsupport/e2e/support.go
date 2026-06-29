@@ -428,6 +428,51 @@ exit 64
 	}
 }
 
+// WriteConditionalPDFExporter writes a proposal-backed exporter that can emit
+// an invalid PDF for runtime verifier-failure tests.
+func WriteConditionalPDFExporter(t *testing.T, path string) {
+	t.Helper()
+	script := `#!/bin/sh
+if [ "$1" = "--help" ]; then
+  echo "Conditional PDF Exporter 1.0"
+  echo "Usage: conditional-pdf make-pdf --in <path> --out <path>"
+  exit 0
+fi
+if [ "$1" = "make-pdf" ]; then
+  source=""
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --in)
+        source="$2"
+        shift 2
+        ;;
+      --out)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$source" ] || [ -z "$target" ]; then
+    exit 2
+  fi
+  if grep -q 'bad-runtime-pdf' "$source"; then
+    printf '%s\n' 'not a pdf' > "$target"
+    exit 0
+  fi
+  ` + WriteParseablePDFCommand() + `
+  exit $?
+fi
+exit 64
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write conditional PDF exporter: %v", err)
+	}
+}
+
 // WriteReplayProposal writes a replay proposal fixture.
 func WriteReplayProposal(t *testing.T, path string) string {
 	t.Helper()
@@ -450,6 +495,31 @@ func WriteReplayProposal(t *testing.T, path string) string {
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write replay proposal: %v", err)
+	}
+	return path
+}
+
+// WriteContractReplayProposal writes a replay proposal with L1 contract evidence.
+func WriteContractReplayProposal(t *testing.T, path string) string {
+	t.Helper()
+	content := `{
+  "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
+  "candidates": [{
+    "capability_id": "document.export_pdf",
+    "description": "Export a document to a PDF artifact.",
+    "execution": {
+      "kind": "cli",
+      "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
+    }
+  }],
+  "probe_plans": [{
+    "candidate_index": 0,
+    "inputs": {"source": "{{workdir}}/contract-source.txt", "target": "{{workdir}}/contract-output.pdf"},
+    "verify": {"level":"L1","method":"contract","checks":[]}
+  }]
+}`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write contract replay proposal: %v", err)
 	}
 	return path
 }

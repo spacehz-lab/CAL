@@ -2,11 +2,12 @@ package rules
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
@@ -14,7 +15,7 @@ import (
 type Proposer struct{}
 
 // Propose returns rule-derived candidates for the current skeleton.
-func (Proposer) Propose(_ context.Context, request proposalflow.Request) (proposalflow.Result, error) {
+func (Proposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	var candidates []caltrace.Candidate
 	for _, observation := range request.Observations {
 		if observation.Type != "cli_output" {
@@ -26,29 +27,29 @@ func (Proposer) Propose(_ context.Context, request proposalflow.Request) (propos
 		}
 		candidate, ok, err := candidateFromHelp(request.Provider.ID, request.DebugFilter, text)
 		if err != nil {
-			return proposalflow.Result{}, err
+			return proposal.Result{}, err
 		}
 		if ok {
 			candidates = append(candidates, candidate)
 		}
 	}
-	return proposalflow.Select(rulesResult(candidates), proposalflow.SelectOptions{
+	return proposal.Select(rulesResult(candidates), proposal.SelectOptions{
 		ProviderID:  request.Provider.ID,
 		DebugFilter: request.DebugFilter,
 	})
 }
 
-func rulesResult(candidates []caltrace.Candidate) proposalflow.Result {
-	probePlans := make([]proposalflow.ProbePlan, 0, len(candidates))
+func rulesResult(candidates []caltrace.Candidate) proposal.Result {
+	probePlans := make([]proposal.ProbePlan, 0, len(candidates))
 	for index, candidate := range candidates {
-		probePlans = append(probePlans, proposalflow.ProbePlan{
+		probePlans = append(probePlans, proposal.ProbePlan{
 			CandidateIndex: index,
 			Inputs:         probeInputs(candidate.CapabilityID),
 			Fixtures:       probeFixtures(candidate.CapabilityID),
 			Verify:         verifyForCapability(candidate.CapabilityID),
 		})
 	}
-	return proposalflow.Result{
+	return proposal.Result{
 		Candidates: candidates,
 		ProbePlans: probePlans,
 	}
@@ -71,15 +72,23 @@ func probeInputs(capabilityID string) map[string]any {
 	}
 }
 
-func probeFixtures(capabilityID string) []proposalflow.Fixture {
-	if capabilityID != "document.export_pdf" {
+func probeFixtures(capabilityID string) []proposal.Fixture {
+	switch capabilityID {
+	case "document.export_pdf":
+		return []proposal.Fixture{{
+			Input:    "source",
+			Filename: "input.txt",
+			Content:  "cal probe input\n",
+		}}
+	case "image.resize":
+		return []proposal.Fixture{{
+			Input:    "source",
+			Filename: "input.png",
+			Content:  mustDecodeString(testPNGBase64),
+		}}
+	default:
 		return nil
 	}
-	return []proposalflow.Fixture{{
-		Input:    "source",
-		Filename: "input.txt",
-		Content:  "cal probe input\n",
-	}}
 }
 
 func verifyForCapability(capabilityID string) core.VerifySpec {
@@ -213,4 +222,14 @@ func parseHelpMarkers(text string) (string, string, bool, bool) {
 		}
 	}
 	return capability, command, hasCapability, hasCommand
+}
+
+const testPNGBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAAFElEQVR4nGM8ceIEA27AhEduBEsDABUMAYuJ1HWoAAAAAElFTkSuQmCC"
+
+func mustDecodeString(value string) string {
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		panic(err)
+	}
+	return string(decoded)
 }

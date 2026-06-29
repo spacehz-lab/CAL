@@ -18,7 +18,8 @@ func (records records) reuse() ReuseMetrics {
 		case core.RunStatusFailed:
 			failed++
 		}
-		if run.Verified {
+		verifyFailed := run.Error != nil && run.Error.Code == "verification_failed"
+		if run.Verified || verifyFailed {
 			verified++
 			if run.Status == core.RunStatusSucceeded {
 				verifiedSucceeded++

@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/spacehz-lab/cal/internal/core"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
 func TestProposerProposesCLIHelpMarkerCandidate(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{
@@ -49,7 +49,7 @@ func TestProposerProposesCLIHelpMarkerCandidate(t *testing.T) {
 }
 
 func TestProposerProposesCLIHelpMarkerCandidateWithoutHint(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
@@ -67,7 +67,7 @@ func TestProposerProposesCLIHelpMarkerCandidateWithoutHint(t *testing.T) {
 }
 
 func TestProposerProposesMarkerFreeDocumentExportPDFCandidate(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{
@@ -106,7 +106,7 @@ func TestProposerProposesMarkerFreeDocumentExportPDFCandidate(t *testing.T) {
 }
 
 func TestProposerProposesMarkerFreeDocumentExportPDFCandidateWithoutHint(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
@@ -124,7 +124,7 @@ func TestProposerProposesMarkerFreeDocumentExportPDFCandidateWithoutHint(t *test
 }
 
 func TestProposerProposesCupsfilterDocumentExportPDFCandidate(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cupsfilter", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{
@@ -167,7 +167,7 @@ func TestProposerProposesCupsfilterDocumentExportPDFCandidate(t *testing.T) {
 }
 
 func TestProposerProposesCupsfilterDocumentExportPDFCandidateWithoutHint(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider: core.Provider{ID: "provider_cupsfilter", Kind: core.ProviderKindCLI},
 		Observations: []caltrace.Observation{{
 			Type:   "cli_output",
@@ -186,7 +186,7 @@ func TestProposerProposesCupsfilterDocumentExportPDFCandidateWithoutHint(t *test
 }
 
 func TestProposerProposesSipsImageResizeCandidate(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_sips", Kind: core.ProviderKindCLI},
 		DebugFilter: "image.resize",
 		Observations: []caltrace.Observation{{
@@ -226,7 +226,7 @@ func TestProposerProposesSipsImageResizeCandidate(t *testing.T) {
 }
 
 func TestProposerProposesSipsImageResizeCandidateWithoutHint(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider: core.Provider{ID: "provider_sips", Kind: core.ProviderKindCLI},
 		Observations: []caltrace.Observation{{
 			Type:   "cli_output",
@@ -245,7 +245,7 @@ func TestProposerProposesSipsImageResizeCandidateWithoutHint(t *testing.T) {
 }
 
 func TestProposerIgnoresCapabilityMismatch(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{
@@ -264,7 +264,7 @@ func TestProposerIgnoresCapabilityMismatch(t *testing.T) {
 }
 
 func TestProposerIgnoresSipsHelpForDifferentCapability(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_sips", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{
@@ -283,7 +283,7 @@ func TestProposerIgnoresSipsHelpForDifferentCapability(t *testing.T) {
 }
 
 func TestProposerIgnoresMarkerFreeHelpForDifferentCapability(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		DebugFilter: "media.convert",
 		Observations: []caltrace.Observation{{
@@ -302,7 +302,7 @@ func TestProposerIgnoresMarkerFreeHelpForDifferentCapability(t *testing.T) {
 }
 
 func TestProposerIgnoresIncompleteMarkerFreeExportPDFHelp(t *testing.T) {
-	response, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{
@@ -321,7 +321,7 @@ func TestProposerIgnoresIncompleteMarkerFreeExportPDFHelp(t *testing.T) {
 }
 
 func TestProposerRejectsEmptyCommandMarker(t *testing.T) {
-	_, err := (Proposer{}).Propose(context.Background(), proposalflow.Request{
+	_, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
 		DebugFilter: "document.export_pdf",
 		Observations: []caltrace.Observation{{

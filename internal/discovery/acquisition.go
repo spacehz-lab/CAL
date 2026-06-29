@@ -7,7 +7,7 @@ import (
 
 	"github.com/spacehz-lab/cal/internal/core"
 	"github.com/spacehz-lab/cal/internal/observe"
-	"github.com/spacehz-lab/cal/internal/proposalflow"
+	"github.com/spacehz-lab/cal/internal/proposal"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
@@ -30,11 +30,11 @@ type AcquisitionOptions struct {
 // AcquisitionRunner runs the current CLI-only provider acquisition slice.
 type AcquisitionRunner struct {
 	observer observe.Observer
-	proposer proposalflow.Proposer
+	proposer proposal.Proposer
 }
 
 // NewAcquisitionRunner builds a provider acquisition runner with explicit dependencies.
-func NewAcquisitionRunner(observer observe.Observer, proposer proposalflow.Proposer) AcquisitionRunner {
+func NewAcquisitionRunner(observer observe.Observer, proposer proposal.Proposer) AcquisitionRunner {
 	return AcquisitionRunner{
 		observer: observer,
 		proposer: proposer,
@@ -83,7 +83,7 @@ type acquisitionRun struct {
 	observations []caltrace.Observation
 	proposal     *caltrace.ProposalTrace
 	candidates   []caltrace.Candidate
-	probePlans   []proposalflow.ProbePlan
+	probePlans   []proposal.ProbePlan
 	probes       []caltrace.Probe
 	promotions   []caltrace.Promotion
 	proposalMS   int64
@@ -166,7 +166,7 @@ func (run *acquisitionRun) propose(ctx context.Context) CodedError {
 		return newCodedError(CodeCandidateProposalFailed, err.Error())
 	}
 	started := time.Now()
-	result, err := run.runner.proposer.Propose(ctx, proposalflow.Request{
+	result, err := run.runner.proposer.Propose(ctx, proposal.Request{
 		Provider:     run.provider,
 		Observations: run.observations,
 		Catalog:      capabilities,
