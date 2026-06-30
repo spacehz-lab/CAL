@@ -117,9 +117,9 @@ func TestCALCLISmoke(t *testing.T) {
 	var capabilityDetail struct {
 		ID string `json:"id"`
 	}
-	e2etest.RunJSON(t, repo, env, &capabilityDetail, calctlBin, "capabilities", "get", "--capability-id", "document.export_pdf", "--json")
-	if capabilityDetail.ID != "document.export_pdf" {
-		t.Fatalf("capability detail = %#v, want document.export_pdf", capabilityDetail)
+	e2etest.RunJSON(t, repo, env, &capabilityDetail, calctlBin, "capabilities", "get", "--capability-id", "document.convert", "--json")
+	if capabilityDetail.ID != "document.convert" {
+		t.Fatalf("capability detail = %#v, want document.convert", capabilityDetail)
 	}
 
 	var eval struct {
@@ -170,8 +170,8 @@ func TestCALCLISmoke(t *testing.T) {
 		BindingID    string `json:"binding_id"`
 		ProviderID   string `json:"provider_id"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
-	if runSuccess.Status != "succeeded" || !runSuccess.Verified || runSuccess.CapabilityID != "document.export_pdf" || runSuccess.BindingID == "" || runSuccess.ProviderID != soffice.ID {
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	if runSuccess.Status != "succeeded" || !runSuccess.Verified || runSuccess.CapabilityID != "document.convert" || runSuccess.BindingID == "" || runSuccess.ProviderID != soffice.ID {
 		t.Fatalf("run success = %#v, want verified successful reuse", runSuccess)
 	}
 	if _, err := os.Stat(target); err != nil {
@@ -196,8 +196,8 @@ func TestCALCLISmoke(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "export this document as pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`}`, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.export_pdf" || useSuccess.Selection.BindingID == "" || useSuccess.Selection.ProviderID != soffice.ID {
-		t.Fatalf("use success = %#v, want selected document.export_pdf binding", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.convert" || useSuccess.Selection.BindingID == "" || useSuccess.Selection.ProviderID != soffice.ID {
+		t.Fatalf("use success = %#v, want selected document.convert binding", useSuccess)
 	}
 	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.BindingID != useSuccess.Selection.BindingID || useSuccess.Run.ProviderID != soffice.ID {
 		t.Fatalf("use run = %#v, want verified selected binding run", useSuccess.Run)

@@ -48,7 +48,7 @@ func selectVerifySpec() core.VerifySpec {
 	return core.VerifySpec{
 		Level:  core.VerifyLevelL2,
 		Method: core.VerifyMethodExecute,
-		Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+		Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 	}
 }
 

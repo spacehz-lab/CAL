@@ -109,7 +109,7 @@ func TestValidatePolicyRejectsInvalidSurfacePolicy(t *testing.T) {
 			name: "invalid preferred operation",
 			policy: Policy{
 				Surface:    defaultSurfacePolicyForTest(),
-				Capability: CapabilityPolicy{PreferredSubjects: []string{"file"}, PreferredOperations: []string{"export_pdf"}},
+				Capability: CapabilityPolicy{PreferredSubjects: []string{"file"}, PreferredOperations: []string{"export-pdf"}},
 			},
 			want: "invalid proposal capability operation",
 		},

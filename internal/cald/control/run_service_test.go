@@ -12,7 +12,7 @@ func TestRunRecordsMissingCapabilityFailure(t *testing.T) {
 	svc := newTestService(t)
 
 	run, err := svc.Run(context.Background(), RunRequest{
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Inputs:       map[string]any{},
 	})
 	if err != nil {
@@ -43,7 +43,7 @@ func TestRunSucceedsWithoutVerify(t *testing.T) {
 	if err := svc.store.PutProvider(provider); err != nil {
 		t.Fatalf("PutProvider() error = %v", err)
 	}
-	capabilityID := "document.export_pdf"
+	capabilityID := "document.convert"
 	execution := core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"-test.run=TestRunHelperProcess"}},
@@ -94,7 +94,7 @@ func TestRunUsesBindingIDConstraint(t *testing.T) {
 	if err := svc.store.PutProvider(provider); err != nil {
 		t.Fatalf("PutProvider() error = %v", err)
 	}
-	capabilityID := "document.export_pdf"
+	capabilityID := "document.convert"
 	execution := core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"-test.run=TestRunHelperProcess"}},
@@ -146,7 +146,7 @@ func TestRunRejectsInvalidRequest(t *testing.T) {
 	if _, err := svc.Run(context.Background(), RunRequest{Inputs: map[string]any{}}); err == nil {
 		t.Fatal("Run() missing capability error = nil, want invalid input")
 	}
-	if _, err := svc.Run(context.Background(), RunRequest{CapabilityID: "document.export_pdf"}); err == nil {
+	if _, err := svc.Run(context.Background(), RunRequest{CapabilityID: "document.convert"}); err == nil {
 		t.Fatal("Run() nil inputs error = nil, want invalid input")
 	}
 }

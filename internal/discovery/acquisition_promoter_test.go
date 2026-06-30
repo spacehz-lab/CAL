@@ -12,7 +12,7 @@ func TestAcquisitionPromoterRejectsFailedProbe(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	_, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 	}, caltrace.Probe{Passed: false})
@@ -25,7 +25,7 @@ func TestAcquisitionPromoterRequiresDescription(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	_, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 	}, passedFileExistsProbe())
 	if err == nil {
@@ -37,7 +37,7 @@ func TestAcquisitionPromoterCreatesPromotedBinding(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	capability, binding, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		InputConstraints: map[string]any{
 			"target": map[string]any{"type": "string", "description": "output PDF path"},
@@ -51,7 +51,7 @@ func TestAcquisitionPromoterCreatesPromotedBinding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("promotedCapability() error = %v", err)
 	}
-	if capability.ID != "document.export_pdf" || capability.Description == "" || len(capability.Bindings) != 1 {
+	if capability.ID != "document.convert" || capability.Description == "" || len(capability.Bindings) != 1 {
 		t.Fatalf("capability = %#v, want one promoted binding", capability)
 	}
 	if binding.State != core.BindingStatePromoted || binding.Verify == nil || len(binding.Evidence) != 1 {
@@ -66,7 +66,7 @@ func TestAcquisitionPromoterBindingIDUsesExecutionSpec(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	first, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"old"}}},
 	}, passedFileExistsProbe())
@@ -75,7 +75,7 @@ func TestAcquisitionPromoterBindingIDUsesExecutionSpec(t *testing.T) {
 	}
 	second, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"new"}}},
 	}, passedFileExistsProbe())
@@ -91,7 +91,7 @@ func TestAcquisitionPromoterMergeKeepsDifferentBindings(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	first, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"old"}}},
 	}, passedFileExistsProbe())
@@ -100,7 +100,7 @@ func TestAcquisitionPromoterMergeKeepsDifferentBindings(t *testing.T) {
 	}
 	second, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"new"}}},
 	}, passedFileExistsProbe())
@@ -116,11 +116,11 @@ func TestAcquisitionPromoterMergeKeepsDifferentBindings(t *testing.T) {
 func TestAcquisitionPromoterMergeReplacesSameBinding(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	existing := core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []core.Binding{{
 			ID:           "binding_same",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			ProviderID:   "provider_cli",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"old"}}},
 			Verify:       fileExistsVerifySpecPtr(),
@@ -129,11 +129,11 @@ func TestAcquisitionPromoterMergeReplacesSameBinding(t *testing.T) {
 		}},
 	}
 	promoted := core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []core.Binding{{
 			ID:           "binding_same",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			ProviderID:   "provider_cli",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"new"}}},
 			Verify:       fileExistsVerifySpecPtr(),
@@ -172,6 +172,6 @@ func fileExistsVerifySpec() core.VerifySpec {
 	return core.VerifySpec{
 		Level:  core.VerifyLevelL2,
 		Method: core.VerifyMethodExecute,
-		Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+		Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 	}
 }

@@ -1,6 +1,7 @@
 package proposal
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -16,10 +17,15 @@ const (
 	bindingReasonInvalidProviderID        = "invalid_provider_id"
 	bindingReasonMissingDescription       = "missing_description"
 	bindingReasonUnsupportedExecutionKind = "unsupported_execution_kind"
-	bindingReasonInvalidCLIArgs           = "invalid_cli_args"
+	bindingReasonMissingCLIArgs           = "missing_cli_args"
+	bindingReasonInvalidCLIArgsType       = "invalid_cli_args_type"
+	bindingReasonInvalidCLIArgItem        = "invalid_cli_arg_item"
+	bindingReasonEmptyCLIArgs             = "empty_cli_args"
+	bindingReasonInvalidCLIInputTemplate  = "invalid_cli_input_template"
 	bindingReasonProviderExecutableInArgs = "provider_executable_in_args"
 	bindingReasonMissingProbeInput        = "missing_probe_input"
 	bindingReasonUnknownInputConstraint   = "unknown_input_constraint"
+	bindingReasonInvalidInputConstraint   = "invalid_input_constraint"
 	bindingReasonCandidateLimit           = "candidate_limit"
 )
 
@@ -36,16 +42,16 @@ func bindingCandidateSkipReason(req Request, capability capabilityPlan, candidat
 	if candidate.Execution.Kind != core.ExecutionKindCLI {
 		return bindingReasonUnsupportedExecutionKind
 	}
-	args, ok := cliExecutionArgs(candidate.Execution)
-	if !ok || len(args) == 0 {
-		return bindingReasonInvalidCLIArgs
+	args, reason := cliExecutionArgsOrReason(candidate.Execution)
+	if reason != "" {
+		return reason
 	}
 	if argsIncludeProviderExecutable(args, req.Provider.Path) {
 		return bindingReasonProviderExecutableInArgs
 	}
 	required, err := runtime.NewRunner(runtime.DefaultRegistry()).RequiredInputs(candidate.Execution)
 	if err != nil {
-		return bindingReasonInvalidCLIArgs
+		return bindingReasonWithDetail(bindingReasonInvalidCLIInputTemplate, err.Error())
 	}
 	available := probeInputSet(material)
 	for _, input := range required {
@@ -58,8 +64,27 @@ func bindingCandidateSkipReason(req Request, capability capabilityPlan, candidat
 		if _, ok := requiredSet[input]; !ok {
 			return bindingReasonWithDetail(bindingReasonUnknownInputConstraint, input)
 		}
+		if !validInputConstraint(candidate.InputConstraints[input]) {
+			return bindingReasonWithDetail(bindingReasonInvalidInputConstraint, input)
+		}
 	}
 	return ""
+}
+
+func validInputConstraint(constraint any) bool {
+	fields, ok := constraint.(map[string]any)
+	if !ok {
+		return false
+	}
+	if enum, ok := fields["enum"]; ok {
+		switch enum.(type) {
+		case []any, []string:
+			return true
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 func bindingReasonWithDetail(reason, detail string) string {
@@ -71,25 +96,36 @@ func bindingReasonWithDetail(reason, detail string) string {
 }
 
 func cliExecutionArgs(execution core.Execution) ([]string, bool) {
+	args, reason := cliExecutionArgsOrReason(execution)
+	return args, reason == ""
+}
+
+func cliExecutionArgsOrReason(execution core.Execution) ([]string, string) {
 	value, ok := execution.Spec[core.ExecutionSpecArgs]
 	if !ok {
-		return nil, false
+		return nil, bindingReasonMissingCLIArgs
 	}
 	switch typed := value.(type) {
 	case []string:
-		return append([]string(nil), typed...), true
+		if len(typed) == 0 {
+			return nil, bindingReasonEmptyCLIArgs
+		}
+		return append([]string(nil), typed...), ""
 	case []any:
+		if len(typed) == 0 {
+			return nil, bindingReasonEmptyCLIArgs
+		}
 		args := make([]string, len(typed))
 		for index, item := range typed {
 			arg, ok := item.(string)
 			if !ok {
-				return nil, false
+				return nil, bindingReasonWithDetail(bindingReasonInvalidCLIArgItem, fmt.Sprintf("%d:%T", index, item))
 			}
 			args[index] = arg
 		}
-		return args, true
+		return args, ""
 	default:
-		return nil, false
+		return nil, bindingReasonWithDetail(bindingReasonInvalidCLIArgsType, fmt.Sprintf("%T", value))
 	}
 }
 

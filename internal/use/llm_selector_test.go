@@ -12,7 +12,7 @@ import (
 func TestResolverUsesLLMSelectorForMultipleCandidates(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_resize","reason":"best semantic match"}`)}
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf"}),
+		testCapability("document.convert", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf"}),
 		testCapability("image.resize", "Resize an image.", "binding_resize", "provider_b", []string{"resize", "{{source}}", "{{target}}"}),
 	}
 
@@ -40,7 +40,7 @@ func TestResolverUsesLLMSelectorForMultipleCandidates(t *testing.T) {
 func TestResolverUsesLLMSelectorForInputPatch(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_pdf","inputs_patch":{"source":"/tmp/source.txt"},"reason":"source path appears in intent"}`)}
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}),
+		testCapability("document.convert", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}),
 	}
 
 	resolution, err := NewResolver(Request{
@@ -60,7 +60,7 @@ func TestResolverUsesLLMSelectorForInputPatch(t *testing.T) {
 func TestResolverRejectsUnknownLLMInputPatch(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_pdf","inputs_patch":{"extra":"value"}}`)}
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf", "--source", "{{source}}"}),
+		testCapability("document.convert", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf", "--source", "{{source}}"}),
 	}
 
 	_, err := NewResolver(Request{
@@ -74,8 +74,8 @@ func TestResolverRejectsUnknownLLMInputPatch(t *testing.T) {
 func TestResolverIgnoresDuplicateLLMInputPatch(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_pdf","inputs_patch":{"format":"html"}}`)}
 	capabilities := []core.Capability{
-		testCapability("document.convert_format", "Convert a document to a specified format.", "binding_pdf", "provider_a", []string{"convert", "{{source}}", "{{format}}", "{{target}}"}),
-		testCapability("document.convert_text", "Convert a document to text.", "binding_text", "provider_a", []string{"convert-text", "{{source}}", "{{target}}"}),
+		testCapability("document.convert", "Convert a document to a specified format.", "binding_pdf", "provider_a", []string{"convert", "{{source}}", "{{format}}", "{{target}}"}),
+		testCapability("text.convert", "Convert a document to text.", "binding_text", "provider_a", []string{"convert-text", "{{source}}", "{{target}}"}),
 	}
 
 	resolution, err := NewResolver(Request{
@@ -96,8 +96,8 @@ func TestResolverIgnoresDuplicateLLMInputPatch(t *testing.T) {
 func TestResolverRejectsConflictingDuplicateLLMInputPatch(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_pdf","inputs_patch":{"format":"txt"}}`)}
 	capabilities := []core.Capability{
-		testCapability("document.convert_format", "Convert a document to a specified format.", "binding_pdf", "provider_a", []string{"convert", "{{source}}", "{{format}}", "{{target}}"}),
-		testCapability("document.convert_text", "Convert a document to text.", "binding_text", "provider_a", []string{"convert-text", "{{source}}", "{{target}}"}),
+		testCapability("document.convert", "Convert a document to a specified format.", "binding_pdf", "provider_a", []string{"convert", "{{source}}", "{{format}}", "{{target}}"}),
+		testCapability("text.convert", "Convert a document to text.", "binding_text", "provider_a", []string{"convert-text", "{{source}}", "{{target}}"}),
 	}
 
 	_, err := NewResolver(Request{
@@ -115,7 +115,7 @@ func TestResolverRejectsConflictingDuplicateLLMInputPatch(t *testing.T) {
 func TestResolverRejectsUnknownLLMSelection(t *testing.T) {
 	client := &fakeLLMClient{content: []byte(`{"binding_id":"binding_missing"}`)}
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf"}),
+		testCapability("document.convert", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf"}),
 		testCapability("image.resize", "Resize an image.", "binding_resize", "provider_b", []string{"resize"}),
 	}
 

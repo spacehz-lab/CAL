@@ -25,12 +25,12 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		t.Fatalf("PutProvider() error = %v", err)
 	}
 	if err := s.PutCapability(core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to a PDF artifact.",
 		Bindings: []core.Binding{
 			{
 				ID:           "binding_promoted",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_fake",
 				Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 				Verify:       evalVerifySpecPtr(core.VerifyLevelL2),
@@ -44,10 +44,10 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 	if err := s.PutTrace(caltrace.Trace{
 		ID:     "trace_fake",
 		Status: caltrace.StatusCompleted,
-		Hint:   "document.export_pdf",
+		Hint:   "document.convert",
 		Candidates: []caltrace.Candidate{{
 			ProviderID:   "provider_fake",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			Description:  "Export a document to a PDF artifact.",
 			Source:       "proposal:replay",
 			Provenance: &caltrace.CandidateProvenance{
@@ -67,7 +67,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		}},
 		Promotions: []caltrace.Promotion{{
 			CandidateIndex:   0,
-			CapabilityID:     "document.export_pdf",
+			CapabilityID:     "document.convert",
 			BindingID:        "binding_promoted",
 			ProviderID:       "provider_fake",
 			CapabilityAction: "created",
@@ -81,7 +81,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		Status: caltrace.StatusCompleted,
 		Candidates: []caltrace.Candidate{{
 			ProviderID:   "provider_fake",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			Description:  "Export a document to a PDF artifact.",
 			Source:       "proposal:replay",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI},
@@ -94,7 +94,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		}},
 		Promotions: []caltrace.Promotion{{
 			CandidateIndex:   0,
-			CapabilityID:     "document.export_pdf",
+			CapabilityID:     "document.convert",
 			BindingID:        "binding_promoted",
 			ProviderID:       "provider_fake",
 			CapabilityAction: "reused",
@@ -106,10 +106,10 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 	if err := s.PutTrace(caltrace.Trace{
 		ID:     "trace_failed",
 		Status: caltrace.StatusFailed,
-		Hint:   "document.export_pdf",
+		Hint:   "document.convert",
 		Candidates: []caltrace.Candidate{{
 			ProviderID:   "provider_fake",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			Description:  "Export a document to a PDF artifact.",
 			Source:       "rules:test",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI},
@@ -126,7 +126,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 	}
 	if err := s.PutRun(core.Run{
 		ID:           "run_success",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		BindingID:    "binding_promoted",
 		ProviderID:   "provider_fake",
 		Status:       core.RunStatusSucceeded,
@@ -137,7 +137,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 	}
 	if err := s.PutRun(core.Run{
 		ID:           "run_failed",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		BindingID:    "binding_promoted",
 		ProviderID:   "provider_fake",
 		Status:       core.RunStatusFailed,
@@ -147,7 +147,7 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 	}
 	if err := s.PutRun(core.Run{
 		ID:           "run_verified_failed",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		BindingID:    "binding_promoted",
 		ProviderID:   "provider_fake",
 		Status:       core.RunStatusFailed,
@@ -180,8 +180,8 @@ func TestComputeCountsStoreRecords(t *testing.T) {
 		t.Fatalf("by capability = %#v, want one capability bucket", metrics.Acquisition.ByCapability)
 	}
 	byCapability := metrics.Acquisition.ByCapability[0]
-	if byCapability.CapabilityID != "document.export_pdf" || byCapability.Attempts != 3 || byCapability.Completed != 2 || byCapability.Failed != 1 || byCapability.Promotions != 2 || byCapability.Candidates != 3 || byCapability.Probes != 3 || byCapability.ProbePasses != 2 || byCapability.ProbeFailures != 1 {
-		t.Fatalf("by capability = %#v, want document.export_pdf acquisition counts", byCapability)
+	if byCapability.CapabilityID != "document.convert" || byCapability.Attempts != 3 || byCapability.Completed != 2 || byCapability.Failed != 1 || byCapability.Promotions != 2 || byCapability.Candidates != 3 || byCapability.Probes != 3 || byCapability.ProbePasses != 2 || byCapability.ProbeFailures != 1 {
+		t.Fatalf("by capability = %#v, want document.convert acquisition counts", byCapability)
 	}
 	if len(metrics.Acquisition.BySource) != 2 {
 		t.Fatalf("by source = %#v, want proposal and rules buckets", metrics.Acquisition.BySource)
@@ -254,6 +254,6 @@ func evalVerifySpec(level core.VerifyLevel) core.VerifySpec {
 	return core.VerifySpec{
 		Level:  level,
 		Method: core.VerifyMethodExecute,
-		Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+		Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 	}
 }

@@ -64,8 +64,8 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "export this document as pdf", "--provider-id", second.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(source)+`}`, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.export_pdf" || useSuccess.Selection.ProviderID != second.Providers[0].ID {
-		t.Fatalf("use success = %#v, want provider-scoped document.export_pdf selection", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.convert" || useSuccess.Selection.ProviderID != second.Providers[0].ID {
+		t.Fatalf("use success = %#v, want provider-scoped document.convert selection", useSuccess)
 	}
 	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.BindingID != useSuccess.Selection.BindingID || useSuccess.Run.ProviderID != second.Providers[0].ID {
 		t.Fatalf("use run = %#v, want verified run on selected provider binding", useSuccess.Run)

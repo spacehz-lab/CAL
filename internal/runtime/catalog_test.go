@@ -9,7 +9,7 @@ import (
 func TestListCapabilitiesSummarizesPromotedBindings(t *testing.T) {
 	list := NewCatalog().List([]core.Capability{
 		{
-			ID:          "document.export_pdf",
+			ID:          "document.convert",
 			Description: "Export a document to PDF.",
 			Bindings: []core.Binding{
 				listBinding("binding_b", "provider_b", core.VerifyLevelL3, core.BindingStatePromoted),
@@ -18,7 +18,7 @@ func TestListCapabilitiesSummarizesPromotedBindings(t *testing.T) {
 			},
 		},
 		{
-			ID: "document.no_promoted_binding",
+			ID: "document.inspect",
 			Bindings: []core.Binding{
 				listBinding("binding_unavailable", "provider_a", "ignored", ""),
 			},
@@ -44,7 +44,7 @@ func TestListCapabilitiesSummarizesPromotedBindings(t *testing.T) {
 func TestListCapabilitiesScopesCapabilityAndProvider(t *testing.T) {
 	list := NewCatalog().List([]core.Capability{
 		{
-			ID: "document.export_pdf",
+			ID: "document.convert",
 			Bindings: []core.Binding{
 				listBinding("binding_a", "provider_a", core.VerifyLevelL2, core.BindingStatePromoted),
 				listBinding("binding_b", "provider_b", core.VerifyLevelL2, core.BindingStatePromoted),
@@ -56,26 +56,26 @@ func TestListCapabilitiesScopesCapabilityAndProvider(t *testing.T) {
 				listBinding("binding_print", "provider_b", core.VerifyLevelL2, core.BindingStatePromoted),
 			},
 		},
-	}, ListOptions{CapabilityID: "document.export_pdf", ProviderID: "provider_b"})
+	}, ListOptions{CapabilityID: "document.convert", ProviderID: "provider_b"})
 	if list.Count != 1 || len(list.Capabilities) != 1 {
 		t.Fatalf("list = %#v, want one selected capability", list)
 	}
 
 	bindings := list.Capabilities[0].Bindings
-	if list.Capabilities[0].ID != "document.export_pdf" || bindings.Available != 1 || len(bindings.ProviderIDs) != 1 || bindings.ProviderIDs[0] != "provider_b" {
-		t.Fatalf("list = %#v, want document.export_pdf provider_b binding only", list)
+	if list.Capabilities[0].ID != "document.convert" || bindings.Available != 1 || len(bindings.ProviderIDs) != 1 || bindings.ProviderIDs[0] != "provider_b" {
+		t.Fatalf("list = %#v, want document.convert provider_b binding only", list)
 	}
 }
 
 func listBinding(id, providerID string, level core.VerifyLevel, state core.BindingState) core.Binding {
 	return core.Binding{
 		ID:           id,
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		ProviderID:   providerID,
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 		Verify: &core.VerifySpec{
 			Level:  level,
-			Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+			Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 		},
 		State: state,
 	}

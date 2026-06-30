@@ -20,7 +20,7 @@ func TestNormalizeCapabilityStageFiltersAndMerges(t *testing.T) {
 	input := []capabilityPlan{
 		{CapabilityID: "document.convert", SourceSurfaceIDs: []string{"s1"}},
 		{CapabilityID: "document.convert", SourceSurfaceIDs: []string{"s2"}},
-		{CapabilityID: "document.export_pdf", SourceSurfaceIDs: []string{"s2"}},
+		{CapabilityID: "document.convert.pdf", SourceSurfaceIDs: []string{"s2"}},
 		{CapabilityID: "text.encode", SourceSurfaceIDs: []string{"missing"}},
 	}
 
@@ -89,9 +89,9 @@ func TestNormalizeCapabilityStageAppliesDebugFilter(t *testing.T) {
 func TestExistingCapabilitiesFiltersOldDiscriminatorIDs(t *testing.T) {
 	req := Request{
 		Catalog: []core.Capability{
-			{ID: "document.export_pdf"},
+			{ID: "document.convert.pdf"},
 			{ID: "document.convert", Description: " Convert documents. "},
-			{ID: "text.base64_encode"},
+			{ID: "text.encode.base64"},
 		},
 	}
 

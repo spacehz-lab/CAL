@@ -45,7 +45,7 @@ func TestExperimentEvalClosedLoopReportsAcquisitionAndReuse(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 {
 		t.Fatalf("run success = %#v, want verified reuse with evidence", runSuccess)
 	}
@@ -56,7 +56,7 @@ func TestExperimentEvalClosedLoopReportsAcquisitionAndReuse(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &plainRun, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(plainTarget)+`}`, "--json")
+	e2etest.RunJSON(t, repo, env, &plainRun, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(plainTarget)+`}`, "--json")
 	if plainRun.Status != "succeeded" || plainRun.Verified || len(plainRun.Evidence) != 0 {
 		t.Fatalf("plain run = %#v, want unverified success without evidence", plainRun)
 	}
@@ -132,7 +132,7 @@ fi
 			Code string `json:"code"`
 		} `json:"error"`
 	}
-	e2etest.RunFailJSON(t, repo, env, &runFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--json")
+	e2etest.RunFailJSON(t, repo, env, &runFailure, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--json")
 	if runFailure.Status != "failed" || runFailure.Error.Code != "execution_failed" {
 		t.Fatalf("run failure = %#v, want execution_failed", runFailure)
 	}
@@ -182,7 +182,7 @@ func TestRuntimeVerifyFailureIsPersistedInEval(t *testing.T) {
 			Code string `json:"code"`
 		} `json:"error"`
 	}
-	e2etest.RunFailJSON(t, repo, env, &runFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunFailJSON(t, repo, env, &runFailure, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runFailure.Status != "failed" || runFailure.Verified || runFailure.Error.Code != "verification_failed" || runFailure.ID == "" {
 		t.Fatalf("run failure = %#v, want persisted verification_failed run", runFailure)
 	}
@@ -255,7 +255,7 @@ func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		}
 	}
 	if !noteProbePassed {
-		t.Fatalf("trace probes = %#v, want passing L2+ verify for text.write_file candidate", trace.Probes)
+		t.Fatalf("trace probes = %#v, want passing L2+ verify for text.write candidate", trace.Probes)
 	}
 
 	noteTarget := filepath.Join(temp, "note.txt")
@@ -264,9 +264,9 @@ func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "text.write_file", "--inputs-json", `{"target":`+strconv.Quote(noteTarget)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "text.write", "--inputs-json", `{"target":`+strconv.Quote(noteTarget)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) == 0 {
-		t.Fatalf("text.write_file run = %#v, want verified reuse", runSuccess)
+		t.Fatalf("text.write run = %#v, want verified reuse", runSuccess)
 	}
 	content, err := os.ReadFile(noteTarget)
 	if err != nil {
@@ -305,11 +305,11 @@ func TestReplayProposalAcquisitionPromotesMultipleCapabilities(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "write a text file artifact", "--inputs-json", `{"target":`+strconv.Quote(useTarget)+`}`, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "text.write_file" || useSuccess.Selection.BindingID == "" {
-		t.Fatalf("use success = %#v, want text.write_file selection", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "text.write" || useSuccess.Selection.BindingID == "" {
+		t.Fatalf("use success = %#v, want text.write selection", useSuccess)
 	}
-	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.CapabilityID != "text.write_file" || useSuccess.Run.BindingID != useSuccess.Selection.BindingID {
-		t.Fatalf("use run = %#v, want verified selected text.write_file binding", useSuccess.Run)
+	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.CapabilityID != "text.write" || useSuccess.Run.BindingID != useSuccess.Selection.BindingID {
+		t.Fatalf("use run = %#v, want verified selected text.write binding", useSuccess.Run)
 	}
 	content, err = os.ReadFile(useTarget)
 	if err != nil {

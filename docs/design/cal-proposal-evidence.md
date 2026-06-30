@@ -28,12 +28,11 @@ verify
   method execute | contract
   checks[]
     subject
+      type file | stdout | stderr | exit_code
+      input file subjects only
     predicate
     params optional
 ```
-
-Prompt payloads may use a compact check array form, but CAL should normalize the
-accepted result to named fields before storing it in core records.
 
 `level` describes confidence and promotion/use policy. `method` describes how
 evidence is collected.
@@ -78,14 +77,20 @@ not promoted. `execute + L1` still executes the probe and must include checks.
 
 ## Evidence Subjects
 
-Initial subjects:
+Initial subject types:
 
 ```text
+file
+  Reads a file path from a named probe/run input such as source or target.
+
 stdout
+  Reads process stdout.
+
 stderr
-source
-target
-artifact
+  Reads process stderr.
+
+exit_code
+  Reads process exit code.
 ```
 
 Future provider kinds may add:
@@ -101,6 +106,11 @@ app_state
 
 Subjects identify evidence available after execution. They do not identify a
 fallback implementation.
+
+The valid subject type, predicate, and parameter combinations are owned by the
+core VerifySpec rule table. Proposal injects that rule table into the Stage4
+prompt and `ValidateVerifySpec` enforces the same table before any probe or
+promotion.
 
 ## Predicates
 
@@ -121,7 +131,8 @@ Verification runs. `equals`, `not_equals`, and `contains` use `params.value`;
 `contains_any` uses `params.values`; `regex` uses `params.pattern`; `format`
 uses `params.format`; `bytes_equal_transform` uses `params.source` and
 `params.transform`; `hash_line_matches` uses `params.source` and
-`params.algorithm`.
+`params.algorithm`. File subjects must include `subject.input`, and that input
+must be available in the probe material and future run inputs.
 
 Examples:
 
@@ -131,7 +142,7 @@ Examples:
   "method": "execute",
   "checks": [
     {
-      "subject": "target",
+      "subject": {"type": "file", "input": "target"},
       "predicate": "bytes_equal_transform",
       "params": {
         "source": "source",
@@ -148,7 +159,7 @@ Examples:
   "method": "execute",
   "checks": [
     {
-      "subject": "stdout",
+      "subject": {"type": "stdout"},
       "predicate": "hash_line_matches",
       "params": {
         "source": "source",
@@ -164,9 +175,9 @@ Examples:
   "level": "L2",
   "method": "execute",
   "checks": [
-    {"subject": "target", "predicate": "exists"},
-    {"subject": "target", "predicate": "non_empty"},
-    {"subject": "target", "predicate": "format", "params": {"format": "pdf"}}
+    {"subject": {"type": "file", "input": "target"}, "predicate": "exists"},
+    {"subject": {"type": "file", "input": "target"}, "predicate": "non_empty"},
+    {"subject": {"type": "file", "input": "target"}, "predicate": "format", "params": {"format": "pdf"}}
   ]
 }
 ```

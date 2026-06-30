@@ -53,7 +53,7 @@ func TestCLICapabilityPromptIncludesExistingCapabilityDescriptions(t *testing.T)
 	req := Request{
 		Catalog: []core.Capability{
 			{ID: "document.convert", Description: "Convert documents between formats."},
-			{ID: "document.export_pdf", Description: "Old discriminator id."},
+			{ID: "document.convert.pdf", Description: "Old discriminator id."},
 		},
 	}
 	prompt := cliCapabilityPrompt(req, profile{maxCapabilities: 4}, DefaultPolicy().Capability, nil)

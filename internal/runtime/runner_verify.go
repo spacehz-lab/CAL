@@ -46,14 +46,14 @@ func evaluateVerifySpec(ctx context.Context, verify core.VerifySpec, inputs map[
 }
 
 func evaluateCheck(check core.VerifyCheck, inputs map[string]any, result ExecutionResult, index int) (core.EvidenceRef, map[string]any, error) {
-	subject, err := subjectValue(check.Subject, check.Params, inputs, result)
+	subject, err := subjectValue(check.Subject, inputs, result)
 	if err != nil {
 		return core.EvidenceRef{}, nil, err
 	}
 	if err := checkPredicate(check, subject); err != nil {
 		return core.EvidenceRef{}, nil, err
 	}
-	id := fmt.Sprintf("check_%d_%s_%s", index+1, check.Subject, check.Predicate)
+	id := fmt.Sprintf("check_%d_%s_%s", index+1, subject.label, check.Predicate)
 	return core.EvidenceRef{
 		ID:   id,
 		Type: string(check.Predicate),
@@ -67,28 +67,23 @@ func evaluateCheck(check core.VerifyCheck, inputs map[string]any, result Executi
 type checkSubject struct {
 	value   any
 	path    string
+	label   string
 	inputs  map[string]any
 	outputs map[string]any
 }
 
-func subjectValue(subject string, params map[string]any, inputs map[string]any, result ExecutionResult) (checkSubject, error) {
-	switch strings.TrimSpace(subject) {
-	case "exit_code":
-		return checkSubject{value: result.ExitCode, inputs: inputs, outputs: map[string]any{"exit_code": result.ExitCode}}, nil
-	case "stdout":
-		return checkSubject{value: result.Stdout, inputs: inputs, outputs: map[string]any{"stdout": result.Stdout}}, nil
-	case "stderr":
-		return checkSubject{value: result.Stderr, inputs: inputs, outputs: map[string]any{"stderr": result.Stderr}}, nil
-	case "output":
-		return checkSubject{value: result.Output, inputs: inputs, outputs: map[string]any{"output": result.Output}}, nil
-	case "artifact":
-		input := stringParam(params, "input")
-		if input == "" {
-			input = "target"
-		}
-		return pathSubject(input, inputs)
+func subjectValue(subject core.VerifySubject, inputs map[string]any, result ExecutionResult) (checkSubject, error) {
+	switch subject.Type {
+	case core.VerifySubjectFile:
+		return pathSubject(subject.Input, inputs)
+	case core.VerifySubjectStdout:
+		return scalarSubject(string(core.VerifySubjectStdout), result.Stdout, inputs)
+	case core.VerifySubjectStderr:
+		return scalarSubject(string(core.VerifySubjectStderr), result.Stderr, inputs)
+	case core.VerifySubjectExitCode:
+		return scalarSubject(string(core.VerifySubjectExitCode), result.ExitCode, inputs)
 	default:
-		return pathSubject(subject, inputs)
+		return checkSubject{}, fmt.Errorf("verify subject type %q is not supported", subject.Type)
 	}
 }
 
@@ -97,7 +92,11 @@ func pathSubject(input string, inputs map[string]any) (checkSubject, error) {
 	if !ok || strings.TrimSpace(path) == "" {
 		return checkSubject{}, fmt.Errorf("verify subject %q path input is required", input)
 	}
-	return checkSubject{path: path, value: path, inputs: inputs, outputs: map[string]any{input: path}}, nil
+	return checkSubject{path: path, value: path, label: input, inputs: inputs, outputs: map[string]any{input: path}}, nil
+}
+
+func scalarSubject(label string, value any, inputs map[string]any) (checkSubject, error) {
+	return checkSubject{value: value, label: label, inputs: inputs, outputs: map[string]any{label: value}}, nil
 }
 
 func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
@@ -108,7 +107,7 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 			return fmt.Errorf("verify equals requires params.value")
 		}
 		if fmt.Sprint(subject.value) != fmt.Sprint(want) {
-			return fmt.Errorf("verify %s equals failed: got %q want %q", check.Subject, fmt.Sprint(subject.value), fmt.Sprint(want))
+			return fmt.Errorf("verify %s equals failed: got %q want %q", subject.label, fmt.Sprint(subject.value), fmt.Sprint(want))
 		}
 	case core.VerifyPredicateNotEquals:
 		want, ok := check.Params["value"]
@@ -116,25 +115,25 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 			return fmt.Errorf("verify not_equals requires params.value")
 		}
 		if fmt.Sprint(subject.value) == fmt.Sprint(want) {
-			return fmt.Errorf("verify %s not_equals failed: got %q", check.Subject, fmt.Sprint(subject.value))
+			return fmt.Errorf("verify %s not_equals failed: got %q", subject.label, fmt.Sprint(subject.value))
 		}
 	case core.VerifyPredicateExists:
 		if _, err := os.Stat(subject.path); err != nil {
-			return fmt.Errorf("verify %s exists failed: %w", check.Subject, err)
+			return fmt.Errorf("verify %s exists failed: %w", subject.label, err)
 		}
 	case core.VerifyPredicateNonEmpty:
 		if subject.path != "" {
 			info, err := os.Stat(subject.path)
 			if err != nil {
-				return fmt.Errorf("verify %s non_empty failed: %w", check.Subject, err)
+				return fmt.Errorf("verify %s non_empty failed: %w", subject.label, err)
 			}
 			if info.Size() == 0 {
-				return fmt.Errorf("verify %s non_empty failed: empty artifact", check.Subject)
+				return fmt.Errorf("verify %s non_empty failed: empty artifact", subject.label)
 			}
 			return nil
 		}
 		if strings.TrimSpace(fmt.Sprint(subject.value)) == "" {
-			return fmt.Errorf("verify %s non_empty failed", check.Subject)
+			return fmt.Errorf("verify %s non_empty failed", subject.label)
 		}
 	case core.VerifyPredicateContains:
 		needle := stringParam(check.Params, "value")
@@ -146,7 +145,7 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 			return err
 		}
 		if !strings.Contains(text, needle) {
-			return fmt.Errorf("verify %s contains failed", check.Subject)
+			return fmt.Errorf("verify %s contains failed", subject.label)
 		}
 	case core.VerifyPredicateContainsAny:
 		values := stringListParam(check.Params, "values")
@@ -162,7 +161,7 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 				return nil
 			}
 		}
-		return fmt.Errorf("verify %s contains_any failed", check.Subject)
+		return fmt.Errorf("verify %s contains_any failed", subject.label)
 	case core.VerifyPredicateRegex:
 		pattern := stringParam(check.Params, "pattern")
 		if pattern == "" {
@@ -177,7 +176,7 @@ func checkPredicate(check core.VerifyCheck, subject checkSubject) error {
 			return fmt.Errorf("verify regex pattern: %w", err)
 		}
 		if !ok {
-			return fmt.Errorf("verify %s regex failed", check.Subject)
+			return fmt.Errorf("verify %s regex failed", subject.label)
 		}
 	case core.VerifyPredicateFormat:
 		format := stringParam(check.Params, "format")
@@ -297,7 +296,11 @@ func checkHashLineMatches(subject checkSubject, params map[string]any, inputs ma
 	if err != nil {
 		return err
 	}
-	if !strings.Contains(strings.ToLower(fmt.Sprint(subject.value)), want) {
+	text, err := subjectText(subject)
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(strings.ToLower(text), want) {
 		return fmt.Errorf("verify hash_line_matches failed")
 	}
 	return nil

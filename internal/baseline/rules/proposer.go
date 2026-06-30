@@ -74,7 +74,7 @@ func probeInputs(capabilityID string) map[string]any {
 
 func probeFixtures(capabilityID string) []proposal.Fixture {
 	switch capabilityID {
-	case "document.export_pdf":
+	case "document.convert":
 		return []proposal.Fixture{{
 			Input:    "source",
 			Filename: "input.txt",
@@ -94,9 +94,9 @@ func probeFixtures(capabilityID string) []proposal.Fixture {
 func verifyForCapability(capabilityID string) core.VerifySpec {
 	switch capabilityID {
 	case "image.resize":
-		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "png"}}}}
+		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "png"}}}}
 	default:
-		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "pdf"}}}}
+		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "pdf"}}}}
 	}
 }
 
@@ -141,7 +141,7 @@ func sipsImageResizeFromHelp(providerID, capabilityID, text string) (caltrace.Ca
 }
 
 func cupsfilterDocumentExportPDFFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {
-	const proposedCapability = "document.export_pdf"
+	const proposedCapability = "document.convert"
 	if !matchesCapabilityHint(capabilityID, proposedCapability) {
 		return caltrace.Candidate{}, false, nil
 	}
@@ -159,7 +159,7 @@ func cupsfilterDocumentExportPDFFromHelp(providerID, capabilityID, text string) 
 }
 
 func markerFreeDocumentExportPDFFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {
-	const proposedCapability = "document.export_pdf"
+	const proposedCapability = "document.convert"
 	if !matchesCapabilityHint(capabilityID, proposedCapability) {
 		return caltrace.Candidate{}, false, nil
 	}
@@ -170,7 +170,7 @@ func markerFreeDocumentExportPDFFromHelp(providerID, capabilityID, text string) 
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}
-	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_export_pdf"), true, nil
+	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_document_convert"), true, nil
 }
 
 func matchesCapabilityHint(hint, capabilityID string) bool {
@@ -194,7 +194,7 @@ func newCLIHelpCandidate(providerID, capabilityID, description string, args []st
 
 func descriptionForCapability(capabilityID string) string {
 	switch capabilityID {
-	case "document.export_pdf":
+	case "document.convert":
 		return "Export or convert a document or text file into a PDF artifact."
 	case "image.resize":
 		return "Resize an image artifact to requested dimensions."

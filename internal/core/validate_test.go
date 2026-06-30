@@ -4,12 +4,12 @@ import "testing"
 
 func TestValidateCapabilityAllowsPromotedBindingWithVerifyEvidenceAndExecution(t *testing.T) {
 	capability := Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []Binding{
 			{
 				ID:           "binding_abc123",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_abc123",
 				Execution:    Execution{Kind: ExecutionKindCLI},
 				Verify:       testVerifySpec(),
@@ -26,12 +26,12 @@ func TestValidateCapabilityAllowsPromotedBindingWithVerifyEvidenceAndExecution(t
 
 func TestValidateCapabilityRequiresPromotedVerifyAndEvidence(t *testing.T) {
 	capability := Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []Binding{
 			{
 				ID:           "binding_abc123",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_abc123",
 				Execution:    Execution{Kind: ExecutionKindCLI},
 				State:        BindingStatePromoted,
@@ -46,11 +46,11 @@ func TestValidateCapabilityRequiresPromotedVerifyAndEvidence(t *testing.T) {
 
 func TestValidateCapabilityRequiresDescriptionForPromotedBinding(t *testing.T) {
 	capability := Capability{
-		ID: "document.export_pdf",
+		ID: "document.convert",
 		Bindings: []Binding{
 			{
 				ID:           "binding_abc123",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_abc123",
 				Execution:    Execution{Kind: ExecutionKindCLI},
 				Verify:       testVerifySpec(),
@@ -67,12 +67,12 @@ func TestValidateCapabilityRequiresDescriptionForPromotedBinding(t *testing.T) {
 
 func TestValidateCapabilityRejectsMismatchedBindingCapability(t *testing.T) {
 	capability := Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []Binding{
 			{
 				ID:           "binding_abc123",
-				CapabilityID: "document.replace_text",
+				CapabilityID: "document.transform",
 				ProviderID:   "provider_abc123",
 				Execution:    Execution{Kind: ExecutionKindCLI},
 				Verify:       testVerifySpec(),
@@ -89,12 +89,12 @@ func TestValidateCapabilityRejectsMismatchedBindingCapability(t *testing.T) {
 
 func TestValidateCapabilityRejectsInvalidExecutionKind(t *testing.T) {
 	capability := Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []Binding{
 			{
 				ID:           "binding_abc123",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_abc123",
 				Execution:    Execution{Kind: "direct_file"},
 				Verify:       testVerifySpec(),
@@ -111,12 +111,12 @@ func TestValidateCapabilityRejectsInvalidExecutionKind(t *testing.T) {
 
 func TestValidateCapabilityRejectsInvalidVerifySpec(t *testing.T) {
 	capability := Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []Binding{
 			{
 				ID:           "binding_abc123",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_abc123",
 				Execution:    Execution{Kind: ExecutionKindCLI},
 				Verify:       &VerifySpec{Level: VerifyLevelL2},
@@ -142,7 +142,7 @@ func TestValidateVerifySpecRejectsContractChecks(t *testing.T) {
 	verify := VerifySpec{
 		Level:  VerifyLevelL1,
 		Method: VerifyMethodContract,
-		Checks: []VerifyCheck{{Subject: "stdout", Predicate: VerifyPredicateNonEmpty}},
+		Checks: []VerifyCheck{{Subject: VerifySubject{Type: VerifySubjectStdout}, Predicate: VerifyPredicateNonEmpty}},
 	}
 	if err := ValidateVerifySpec(verify); err == nil {
 		t.Fatal("ValidateVerifySpec() error = nil, want contract checks error")
@@ -162,7 +162,7 @@ func TestValidateVerifySpecRejectsMissingPredicateParams(t *testing.T) {
 	verify := VerifySpec{
 		Level:  VerifyLevelL2,
 		Method: VerifyMethodExecute,
-		Checks: []VerifyCheck{{Subject: "exit_code", Predicate: VerifyPredicateEquals, Params: map[string]any{"expected": 0}}},
+		Checks: []VerifyCheck{{Subject: VerifySubject{Type: VerifySubjectExitCode}, Predicate: VerifyPredicateEquals, Params: map[string]any{"expected": 0}}},
 	}
 	if err := ValidateVerifySpec(verify); err == nil {
 		t.Fatal("ValidateVerifySpec() error = nil, want missing params.value error")
@@ -173,7 +173,7 @@ func TestValidateVerifySpecRejectsWrongPredicateParamKey(t *testing.T) {
 	verify := VerifySpec{
 		Level:  VerifyLevelL2,
 		Method: VerifyMethodExecute,
-		Checks: []VerifyCheck{{Subject: "stdout", Predicate: VerifyPredicateContains, Params: map[string]any{"expected": "ok"}}},
+		Checks: []VerifyCheck{{Subject: VerifySubject{Type: VerifySubjectStdout}, Predicate: VerifyPredicateContains, Params: map[string]any{"expected": "ok"}}},
 	}
 	if err := ValidateVerifySpec(verify); err == nil {
 		t.Fatal("ValidateVerifySpec() error = nil, want wrong params key error")
@@ -184,10 +184,39 @@ func TestValidateVerifySpecRejectsInvalidRegexPattern(t *testing.T) {
 	verify := VerifySpec{
 		Level:  VerifyLevelL2,
 		Method: VerifyMethodExecute,
-		Checks: []VerifyCheck{{Subject: "stdout", Predicate: VerifyPredicateRegex, Params: map[string]any{"pattern": "["}}},
+		Checks: []VerifyCheck{{Subject: VerifySubject{Type: VerifySubjectStdout}, Predicate: VerifyPredicateRegex, Params: map[string]any{"pattern": "["}}},
 	}
 	if err := ValidateVerifySpec(verify); err == nil {
 		t.Fatal("ValidateVerifySpec() error = nil, want invalid regex error")
+	}
+}
+
+func TestValidateVerifySpecRejectsInvalidSubjectPredicate(t *testing.T) {
+	verify := VerifySpec{
+		Level:  VerifyLevelL2,
+		Method: VerifyMethodExecute,
+		Checks: []VerifyCheck{{
+			Subject:   VerifySubject{Type: VerifySubjectFile, Input: "target"},
+			Predicate: VerifyPredicateEquals,
+			Params:    map[string]any{"value": "content"},
+		}},
+	}
+	if err := ValidateVerifySpec(verify); err == nil {
+		t.Fatal("ValidateVerifySpec() error = nil, want invalid file equals error")
+	}
+}
+
+func TestValidateVerifySpecRejectsMissingFileInput(t *testing.T) {
+	verify := VerifySpec{
+		Level:  VerifyLevelL2,
+		Method: VerifyMethodExecute,
+		Checks: []VerifyCheck{{
+			Subject:   VerifySubject{Type: VerifySubjectFile},
+			Predicate: VerifyPredicateExists,
+		}},
+	}
+	if err := ValidateVerifySpec(verify); err == nil {
+		t.Fatal("ValidateVerifySpec() error = nil, want missing file input error")
 	}
 }
 
@@ -196,7 +225,7 @@ func testVerifySpec() *VerifySpec {
 		Level:  VerifyLevelL2,
 		Method: VerifyMethodExecute,
 		Checks: []VerifyCheck{{
-			Subject:   "target",
+			Subject:   VerifySubject{Type: VerifySubjectFile, Input: "target"},
 			Predicate: VerifyPredicateExists,
 		}},
 	}

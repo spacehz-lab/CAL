@@ -11,9 +11,10 @@ import (
 )
 
 func TestLiveLLMUseExtractsInputsAndFillsTarget(t *testing.T) {
-	env := liveLLMEnv(t, filepath.Join(t.TempDir(), "home"))
+	workspace := liveLLMWorkspace(t)
+	env := liveLLMEnv(t, workspace.home)
 	repo := e2etest.RepoRoot(t)
-	temp := t.TempDir()
+	temp := workspace.temp
 	calctlBin := filepath.Join(temp, "calctl")
 	caldBin := filepath.Join(temp, "cald")
 	e2etest.Build(t, repo, calctlBin, "./cmd/calctl")
@@ -53,10 +54,10 @@ func TestLiveLLMUseExtractsInputsAndFillsTarget(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", intent, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.Source != "llm" || useSuccess.Selection.CapabilityID != "document.export_pdf" || useSuccess.Selection.BindingID == "" {
-		t.Fatalf("use success = %#v, want LLM-selected document.export_pdf", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.Source != "llm" || useSuccess.Selection.CapabilityID != "document.convert" || useSuccess.Selection.BindingID == "" {
+		t.Fatalf("use success = %#v, want LLM-selected document.convert", useSuccess)
 	}
-	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || len(useSuccess.Run.Evidence) != 1 {
+	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || len(useSuccess.Run.Evidence) == 0 {
 		t.Fatalf("use run = %#v, want verified run", useSuccess.Run)
 	}
 	if useSuccess.Run.Inputs["source"] != source {

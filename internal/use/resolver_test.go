@@ -18,7 +18,7 @@ func TestRequestValidate(t *testing.T) {
 
 func TestResolverSelectsPromotedBinding(t *testing.T) {
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf"}),
+		testCapability("document.convert", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf"}),
 		testCapability("image.resize", "Resize an image.", "binding_resize", "provider_a", []string{"resize"}),
 	}
 
@@ -29,14 +29,14 @@ func TestResolverSelectsPromotedBinding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Select() error = %v", err)
 	}
-	if selection.CapabilityID != "document.export_pdf" || selection.BindingID != "binding_pdf" || selection.ProviderID != "provider_a" {
+	if selection.CapabilityID != "document.convert" || selection.BindingID != "binding_pdf" || selection.ProviderID != "provider_a" {
 		t.Fatalf("Select() = %#v, want PDF binding", selection)
 	}
 }
 
 func TestResolverSelectsBindingWithMissingInputs(t *testing.T) {
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}),
+		testCapability("document.convert", "Export a document to PDF.", "binding_pdf", "provider_a", []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}),
 	}
 
 	selection, err := NewResolver(Request{
@@ -53,8 +53,8 @@ func TestResolverSelectsBindingWithMissingInputs(t *testing.T) {
 
 func TestResolverReturnsAmbiguousMatch(t *testing.T) {
 	capabilities := []core.Capability{
-		testCapability("document.export_pdf", "", "binding_a", "provider_a", []string{"export-pdf"}),
-		testCapability("pdf.export_document", "", "binding_b", "provider_b", []string{"make-pdf"}),
+		testCapability("document.convert", "Export PDF.", "binding_a", "provider_a", []string{"export-pdf"}),
+		testCapability("file.convert", "Export PDF.", "binding_b", "provider_b", []string{"make-pdf"}),
 	}
 
 	_, err := NewResolver(Request{
@@ -81,7 +81,7 @@ func testCapability(id, description, bindingID, providerID string, args []string
 			Verify: &core.VerifySpec{
 				Level:  core.VerifyLevelL2,
 				Method: core.VerifyMethodExecute,
-				Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+				Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 			},
 			State: core.BindingStatePromoted,
 		}},

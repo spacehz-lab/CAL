@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	capabilityIDPattern = regexp.MustCompile(`^[a-z0-9_]+\.[a-z0-9_]+$`)
+	capabilityIDPattern = regexp.MustCompile(`^[a-z0-9]+\.[a-z0-9]+$`)
 )
 
 // ValidCapabilityID reports whether id matches the CAL capability id shape.

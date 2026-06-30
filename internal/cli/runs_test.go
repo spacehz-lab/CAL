@@ -60,7 +60,7 @@ func TestRunCommandCallsCald(t *testing.T) {
 		t.Fatalf("write source: %v", err)
 	}
 
-	output, err := executeRoot(home, "runs", "create", "--capability-id", "document.export_pdf", "--binding-id", "binding_cli", "--inputs-json", `{"source":`+strconvQuote(source)+`,"target":`+strconvQuote(target)+`}`, "--verify", "--json")
+	output, err := executeRoot(home, "runs", "create", "--capability-id", "document.convert", "--binding-id", "binding_cli", "--inputs-json", `{"source":`+strconvQuote(source)+`,"target":`+strconvQuote(target)+`}`, "--verify", "--json")
 	if err != nil {
 		t.Fatalf("run command error = %v\n%s", err, output)
 	}
@@ -77,7 +77,7 @@ func TestRunCommandCallsCald(t *testing.T) {
 }
 
 func TestRunCommandReportsCaldUnavailable(t *testing.T) {
-	output, err := executeRoot(t.TempDir(), "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":"a","target":"b"}`, "--json")
+	output, err := executeRoot(t.TempDir(), "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":"a","target":"b"}`, "--json")
 	if err == nil {
 		t.Fatalf("run command succeeded, want cald_unavailable\n%s", output)
 	}
@@ -105,11 +105,11 @@ func seedCapabilityOnly(t *testing.T, home, providerID string, kind core.Executi
 		t.Fatalf("Open() error = %v", err)
 	}
 	capability := core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to a PDF artifact.",
 		Bindings: []core.Binding{{
 			ID:           "binding_cli",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			ProviderID:   providerID,
 			Execution: core.Execution{
 				Kind: kind,
@@ -118,7 +118,7 @@ func seedCapabilityOnly(t *testing.T, home, providerID string, kind core.Executi
 			Verify: &core.VerifySpec{
 				Level:  core.VerifyLevelL2,
 				Method: core.VerifyMethodExecute,
-				Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+				Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 			},
 			Evidence: []core.EvidenceRef{{
 				ID: "evidence_file_exists",

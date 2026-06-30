@@ -204,7 +204,7 @@ func writeSlowAcquisitionScript(t *testing.T) string {
 func acquisitionVerifierCandidate() caltrace.Candidate {
 	return caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution: core.Execution{
 			Kind: core.ExecutionKindCLI,

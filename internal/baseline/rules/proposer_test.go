@@ -12,11 +12,11 @@ import (
 func TestProposerProposesCLIHelpMarkerCandidate(t *testing.T) {
 	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
-				"text": "Fake Exporter\nCAL_CAPABILITY document.export_pdf\nCAL_COMMAND export-pdf --source {{source}} --target {{target}}\n",
+				"text": "Fake Exporter\nCAL_CAPABILITY document.convert\nCAL_COMMAND export-pdf --source {{source}} --target {{target}}\n",
 			},
 		}},
 	})
@@ -27,7 +27,7 @@ func TestProposerProposesCLIHelpMarkerCandidate(t *testing.T) {
 		t.Fatalf("candidates len = %d, want 1", len(response.Candidates))
 	}
 	candidate := response.Candidates[0]
-	if candidate.ProviderID != "provider_cli" || candidate.CapabilityID != "document.export_pdf" {
+	if candidate.ProviderID != "provider_cli" || candidate.CapabilityID != "document.convert" {
 		t.Fatalf("candidate = %#v, want provider and capability ids", candidate)
 	}
 	if candidate.Execution.Kind != core.ExecutionKindCLI {
@@ -54,22 +54,22 @@ func TestProposerProposesCLIHelpMarkerCandidateWithoutHint(t *testing.T) {
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
-				"text": "Fake Exporter\nCAL_CAPABILITY document.export_pdf\nCAL_COMMAND export-pdf --source {{source}} --target {{target}}\n",
+				"text": "Fake Exporter\nCAL_CAPABILITY document.convert\nCAL_COMMAND export-pdf --source {{source}} --target {{target}}\n",
 			},
 		}},
 	})
 	if err != nil {
 		t.Fatalf("Propose() error = %v", err)
 	}
-	if len(response.Candidates) != 1 || response.Candidates[0].CapabilityID != "document.export_pdf" {
-		t.Fatalf("candidates = %#v, want document.export_pdf candidate", response.Candidates)
+	if len(response.Candidates) != 1 || response.Candidates[0].CapabilityID != "document.convert" {
+		t.Fatalf("candidates = %#v, want document.convert candidate", response.Candidates)
 	}
 }
 
 func TestProposerProposesMarkerFreeDocumentExportPDFCandidate(t *testing.T) {
 	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
@@ -84,10 +84,10 @@ func TestProposerProposesMarkerFreeDocumentExportPDFCandidate(t *testing.T) {
 		t.Fatalf("candidates len = %d, want 1", len(response.Candidates))
 	}
 	candidate := response.Candidates[0]
-	if candidate.ProviderID != "provider_cli" || candidate.CapabilityID != "document.export_pdf" {
+	if candidate.ProviderID != "provider_cli" || candidate.CapabilityID != "document.convert" {
 		t.Fatalf("candidate = %#v, want provider and capability ids", candidate)
 	}
-	if candidate.Source != "rules:cli_help_export_pdf" {
+	if candidate.Source != "rules:cli_help_document_convert" {
 		t.Fatalf("candidate source = %q, want marker-free export-pdf source", candidate.Source)
 	}
 	args, ok := candidate.Execution.Spec["args"].([]string)
@@ -118,15 +118,15 @@ func TestProposerProposesMarkerFreeDocumentExportPDFCandidateWithoutHint(t *test
 	if err != nil {
 		t.Fatalf("Propose() error = %v", err)
 	}
-	if len(response.Candidates) != 1 || response.Candidates[0].CapabilityID != "document.export_pdf" {
-		t.Fatalf("candidates = %#v, want document.export_pdf candidate", response.Candidates)
+	if len(response.Candidates) != 1 || response.Candidates[0].CapabilityID != "document.convert" {
+		t.Fatalf("candidates = %#v, want document.convert candidate", response.Candidates)
 	}
 }
 
 func TestProposerProposesCupsfilterDocumentExportPDFCandidate(t *testing.T) {
 	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cupsfilter", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type:   "cli_output",
 			Source: "man",
@@ -142,7 +142,7 @@ func TestProposerProposesCupsfilterDocumentExportPDFCandidate(t *testing.T) {
 		t.Fatalf("candidates len = %d, want 1", len(response.Candidates))
 	}
 	candidate := response.Candidates[0]
-	if candidate.ProviderID != "provider_cupsfilter" || candidate.CapabilityID != "document.export_pdf" {
+	if candidate.ProviderID != "provider_cupsfilter" || candidate.CapabilityID != "document.convert" {
 		t.Fatalf("candidate = %#v, want provider and capability ids", candidate)
 	}
 	if candidate.Source != "rules:cli_docs_cupsfilter_pdf" {
@@ -180,8 +180,8 @@ func TestProposerProposesCupsfilterDocumentExportPDFCandidateWithoutHint(t *test
 	if err != nil {
 		t.Fatalf("Propose() error = %v", err)
 	}
-	if len(response.Candidates) != 1 || response.Candidates[0].CapabilityID != "document.export_pdf" {
-		t.Fatalf("candidates = %#v, want document.export_pdf candidate", response.Candidates)
+	if len(response.Candidates) != 1 || response.Candidates[0].CapabilityID != "document.convert" {
+		t.Fatalf("candidates = %#v, want document.convert candidate", response.Candidates)
 	}
 }
 
@@ -247,7 +247,7 @@ func TestProposerProposesSipsImageResizeCandidateWithoutHint(t *testing.T) {
 func TestProposerIgnoresCapabilityMismatch(t *testing.T) {
 	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
@@ -266,7 +266,7 @@ func TestProposerIgnoresCapabilityMismatch(t *testing.T) {
 func TestProposerIgnoresSipsHelpForDifferentCapability(t *testing.T) {
 	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_sips", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
@@ -304,7 +304,7 @@ func TestProposerIgnoresMarkerFreeHelpForDifferentCapability(t *testing.T) {
 func TestProposerIgnoresIncompleteMarkerFreeExportPDFHelp(t *testing.T) {
 	response, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
@@ -323,11 +323,11 @@ func TestProposerIgnoresIncompleteMarkerFreeExportPDFHelp(t *testing.T) {
 func TestProposerRejectsEmptyCommandMarker(t *testing.T) {
 	_, err := (Proposer{}).Propose(context.Background(), proposal.Request{
 		Provider:    core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
-		DebugFilter: "document.export_pdf",
+		DebugFilter: "document.convert",
 		Observations: []caltrace.Observation{{
 			Type: "cli_output",
 			Content: map[string]any{
-				"text": "CAL_CAPABILITY document.export_pdf\nCAL_COMMAND \n",
+				"text": "CAL_CAPABILITY document.convert\nCAL_COMMAND \n",
 			},
 		}},
 	})

@@ -21,5 +21,21 @@ func (proposer *LLMProposer) draftEvidence(ctx context.Context, req Request, can
 	if err := core.ValidateVerifySpec(output.Verify); err != nil {
 		return evidenceOutput{}, content, fmt.Errorf("evidence verify spec: %w", err)
 	}
+	if err := validateEvidenceInputs(output.Verify, material); err != nil {
+		return evidenceOutput{}, content, fmt.Errorf("evidence verify spec: %w", err)
+	}
 	return output, content, nil
+}
+
+func validateEvidenceInputs(verify core.VerifySpec, material probeMaterial) error {
+	available := probeInputSet(material)
+	for _, check := range verify.Checks {
+		if check.Subject.Type != core.VerifySubjectFile {
+			continue
+		}
+		if _, ok := available[check.Subject.Input]; !ok {
+			return fmt.Errorf("file subject input %q is not available", check.Subject.Input)
+		}
+	}
+	return nil
 }

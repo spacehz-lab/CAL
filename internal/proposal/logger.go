@@ -2,38 +2,48 @@ package proposal
 
 import (
 	"log/slog"
+	"sort"
 	"time"
 
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
 const (
-	logKeyProviderID      = "provider_id"
-	logKeyModel           = "model"
-	logKeyStage           = "stage"
-	logKeyDurationMS      = "duration_ms"
-	logKeyError           = "error"
-	logKeySurfaceCount    = "surface_count"
-	logKeyCapabilityCount = "capability_count"
-	logKeyCandidateCount  = "candidate_count"
-	logKeyProbePlanCount  = "probe_plan_count"
-	logKeyConcurrency     = "concurrency"
-	logKeyCompleted       = "completed"
-	logKeyTotal           = "total"
-	logKeyCapabilityID    = "capability_id"
-	logKeyIndex           = "index"
-	logKeyTimeoutMS       = "timeout_ms"
-	logKeyCandidateIndex  = "candidate_index"
-	logKeyVerifyLevel     = "verify_level"
-	logKeyVerifyMethod    = "verify_method"
+	logKeyTraceID                = "trace_id"
+	logKeyProviderID             = "provider_id"
+	logKeyModel                  = "model"
+	logKeyStage                  = "stage"
+	logKeyDurationMS             = "duration_ms"
+	logKeyError                  = "error"
+	logKeySurfaceCount           = "surface_count"
+	logKeyCapabilityCount        = "capability_count"
+	logKeyCandidateCount         = "candidate_count"
+	logKeyProbePlanCount         = "probe_plan_count"
+	logKeyConcurrency            = "concurrency"
+	logKeyCompleted              = "completed"
+	logKeyTotal                  = "total"
+	logKeyCapabilityID           = "capability_id"
+	logKeyIndex                  = "index"
+	logKeyTimeoutMS              = "timeout_ms"
+	logKeyCandidateIndex         = "candidate_index"
+	logKeyVerifyLevel            = "verify_level"
+	logKeyVerifyMethod           = "verify_method"
+	logKeyRawCandidateCount      = "raw_candidate_count"
+	logKeySelectedCandidateCount = "selected_candidate_count"
+	logKeyKeepCount              = "keep_count"
+	logKeySkipCount              = "skip_count"
+	logKeyDeferCount             = "defer_count"
+	logKeySkipReasons            = "skip_reasons"
+	logKeyDeferReasons           = "defer_reasons"
 )
 
 type logger struct {
 	providerID string
+	traceID    string
 }
 
-func newLogger(providerID string) logger {
-	return logger{providerID: providerID}
+func newLogger(providerID, traceID string) logger {
+	return logger{providerID: providerID, traceID: traceID}
 }
 
 func (log logger) proposalStarted(model string) {
@@ -96,8 +106,8 @@ func (log logger) bindingCompleted(capabilityID string, completed int64, total i
 	)
 }
 
-func (log logger) bindingFailed(capabilityID string, completed int64, total int, candidateCount int, started time.Time, err error) {
-	log.warn("proposal binding pipeline failed",
+func (log logger) bindingFailed(capabilityID string, completed int64, total int, candidateCount int, started time.Time, err error, attrs ...any) {
+	base := []any{
 		logKeyStage, string(caltrace.ProposalStageBinding),
 		logKeyCapabilityID, capabilityID,
 		logKeyCompleted, completed,
@@ -105,7 +115,8 @@ func (log logger) bindingFailed(capabilityID string, completed int64, total int,
 		logKeyCandidateCount, candidateCount,
 		logKeyDurationMS, time.Since(started).Milliseconds(),
 		logKeyError, err.Error(),
-	)
+	}
+	log.warn("proposal binding pipeline failed", append(base, attrs...)...)
 }
 
 func (log logger) evidenceStarted(capabilityID string, candidateIndex int) {
@@ -146,8 +157,64 @@ func (log logger) warn(message string, attrs ...any) {
 }
 
 func (log logger) attrs(attrs ...any) []any {
-	args := make([]any, 0, 2+len(attrs))
+	args := make([]any, 0, 4+len(attrs))
+	if log.traceID != "" {
+		args = append(args, logKeyTraceID, log.traceID)
+	}
 	args = append(args, logKeyProviderID, log.providerID)
 	args = append(args, attrs...)
 	return args
+}
+
+func bindingStageLogAttrs(stages []caltrace.ProposalStage) []any {
+	stage, ok := lastBindingStage(stages)
+	if !ok {
+		return nil
+	}
+	attrs := []any{
+		logKeyRawCandidateCount, stageSummary(stage, caltrace.ProposalSummaryRaw),
+		logKeySelectedCandidateCount, stageSummary(stage, caltrace.ProposalSummarySelected),
+		logKeyKeepCount, stageSummary(stage, caltrace.ProposalSummaryKeep),
+		logKeySkipCount, stageSummary(stage, caltrace.ProposalSummarySkip),
+		logKeyDeferCount, stageSummary(stage, caltrace.ProposalSummaryDefer),
+	}
+	if reasons := stageDecisionReasons(stage, caltrace.ProposalDecisionSkip); len(reasons) > 0 {
+		attrs = append(attrs, logKeySkipReasons, reasons)
+	}
+	if reasons := stageDecisionReasons(stage, caltrace.ProposalDecisionDefer); len(reasons) > 0 {
+		attrs = append(attrs, logKeyDeferReasons, reasons)
+	}
+	return attrs
+}
+
+func lastBindingStage(stages []caltrace.ProposalStage) (caltrace.ProposalStage, bool) {
+	for index := len(stages) - 1; index >= 0; index-- {
+		if stages[index].Name == caltrace.ProposalStageBinding {
+			return stages[index], true
+		}
+	}
+	return caltrace.ProposalStage{}, false
+}
+
+func stageSummary(stage caltrace.ProposalStage, key caltrace.ProposalSummaryKey) int {
+	if stage.Summary == nil {
+		return 0
+	}
+	return stage.Summary[key]
+}
+
+func stageDecisionReasons(stage caltrace.ProposalStage, decision caltrace.ProposalDecision) []string {
+	seen := map[string]struct{}{}
+	for _, item := range stage.Items {
+		if item.Decision != decision || item.Reason == "" {
+			continue
+		}
+		seen[item.Reason] = struct{}{}
+	}
+	reasons := make([]string, 0, len(seen))
+	for reason := range seen {
+		reasons = append(reasons, reason)
+	}
+	sort.Strings(reasons)
+	return reasons
 }

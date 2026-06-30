@@ -18,9 +18,9 @@ import (
 
 func TestAcquisitionRunnerRejectsMissingProvider(t *testing.T) {
 	store := newAcquisitionTestStore(t)
-	_, err := acquisitionTestRunner("document.export_pdf").Run(context.Background(), store, AcquisitionOptions{
+	_, err := acquisitionTestRunner("document.convert").Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_missing",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	assertCodedError(t, err, "provider_not_found")
 }
@@ -36,9 +36,9 @@ func TestAcquisitionRunnerRejectsAppProvider(t *testing.T) {
 		t.Fatalf("PutProvider() error = %v", err)
 	}
 
-	_, err := acquisitionTestRunner("document.export_pdf").Run(context.Background(), store, AcquisitionOptions{
+	_, err := acquisitionTestRunner("document.convert").Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_app",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	assertCodedError(t, err, "unsupported_provider_kind")
 }
@@ -51,7 +51,7 @@ func TestAcquisitionRunnerReportsMissingCandidate(t *testing.T) {
 
 	_, err := acquisitionTestRunner("").Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	assertCodedError(t, err, "candidate_not_found")
 	trace := assertSingleFailedTrace(t, store, "candidate_not_found")
@@ -66,9 +66,9 @@ func TestAcquisitionRunnerReportsVerificationFailure(t *testing.T) {
 		t.Fatalf("put provider: %v", err)
 	}
 
-	_, err := acquisitionTestRunner("document.export_pdf").Run(context.Background(), store, AcquisitionOptions{
+	_, err := acquisitionTestRunner("document.convert").Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	assertCodedError(t, err, "verification_failed")
 	trace := assertSingleFailedTrace(t, store, "verification_failed")
@@ -81,7 +81,7 @@ func TestAcquisitionRunnerReportsVerificationFailure(t *testing.T) {
 	if trace.Probes[0].Inputs["target"] == nil {
 		t.Fatalf("trace probe inputs = %#v, want failed probe inputs", trace.Probes[0].Inputs)
 	}
-	if _, ok, err := store.GetCapability("document.export_pdf"); err != nil || ok {
+	if _, ok, err := store.GetCapability("document.convert"); err != nil || ok {
 		t.Fatalf("GetCapability() = _, %v, %v, want no promoted capability", ok, err)
 	}
 }
@@ -92,9 +92,9 @@ func TestAcquisitionRunnerPromotesBindingAndTrace(t *testing.T) {
 		t.Fatalf("put provider: %v", err)
 	}
 
-	result, err := acquisitionTestRunner("document.export_pdf").Run(context.Background(), store, AcquisitionOptions{
+	result, err := acquisitionTestRunner("document.convert").Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	if err != nil {
 		t.Fatalf("AcquisitionRunner.Run() error = %v", err)
@@ -103,7 +103,7 @@ func TestAcquisitionRunnerPromotesBindingAndTrace(t *testing.T) {
 		t.Fatalf("result = %#v, want promoted capability and trace", result)
 	}
 
-	capability, ok, err := store.GetCapability("document.export_pdf")
+	capability, ok, err := store.GetCapability("document.convert")
 	if err != nil {
 		t.Fatalf("GetCapability() error = %v", err)
 	}
@@ -132,13 +132,13 @@ func TestAcquisitionRunnerReportsProposalDuration(t *testing.T) {
 		t.Fatalf("put provider: %v", err)
 	}
 	runner := NewAcquisitionRunner(fakeObserver{}, slowProposer{
-		capabilityID: "document.export_pdf",
+		capabilityID: "document.convert",
 		delay:        2 * time.Millisecond,
 	})
 
 	result, err := runner.Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	if err != nil {
 		t.Fatalf("AcquisitionRunner.Run() error = %v", err)
@@ -153,19 +153,19 @@ func TestAcquisitionRunnerMergesExistingCapability(t *testing.T) {
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
 		t.Fatalf("put provider: %v", err)
 	}
-	runner := acquisitionTestRunner("document.export_pdf")
-	if _, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"}); err != nil {
+	runner := acquisitionTestRunner("document.convert")
+	if _, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.convert"}); err != nil {
 		t.Fatalf("first AcquisitionRunner.Run() error = %v", err)
 	}
 
-	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"})
+	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.convert"})
 	if err != nil {
 		t.Fatalf("second AcquisitionRunner.Run() error = %v", err)
 	}
 	if result.CapabilitiesPromoted != 0 || result.BindingsPromoted != 1 {
 		t.Fatalf("second result = %#v, want existing capability merge", result)
 	}
-	capability, ok, err := store.GetCapability("document.export_pdf")
+	capability, ok, err := store.GetCapability("document.convert")
 	if err != nil {
 		t.Fatalf("GetCapability() error = %v", err)
 	}
@@ -187,8 +187,8 @@ func TestAcquisitionRunnerRecordsReusedCapabilityWithCreatedBinding(t *testing.T
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
 		t.Fatalf("put provider: %v", err)
 	}
-	runner := acquisitionTestRunner("document.export_pdf")
-	if _, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"}); err != nil {
+	runner := acquisitionTestRunner("document.convert")
+	if _, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.convert"}); err != nil {
 		t.Fatalf("first AcquisitionRunner.Run() error = %v", err)
 	}
 	if err := store.PutProvider(core.Provider{
@@ -200,7 +200,7 @@ func TestAcquisitionRunnerRecordsReusedCapabilityWithCreatedBinding(t *testing.T
 		t.Fatalf("PutProvider(other) error = %v", err)
 	}
 
-	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_other", CapabilityID: "document.export_pdf"})
+	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_other", CapabilityID: "document.convert"})
 	if err != nil {
 		t.Fatalf("second provider AcquisitionRunner.Run() error = %v", err)
 	}
@@ -219,7 +219,7 @@ func TestAcquisitionRunnerPromotesMultipleCandidates(t *testing.T) {
 	if err := putCLIProvider(t, store, writeAcquisitionScript(t, true)); err != nil {
 		t.Fatalf("put provider: %v", err)
 	}
-	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{capabilityIDs: []string{"document.export_pdf", "image.resize"}})
+	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{capabilityIDs: []string{"document.convert", "image.resize"}})
 
 	result, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli"})
 	if err != nil {
@@ -228,7 +228,7 @@ func TestAcquisitionRunnerPromotesMultipleCandidates(t *testing.T) {
 	if result.State != JobStateSucceeded || result.CapabilitiesPromoted != 2 || result.BindingsPromoted != 2 {
 		t.Fatalf("result = %#v, want two promoted capabilities and bindings", result)
 	}
-	for _, capabilityID := range []string{"document.export_pdf", "image.resize"} {
+	for _, capabilityID := range []string{"document.convert", "image.resize"} {
 		capability, ok, err := store.GetCapability(capabilityID)
 		if err != nil || !ok || len(capability.Bindings) != 1 {
 			t.Fatalf("GetCapability(%s) = %#v, %v, %v, want one binding", capabilityID, capability, ok, err)
@@ -259,7 +259,7 @@ func TestAcquisitionRunnerSucceedsWithPartialCandidateFailure(t *testing.T) {
 		t.Fatalf("put provider: %v", err)
 	}
 	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{
-		capabilityIDs: []string{"document.export_pdf", "image.resize"},
+		capabilityIDs: []string{"document.convert", "image.resize"},
 		badIndexes:    map[int]struct{}{1: {}},
 	})
 
@@ -288,11 +288,11 @@ func TestAcquisitionRunnerFailsWhenAllCandidatesFail(t *testing.T) {
 		t.Fatalf("put provider: %v", err)
 	}
 	runner := NewAcquisitionRunner(fakeObserver{}, multiProposer{
-		capabilityIDs: []string{"document.export_pdf", "image.resize"},
+		capabilityIDs: []string{"document.convert", "image.resize"},
 		badIndexes:    map[int]struct{}{0: {}, 1: {}},
 	})
 
-	_, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"})
+	_, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.convert"})
 	assertCodedError(t, err, "verification_failed")
 	trace := assertSingleFailedTrace(t, store, "verification_failed")
 	if len(trace.Candidates) != 2 || len(trace.Probes) != 2 || len(promotionSummaries(trace)) != 0 {
@@ -312,7 +312,7 @@ func TestAcquisitionRunnerPassesCatalogToProposer(t *testing.T) {
 	}
 	for _, capability := range []core.Capability{
 		{ID: "image.resize"},
-		{ID: "document.export_pdf"},
+		{ID: "document.convert"},
 	} {
 		if err := store.PutCapability(capability); err != nil {
 			t.Fatalf("PutCapability() error = %v", err)
@@ -323,7 +323,7 @@ func TestAcquisitionRunnerPassesCatalogToProposer(t *testing.T) {
 
 	_, err := runner.Run(context.Background(), store, AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "image.resize"})
 	assertCodedError(t, err, "candidate_not_found")
-	assertIDs(t, capabilityIDs(proposer.catalog), []string{"document.export_pdf", "image.resize"})
+	assertIDs(t, capabilityIDs(proposer.catalog), []string{"document.convert", "image.resize"})
 	if proposer.debugFilter != "image.resize" {
 		t.Fatalf("debug filter = %q, want image.resize", proposer.debugFilter)
 	}
@@ -384,7 +384,7 @@ func TestAcquisitionRunnerWritesProposalDiagnosticsOnProposalFailure(t *testing.
 
 	_, err := runner.Run(context.Background(), store, AcquisitionOptions{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 	})
 	assertCodedError(t, err, CodeCandidateProposalFailed)
 	trace := assertSingleFailedTrace(t, store, CodeCandidateProposalFailed)
@@ -402,7 +402,7 @@ func acquisitionTestRunner(capabilityID string) AcquisitionRunner {
 }
 
 func TestNewAcquisitionRunnerConfiguresComponents(t *testing.T) {
-	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "document.export_pdf"})
+	runner := NewAcquisitionRunner(fakeObserver{}, fakeProposer{capabilityID: "document.convert"})
 	if runner.observer == nil || runner.proposer == nil {
 		t.Fatalf("NewAcquisitionRunner() = %#v, want configured observer and proposer", runner)
 	}
@@ -498,8 +498,8 @@ type diagnosticProposer struct{}
 func (diagnosticProposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	result := proposalResult(request.Provider.ID, []caltrace.Candidate{{
 		ProviderID:   request.Provider.ID,
-		CapabilityID: "document.export_pdf",
-		Description:  testCapabilityDescription("document.export_pdf"),
+		CapabilityID: "document.convert",
+		Description:  testCapabilityDescription("document.convert"),
 		Execution: core.Execution{
 			Kind: core.ExecutionKindCLI,
 			Spec: map[string]any{
@@ -556,7 +556,7 @@ func (failingDiagnosticProposer) Propose(context.Context, proposal.Request) (pro
 
 func testCapabilityDescription(capabilityID string) string {
 	switch capabilityID {
-	case "document.export_pdf":
+	case "document.convert":
 		return "Export a document to a PDF artifact."
 	case "image.resize":
 		return "Resize an image artifact."
@@ -688,8 +688,8 @@ func assertSingleFailedTrace(t *testing.T, store *calstore.Store, code string) c
 	if trace.Status != caltrace.StatusFailed || trace.Error == nil || trace.Error.Code != code {
 		t.Fatalf("trace = %#v, want failed trace with error %s", trace, code)
 	}
-	if trace.Hint != "document.export_pdf" || len(trace.ProviderIDs) != 1 || trace.ProviderIDs[0] != "provider_cli" {
-		t.Fatalf("trace target = %#v, %#v, want document.export_pdf/provider_cli", trace.Hint, trace.ProviderIDs)
+	if trace.Hint != "document.convert" || len(trace.ProviderIDs) != 1 || trace.ProviderIDs[0] != "provider_cli" {
+		t.Fatalf("trace target = %#v, %#v, want document.convert/provider_cli", trace.Hint, trace.ProviderIDs)
 	}
 	return trace
 }

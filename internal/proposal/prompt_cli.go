@@ -2,7 +2,9 @@ package proposal
 
 import (
 	"encoding/json"
+	"sort"
 
+	"github.com/spacehz-lab/cal/internal/core"
 	sharedllm "github.com/spacehz-lab/cal/internal/llm"
 )
 
@@ -51,12 +53,34 @@ func cliBindingPrompt(req Request, prof profile, capability capabilityPlan, surf
 
 func cliEvidencePrompt(req Request, candidateIndex int, candidate any, material probeMaterial) sharedllm.Prompt {
 	return jsonPrompt(cliEvidenceSystemPrompt, map[string]any{
-		"provider":        req.Provider,
-		"candidate_index": candidateIndex,
-		"candidate":       candidate,
-		"probe_material":  material,
-		"observations":    req.Observations,
+		"provider":              req.Provider,
+		"candidate_index":       candidateIndex,
+		"candidate":             candidate,
+		"probe_material":        material,
+		"observations":          req.Observations,
+		"verify_subject_rules":  core.VerifySubjectRules(),
+		"available_file_inputs": evidenceFileInputs(material),
 	})
+}
+
+func evidenceFileInputs(material probeMaterial) []string {
+	inputs := map[string]struct{}{}
+	for input := range material.Inputs {
+		if input != "" {
+			inputs[input] = struct{}{}
+		}
+	}
+	for _, fixture := range material.Fixtures {
+		if fixture.Input != "" {
+			inputs[fixture.Input] = struct{}{}
+		}
+	}
+	names := make([]string, 0, len(inputs))
+	for input := range inputs {
+		names = append(names, input)
+	}
+	sort.Strings(names)
+	return names
 }
 
 func jsonPrompt(system string, value any) sharedllm.Prompt {
@@ -85,24 +109,110 @@ func relevantSurfaces(surfaces []surface, ids []string) []surface {
 }
 
 const cliSurfaceSystemPrompt = `Return only JSON. Extract documented CLI operation surfaces from observations.
-Response shape: {"surface_items":[{"id":"s1","kind":"command|subcommand|mode|option","name":"...","description":"...","evidence_source":"help|man|stdout","decision":"keep|defer|skip"}]}.
-Surface is only an entry-point inventory. Do not choose capability_id, execution args, probe inputs, or verifiers. Use kind only from command, subcommand, mode, option. Use command for primary commands, subcommand for documented nested commands, mode for documented operating modes, and option when a CLI exposes useful behavior primarily through flags. For command-list CLIs, include documented primary commands broadly up to max_surface_items. For flag-driven CLIs, emit each documented operation flag as kind="option" instead of subcommand. Descriptions must be grounded in observations and must not infer broader reusable capability semantics. Prefer primary commands and command families over enumerating every algorithm, format, cipher, digest, flag variant, alias, or metadata-only entry. Use keep when the current observation, command name, or option name gives a stable reusable operation meaning that is suitable for initial Capability planning. Do not defer solely because a surface is state-changing, network-dependent, configuration-changing, destructive, or may require confirmation; those risks belong to later Binding, Verification, or Use policy. For complex command-list CLIs, do not keep every primary command. Keep commands with clear common operation names, clear data/object names, or explicit descriptions that identify a reusable operation, including core state-changing operations such as install, update, upgrade, uninstall, link, unlink, pin, unpin, tap, untap, and cleanup when documented. Use defer only when the current observation is too shallow or ambiguous to infer a stable semantic operation, or when the surface is interactive, server/listener, protocol-specific, low-level, or clearly needs command-specific help, man output, or safer inspection before reliable Capability planning. Use skip for metadata-only, self-documentation, or alias-only entries.`
+Response shape:
+{"surface_items":[{"id":"s1","kind":"command|subcommand|mode|option","name":"...","description":"...","evidence_source":"help|man|stdout","decision":"keep|defer|skip"}]}.
+
+Rules:
+- Surface is only an entry-point inventory.
+- Do not choose capability_id, execution args, probe inputs, or verifiers.
+- Use kind only from command, subcommand, mode, option.
+- Use command for primary commands and subcommand for documented nested commands.
+- Use mode for documented operating modes.
+- Use option when a CLI exposes useful behavior primarily through flags.
+- For command-list CLIs, include documented primary commands broadly up to max_surface_items.
+- For flag-driven CLIs, emit each documented operation flag as kind="option" instead of subcommand.
+- Descriptions must be grounded in observations and must not infer broader reusable capability semantics.
+- Prefer primary commands and command families over every algorithm, format, cipher, digest, flag variant, alias, or metadata-only entry.
+- Use keep when the observation, command name, or option name gives a stable reusable operation meaning suitable for Capability planning.
+- Do not defer solely because a surface is state-changing, network-dependent, configuration-changing, destructive, or may require confirmation.
+- Those risks belong to later Binding, Verification, or Use policy.
+- For complex command-list CLIs, do not keep every primary command.
+- Keep commands with clear common operation names, clear data/object names, or explicit reusable-operation descriptions.
+- Keep core state-changing operations such as install, update, upgrade, uninstall, link, unlink, pin, unpin, tap, untap, and cleanup when documented.
+- Use defer only when the current observation is too shallow or ambiguous to infer a stable semantic operation.
+- Use defer when the surface is interactive, server/listener, protocol-specific, low-level, or clearly needs command-specific help, man output, or safer inspection.
+- Use skip for metadata-only, self-documentation, or alias-only entries.`
 
 const cliCapabilitySystemPrompt = `Return only JSON. Choose provider-independent capability ids for kept CLI surfaces.
-Response shape: {"capabilities":[{"capability_id":"subject.operation","description":"...","source_surface_ids":["s1"],"confidence":"high|medium|low"}]}.
+Response shape:
+{"capabilities":[{"capability_id":"subject.operation","description":"...","source_surface_ids":["s1"],"confidence":"high|medium|low"}]}.
+
 Capability is a semantic planning stage only. Do not produce execution args, probes, verifiers, input schemas, or binding constraints.
-capability_id must be exactly two lowercase dotted parts: <subject>.<operation>. Choose subject from capability_policy.preferred_subjects and operation from capability_policy.preferred_operations whenever a semantically correct combination exists. Do not create a protocol-specific, format-specific, algorithm-specific, or implementation-specific subject when a supplied generic subject preserves the reusable operation meaning. Create a new lowercase subject or operation only when observations cannot be expressed by supplied generic terms. New terms must be minimal, generic, reusable, and provider-independent.
-capability_id must describe the reusable semantic operation, not the provider surface. Do not include provider names, executable names, command names, flags, paths, versions, formats, encodings, algorithms, modes, variants, target artifact kinds, or input/output media in capability_id.
-Any discriminator that changes format, encoding, algorithm, mode, variant, target artifact kind, or concrete input/output shape belongs to later Binding inputs and constraints, not to capability_id.
-Merge surfaces into the same capability only when they share the same semantic subject and operation and can plausibly share compatible Binding inputs, execution shape, and output semantics. Do not merge surfaces that require clearly different inputs, execution shapes, output semantics, command families, or opposite operations. Prefer the most direct source surface for each capability. Do not add extra source_surface_ids merely because another command can also participate in the broad operation. If the same semantic operation appears across different command families, prefer separate narrower capabilities or keep only the clearest directly executable source surface. source_surface_ids must only reference ids from the supplied surface_items.
-Reuse an existing_capabilities id only when its id and description follow these rules and are semantically equivalent to the observed subject and operation. Create a new capability when no existing capability clearly describes the operation. Do not reuse invalid, provider-specific, command-specific, or discriminator-specific existing ids.
-description must be provider-independent and must describe exactly the selected semantic capability. It must not add unsupported operations, hide opposite operations, or narrow capability_id with a format, encoding, algorithm, mode, or target artifact discriminator.
-If debug_filter is set, only return that exact capability_id when the supplied surfaces support it and it satisfies these rules. Otherwise return no capabilities.`
+
+Capability id rules:
+- capability_id must be exactly two lowercase dotted parts: <subject>.<operation>.
+- Choose subject from capability_policy.preferred_subjects whenever a semantically correct subject exists.
+- Choose operation from capability_policy.preferred_operations whenever a semantically correct operation exists.
+- Do not create protocol-specific, format-specific, algorithm-specific, or implementation-specific subjects when a supplied generic subject preserves the reusable operation meaning.
+- Create a new lowercase subject or operation only when observations cannot be expressed by supplied generic terms.
+- New terms must be minimal, generic, reusable, and provider-independent.
+- capability_id must describe the reusable semantic operation, not the provider surface.
+- Do not include provider names, executable names, command names, flags, paths, versions, formats, encodings, algorithms, modes, variants, target artifact kinds, or input/output media in capability_id.
+- Discriminators for format, encoding, algorithm, mode, variant, artifact kind, or concrete I/O shape belong to later Binding inputs and constraints.
+
+Grouping rules:
+- Merge surfaces only when they share the same semantic subject and operation.
+- Merged surfaces must plausibly share compatible Binding inputs, execution shape, and output semantics.
+- Do not merge surfaces that require clearly different inputs, execution shapes, output semantics, command families, or opposite operations.
+- Prefer the most direct source surface for each capability.
+- Do not add extra source_surface_ids merely because another command can also participate in the broad operation.
+- If the same semantic operation appears across different command families, prefer separate narrower capabilities or keep only the clearest directly executable source surface.
+- source_surface_ids must only reference ids from the supplied surface_items.
+
+Reuse and description rules:
+- Reuse an existing_capabilities id only when its id and description follow these rules and are semantically equivalent.
+- Create a new capability when no existing capability clearly describes the operation.
+- Do not reuse invalid, provider-specific, command-specific, or discriminator-specific existing ids.
+- description must be provider-independent and must describe exactly the selected semantic capability.
+- description must not add unsupported operations, hide opposite operations, or narrow capability_id with a format, encoding, algorithm, mode, or target artifact discriminator.
+- If debug_filter is set, only return that exact capability_id when the supplied surfaces support it and it satisfies these rules.
+- Otherwise return no capabilities.`
 
 const cliBindingSystemPrompt = `Return only JSON. For one planned capability, produce provider-specific CLI candidate executions and probe material.
-Response shape: {"candidates":[{"provider_id":"optional","capability_id":"same as plan","description":"...","input_constraints":{},"execution":{"kind":"cli","spec":{"args":["subcommand","{{source}}","{{target}}"],"stdout_path_input":"optional"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.artifact"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}.
-Only produce provider-specific candidate executions and probe material. Do not verify, produce verifier material, or claim success. For CLI providers, execution.kind must be "cli". CLI args must be argument array only and must not include the provider executable path or executable name. Every {{placeholder}} in args or stdout_path_input must have a probe input or fixture. input_constraints may only describe inputs referenced by execution. Prefer one candidate. Return more than one candidate only when observations clearly show different execution families or input modes, and never exceed max_candidates_per_capability. If the primary output is stdout and later verification needs a file artifact, set stdout_path_input to the output path input. If an output artifact is checked later, execution must produce it through an arg placeholder or stdout_path_input. Description must be provider-independent and no broader than the execution.`
+Response shape:
+{"candidates":[{"provider_id":"optional","capability_id":"same as plan","description":"...","input_constraints":{},"execution":{"kind":"cli","spec":{"args":["subcommand","{{source}}","{{target}}"],"stdout_path_input":"optional"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.artifact"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}.
+
+Rules:
+- Only produce provider-specific candidate executions and probe material.
+- Do not verify, produce verifier material, or claim success.
+- For CLI providers, execution.kind must be "cli".
+- execution.spec.args must be a JSON array of strings, never a shell command string.
+- Split every command token into a separate array item.
+- CLI args must not include the provider executable path or executable name.
+- execution.spec.stdout_path_input, when present, must be a string input name such as "target".
+- Do not use an object, array, path, or {{placeholder}} for stdout_path_input.
+- Use stdout_path_input only when the CLI writes the primary artifact to stdout.
+- Do not set stdout_path_input when args already include an output path placeholder such as --output {{target}}, --out {{target}}, or -o {{target}}.
+- Every {{placeholder}} in args or stdout_path_input must have a probe input or fixture.
+- input_constraints may only describe inputs referenced by execution.
+- Prefer one candidate.
+- Return more than one candidate only when observations clearly show different execution families or input modes.
+- Never exceed max_candidates_per_capability.
+- If the primary output is stdout and later verification needs a file artifact, set stdout_path_input to the output path input.
+- If an output artifact is checked later, execution must produce it through an arg placeholder or stdout_path_input.
+- Description must be provider-independent and no broader than the execution.`
 
 const cliEvidenceSystemPrompt = `Return only JSON. For one candidate and probe material, choose how CAL should verify it and propose deterministic built-in checks when execution is used.
-Response shape: {"verify":{"level":"L0|L1|L2|L3","method":"execute|contract","checks":[{"subject":"exit_code|stdout|stderr|output|source|target|artifact","predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches","params":{}}]}}.
-Do not write code, scripts, verifier packages, or pass/fail claims. Use method="execute" only for safe, short, local, read-only probes; CAL executes the candidate and evaluates checks locally. Even execute+L1 must have checks. Use method="contract" when a real probe would install, remove, update, upgrade, clean, link, unlink, tap, untap, edit, start services, require network, require interaction, or change external state. Dry-run flags do not by themselves make package-manager update or upgrade commands safe. Contract verification cannot exceed L1, must use checks:[], and must not include pass/fail claims from execution. Use L3 when execute checks verify the semantic result itself, L2 for output structure or key properties, L1 for execution shape, parameter binding, operation path, safe failure-path evidence, or documented contract evidence, and L0 when reliable verification evidence is unavailable. Checks may reference exit_code, stdout, stderr, output, or path inputs such as source and target. Use params.value for equals, not_equals, and contains. Use artifact with params.input when the artifact path input is not target.`
+Response shape:
+{"verify":{"level":"L0|L1|L2|L3","method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches","params":{}}]}}.
+
+Rules:
+- Do not write code, scripts, verifier packages, or pass/fail claims.
+- Use method="execute" only for safe, short, local, read-only probes.
+- CAL executes the candidate and evaluates checks locally.
+- Even execute+L1 must have checks.
+- Use method="contract" when a real probe would install, remove, update, upgrade, clean, link, unlink, tap, untap, edit, start services, require network, require interaction, or change external state.
+- Dry-run flags do not by themselves make package-manager update or upgrade commands safe.
+- Contract verification cannot exceed L1, must use checks:[], and must not include pass/fail claims from execution.
+- Use L3 when execute checks verify the semantic result itself.
+- Use L2 for output structure or key properties.
+- Use L1 for execution shape, parameter binding, operation path, safe failure-path evidence, or documented contract evidence.
+- Use L0 when reliable verification evidence is unavailable.
+- Checks must follow verify_subject_rules exactly.
+- For subject.type="file", subject.input must be one of available_file_inputs.
+- Do not invent subject types, file inputs, predicates, or params outside verify_subject_rules.
+- A file subject input names a path input; it is not file content.
+- Use file subjects for artifact path checks and file content checks.
+- For generated file artifacts, prefer exists, non_empty, and format when they prove the output shape.
+- Use file contains, contains_any, or regex only when observations explicitly guarantee stable literal output content.
+- Use stdout, stderr, and exit_code subjects only for process result checks.`

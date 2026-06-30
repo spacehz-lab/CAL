@@ -18,6 +18,7 @@ type Request struct {
 	Observations []caltrace.Observation
 	Catalog      []core.Capability
 	DebugFilter  string
+	TraceID      string
 }
 
 // Result is the selected, executable Proposal output consumed by discovery.

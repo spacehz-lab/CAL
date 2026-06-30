@@ -44,10 +44,11 @@ type Observation struct {
 
 // ProposalTrace records proposal-stage diagnostics that are not executable candidates.
 type ProposalTrace struct {
-	SchemaVersion string          `json:"schema_version,omitempty"`
-	PromptVersion string          `json:"prompt_version,omitempty"`
-	Model         string          `json:"model,omitempty"`
-	Stages        []ProposalStage `json:"stages,omitempty"`
+	SchemaVersion string            `json:"schema_version,omitempty"`
+	PromptVersion string            `json:"prompt_version,omitempty"`
+	Model         string            `json:"model,omitempty"`
+	Stages        []ProposalStage   `json:"stages,omitempty"`
+	Attempts      []ProposalAttempt `json:"attempts,omitempty"`
 }
 
 // ProposalStageName identifies a proposal diagnostics stage.
@@ -92,6 +93,27 @@ type ProposalStage struct {
 	Items      []ProposalItem             `json:"items,omitempty"`
 	Summary    map[ProposalSummaryKey]int `json:"summary,omitempty"`
 	DurationMS int64                      `json:"duration_ms,omitempty"`
+}
+
+// ProposalAttemptStatus identifies whether one Proposal LLM call produced usable output.
+type ProposalAttemptStatus string
+
+const (
+	// ProposalAttemptSucceeded marks one successful Proposal LLM call.
+	ProposalAttemptSucceeded ProposalAttemptStatus = "succeeded"
+	// ProposalAttemptFailed marks one failed Proposal LLM call.
+	ProposalAttemptFailed ProposalAttemptStatus = "failed"
+)
+
+// ProposalAttempt records raw LLM response diagnostics for one Proposal stage call.
+type ProposalAttempt struct {
+	Stage          ProposalStageName     `json:"stage"`
+	CapabilityID   string                `json:"capability_id,omitempty"`
+	CandidateIndex *int                  `json:"candidate_index,omitempty"`
+	Status         ProposalAttemptStatus `json:"status"`
+	DurationMS     int64                 `json:"duration_ms,omitempty"`
+	Error          *core.RecordError     `json:"error,omitempty"`
+	RawResponse    string                `json:"raw_response,omitempty"`
 }
 
 // ProposalDecision records whether a proposal item should continue to the next stage.

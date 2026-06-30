@@ -15,7 +15,7 @@ func TestRecordsSummaryCountsDurableRecords(t *testing.T) {
 		},
 		capabilities: []core.Capability{
 			{
-				ID: "document.export_pdf",
+				ID: "document.convert",
 				Bindings: []core.Binding{
 					{ID: "binding_promoted", State: core.BindingStatePromoted},
 					{ID: "binding_unpromoted"},

@@ -115,56 +115,73 @@ func ValidateVerifySpec(verify VerifySpec) error {
 	if verify.Method == VerifyMethodExecute && verify.Level != VerifyLevelL0 && len(verify.Checks) == 0 {
 		return fmt.Errorf("verify checks are required for execute method")
 	}
+	rules := verifySubjectRuleMap()
 	for _, check := range verify.Checks {
-		if strings.TrimSpace(check.Subject) == "" {
-			return fmt.Errorf("verify check subject is required")
-		}
-		if !validVerifyPredicate(check.Predicate) {
-			return fmt.Errorf("verify predicate %q is invalid", check.Predicate)
-		}
-		if err := validateVerifyCheckParams(check); err != nil {
+		if err := validateVerifyCheck(check, rules); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validateVerifyCheckParams(check VerifyCheck) error {
-	switch check.Predicate {
-	case VerifyPredicateEquals, VerifyPredicateNotEquals:
-		if _, ok := check.Params["value"]; !ok {
-			return fmt.Errorf("verify predicate %s requires params.value", check.Predicate)
-		}
-	case VerifyPredicateContains:
-		if stringParam(check.Params, "value") == "" {
-			return fmt.Errorf("verify predicate %s requires params.value", check.Predicate)
-		}
-	case VerifyPredicateContainsAny:
-		if len(stringListParam(check.Params, "values")) == 0 {
-			return fmt.Errorf("verify predicate %s requires params.values", check.Predicate)
-		}
-	case VerifyPredicateRegex:
+func validateVerifyCheck(check VerifyCheck, rules map[VerifySubjectType]VerifySubjectRule) error {
+	rule, ok := rules[check.Subject.Type]
+	if !ok {
+		return fmt.Errorf("verify subject type %q is invalid", check.Subject.Type)
+	}
+	if rule.RequiresInput && strings.TrimSpace(check.Subject.Input) == "" {
+		return fmt.Errorf("verify subject %s requires input", check.Subject.Type)
+	}
+	if !rule.RequiresInput && strings.TrimSpace(check.Subject.Input) != "" {
+		return fmt.Errorf("verify subject %s cannot include input", check.Subject.Type)
+	}
+	if !verifyPredicateAllowed(rule, check.Predicate) {
+		return fmt.Errorf("verify predicate %s is invalid for subject %s", check.Predicate, check.Subject.Type)
+	}
+	if err := validateVerifyCheckParams(check, rule); err != nil {
+		return err
+	}
+	if check.Predicate == VerifyPredicateRegex {
 		pattern := stringParam(check.Params, "pattern")
-		if pattern == "" {
-			return fmt.Errorf("verify predicate %s requires params.pattern", check.Predicate)
-		}
 		if _, err := regexp.Compile(pattern); err != nil {
 			return fmt.Errorf("verify regex pattern is invalid: %w", err)
 		}
-	case VerifyPredicateFormat:
-		if stringParam(check.Params, "format") == "" {
-			return fmt.Errorf("verify predicate %s requires params.format", check.Predicate)
-		}
-	case VerifyPredicateBytesEqualTransform:
-		if stringParam(check.Params, "source") == "" || stringParam(check.Params, "transform") == "" {
-			return fmt.Errorf("verify predicate %s requires params.source and params.transform", check.Predicate)
-		}
-	case VerifyPredicateHashLineMatches:
-		if stringParam(check.Params, "source") == "" || stringParam(check.Params, "algorithm") == "" {
-			return fmt.Errorf("verify predicate %s requires params.source and params.algorithm", check.Predicate)
+	}
+	return nil
+}
+
+func validateVerifyCheckParams(check VerifyCheck, rule VerifySubjectRule) error {
+	for _, key := range rule.RequiredParams[check.Predicate] {
+		switch key {
+		case "values":
+			if len(stringListParam(check.Params, key)) == 0 {
+				return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
+			}
+		default:
+			if _, ok := check.Params[key]; !ok || stringParam(check.Params, key) == "" {
+				return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
+			}
 		}
 	}
 	return nil
+}
+
+func verifySubjectRuleMap() map[VerifySubjectType]VerifySubjectRule {
+	rules := VerifySubjectRules()
+	byType := make(map[VerifySubjectType]VerifySubjectRule, len(rules))
+	for _, rule := range rules {
+		byType[rule.Type] = rule
+	}
+	return byType
+}
+
+func verifyPredicateAllowed(rule VerifySubjectRule, predicate VerifyPredicate) bool {
+	for _, allowed := range rule.AllowedPredicates {
+		if allowed == predicate {
+			return true
+		}
+	}
+	return false
 }
 
 func stringParam(params map[string]any, key string) string {
@@ -217,24 +234,6 @@ func validVerifyLevel(level VerifyLevel) bool {
 func validVerifyMethod(method VerifyMethod) bool {
 	switch method {
 	case VerifyMethodExecute, VerifyMethodContract:
-		return true
-	default:
-		return false
-	}
-}
-
-func validVerifyPredicate(predicate VerifyPredicate) bool {
-	switch predicate {
-	case VerifyPredicateEquals,
-		VerifyPredicateNotEquals,
-		VerifyPredicateExists,
-		VerifyPredicateNonEmpty,
-		VerifyPredicateFormat,
-		VerifyPredicateContains,
-		VerifyPredicateContainsAny,
-		VerifyPredicateRegex,
-		VerifyPredicateBytesEqualTransform,
-		VerifyPredicateHashLineMatches:
 		return true
 	default:
 		return false

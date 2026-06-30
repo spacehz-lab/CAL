@@ -159,7 +159,7 @@ Capability ids are provider-independent semantic operation ids:
 They must match:
 
 ```text
-^[a-z0-9_]+\.[a-z0-9_]+$
+^[a-z0-9]+\.[a-z0-9]+$
 ```
 
 Capability ids must not include provider names, executable names, command names,
@@ -192,9 +192,34 @@ not:
 
 ```text
 file.sha1sum
-text.base64_encode
-document.pdf_export
+text.encodebase64
+document.convertpdf
 ```
+
+## Diagnostics
+
+Proposal diagnostics are persisted under `Trace.proposal`.
+
+`Trace.proposal.stages[]` records normalized stage decisions and summaries.
+`Trace.proposal.attempts[]` records each live LLM stage call so failed live runs
+can be debugged after the process exits.
+
+Each attempt records:
+
+```text
+stage
+capability_id optional
+candidate_index optional
+status succeeded | failed
+duration_ms
+error optional
+raw_response optional
+```
+
+Failed attempts should preserve the raw response when the model returned one.
+This is especially important for Evidence failures, where malformed or locally
+invalid VerifySpec JSON must be inspectable from the stored trace without
+rerunning the live model.
 
 ## Concurrency
 

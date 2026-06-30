@@ -205,11 +205,15 @@ Successful verified output additionally includes outputs and evidence:
     "target": "report.pdf"
   },
   "evidence": [
-    {
-      "id": "verify_target_format",
-      "type": "verify_check",
-      "content": {"subject": "target", "predicate": "format", "format": "pdf"}
-    }
+	    {
+	      "id": "verify_target_format",
+	      "type": "verify_check",
+	      "content": {
+	        "subject": {"type": "file", "input": "target"},
+	        "predicate": "format",
+	        "format": "pdf"
+	      }
+	    }
   ],
   "duration_ms": 842
 }

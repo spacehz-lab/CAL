@@ -33,7 +33,7 @@ func TestUseCommandCallsCald(t *testing.T) {
 	if result.Status != core.RunStatusSucceeded || result.Selection == nil || result.Run == nil || !result.Run.Verified {
 		t.Fatalf("use result = %#v, want verified successful use", result)
 	}
-	if result.Selection.CapabilityID != "document.export_pdf" || result.Selection.BindingID != "binding_cli" || result.Run.BindingID != "binding_cli" {
+	if result.Selection.CapabilityID != "document.convert" || result.Selection.BindingID != "binding_cli" || result.Run.BindingID != "binding_cli" {
 		t.Fatalf("use selection/run = %#v / %#v, want binding_cli", result.Selection, result.Run)
 	}
 	if _, err := os.Stat(target); err != nil {

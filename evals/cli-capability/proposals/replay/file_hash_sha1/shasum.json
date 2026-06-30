@@ -14,7 +14,7 @@
   ],
   "candidates": [
     {
-      "capability_id": "file.hash_sha1",
+      "capability_id": "file.checksum",
       "description": "Compute the SHA-1 digest of a file.",
       "execution": {
         "kind": "cli",

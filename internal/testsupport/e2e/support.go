@@ -267,7 +267,7 @@ func WriteFakeExecutable(t *testing.T, path string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ]; then
   echo "Fake Exporter"
-  echo "CAL_CAPABILITY document.export_pdf"
+  echo "CAL_CAPABILITY document.convert"
   echo "CAL_COMMAND export-pdf --source {{source}} --target {{target}}"
   exit 0
 fi
@@ -308,7 +308,7 @@ func WriteFakeExporter(t *testing.T, path, targetWriteCommand string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ]; then
   echo "Fake Exporter"
-  echo "CAL_CAPABILITY document.export_pdf"
+  echo "CAL_CAPABILITY document.convert"
   echo "CAL_COMMAND export-pdf --source {{source}} --target {{target}}"
   exit 0
 fi
@@ -479,7 +479,7 @@ func WriteReplayProposal(t *testing.T, path string) string {
 	content := `{
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
   "candidates": [{
-    "capability_id": "document.export_pdf",
+    "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
     "execution": {
       "kind": "cli",
@@ -490,7 +490,7 @@ func WriteReplayProposal(t *testing.T, path string) string {
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"format","params":{"format":"pdf"}}]}
+    "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -505,7 +505,7 @@ func WriteContractReplayProposal(t *testing.T, path string) string {
 	content := `{
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
   "candidates": [{
-    "capability_id": "document.export_pdf",
+    "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
     "execution": {
       "kind": "cli",
@@ -530,7 +530,7 @@ func WriteReplayVerifySpecProposal(t *testing.T, path string) string {
 	content := `{
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
   "candidates": [{
-    "capability_id": "document.export_pdf",
+    "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
     "execution": {
       "kind": "cli",
@@ -541,7 +541,7 @@ func WriteReplayVerifySpecProposal(t *testing.T, path string) string {
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"format","params":{"format":"pdf"}}]}
+    "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -635,12 +635,12 @@ func WriteMultiCapabilityProposal(t *testing.T, path string) string {
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
   "candidates": [
     {
-      "capability_id": "document.export_pdf",
+      "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
       "execution": {"kind": "cli", "spec": {"args": ["make-pdf", "--out", "{{target}}"]}}
     },
     {
-      "capability_id": "text.write_file",
+      "capability_id": "text.write",
       "description": "Write a text file artifact.",
       "execution": {"kind": "cli", "spec": {"args": ["write-note", "--out", "{{target}}"]}}
     }
@@ -649,12 +649,12 @@ func WriteMultiCapabilityProposal(t *testing.T, path string) string {
     {
       "candidate_index": 0,
       "inputs": {"target": "{{workdir}}/output.pdf"},
-      "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"format","params":{"format":"pdf"}}]}
+      "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
     },
     {
       "candidate_index": 1,
       "inputs": {"target": "{{workdir}}/note.txt"},
-      "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"},{"subject":"target","predicate":"non_empty"}]}
+      "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"},{"subject":{"type":"file","input":"target"},"predicate":"non_empty"}]}
     }
   ]
 }`

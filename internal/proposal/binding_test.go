@@ -100,6 +100,25 @@ func TestNormalizeBindingStageSkipsUnknownInputConstraint(t *testing.T) {
 	}
 }
 
+func TestNormalizeBindingStageSkipsInvalidInputConstraint(t *testing.T) {
+	candidate := bindingCandidate([]string{"convert", "{{source}}"})
+	candidate.InputConstraints = map[string]any{"source": "path"}
+	output, stage := normalizeBindings(bindingRequest(), bindingProfile(2), bindingCapability(), bindingOutput{
+		Candidates:     []caltrace.Candidate{candidate},
+		ProbeMaterials: []probeMaterial{{CandidateIndex: 0, Fixtures: []Fixture{{Input: "source", Filename: "input.txt"}}}},
+	})
+
+	if len(output.Candidates) != 0 {
+		t.Fatalf("output = %#v, want invalid input constraint skipped", output)
+	}
+	if stage.Summary[caltrace.ProposalSummarySkip] != 1 {
+		t.Fatalf("stage = %#v, want skipped binding", stage)
+	}
+	if got := bindingStageItemReason(t, stage, 0); got != "invalid_input_constraint:source" {
+		t.Fatalf("reason = %q, want invalid input constraint", got)
+	}
+}
+
 func TestNormalizeBindingStageSkipsProviderExecutableInArgs(t *testing.T) {
 	output, stage := normalizeBindings(bindingRequest(), bindingProfile(2), bindingCapability(), bindingOutput{
 		Candidates:     []caltrace.Candidate{bindingCandidate([]string{"brew", "install", "{{package}}"})},
@@ -114,6 +133,22 @@ func TestNormalizeBindingStageSkipsProviderExecutableInArgs(t *testing.T) {
 	}
 	if got := bindingStageItemReason(t, stage, 0); got != bindingReasonProviderExecutableInArgs {
 		t.Fatalf("reason = %q, want provider executable in args", got)
+	}
+}
+
+func TestNormalizeBindingStageSkipsStringCLIArgs(t *testing.T) {
+	candidate := bindingCandidate(nil)
+	candidate.Execution.Spec[core.ExecutionSpecArgs] = "system doctor --json --output {{target}}"
+	output, stage := normalizeBindings(bindingRequest(), bindingProfile(2), bindingCapability(), bindingOutput{
+		Candidates:     []caltrace.Candidate{candidate},
+		ProbeMaterials: []probeMaterial{{CandidateIndex: 0, Inputs: map[string]any{"target": "{{workdir}}/report.json"}}},
+	})
+
+	if len(output.Candidates) != 0 {
+		t.Fatalf("output = %#v, want string args skipped", output)
+	}
+	if got := bindingStageItemReason(t, stage, 0); got != "invalid_cli_args_type:string" {
+		t.Fatalf("reason = %q, want invalid string args type", got)
 	}
 }
 

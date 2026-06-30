@@ -19,18 +19,18 @@ func TestCapabilityListReturnsPromotedSummary(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 	if err := s.PutCapability(core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []core.Binding{
 			{
 				ID:           "binding_promoted",
-				CapabilityID: "document.export_pdf",
+				CapabilityID: "document.convert",
 				ProviderID:   "provider_fake",
 				Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"secret": "do not expose"}},
 				Verify: &core.VerifySpec{
 					Level:  core.VerifyLevelL2,
 					Method: core.VerifyMethodExecute,
-					Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+					Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 				},
 				Evidence: []core.EvidenceRef{{ID: "evidence_fake"}},
 				State:    core.BindingStatePromoted,
@@ -66,7 +66,7 @@ func TestCapabilityListReturnsPromotedSummary(t *testing.T) {
 		t.Fatalf("response = %#v, want one promoted capability", response)
 	}
 	capability := response.Capabilities[0]
-	if capability.ID != "document.export_pdf" || capability.Bindings.Available != 1 {
+	if capability.ID != "document.convert" || capability.Bindings.Available != 1 {
 		t.Fatalf("capability = %#v, want promoted summary only", capability)
 	}
 	if capability.Execution != nil {

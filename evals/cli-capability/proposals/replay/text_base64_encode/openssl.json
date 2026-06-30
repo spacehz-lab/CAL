@@ -14,7 +14,7 @@
   ],
   "candidates": [
     {
-      "capability_id": "text.encode_base64",
+      "capability_id": "text.encode",
       "description": "Encode source bytes as Base64 text.",
       "execution": {
         "kind": "cli",

@@ -46,7 +46,7 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 		t.Fatalf("trace probe evidence = %#v, want one evidence", trace.Probes[0].Evidence)
 	}
 
-	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
+	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.convert.json"))
 	if len(capability.Bindings) != 1 {
 		t.Fatalf("capability bindings = %#v, want one binding", capability.Bindings)
 	}
@@ -68,7 +68,7 @@ func TestControlledAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
@@ -110,7 +110,7 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 	if strings.Contains(text, "CAL_CAPABILITY") || strings.Contains(text, "CAL_COMMAND") {
 		t.Fatalf("trace observation contains CAL marker, want marker-free help:\n%s", text)
 	}
-	if len(trace.Candidates) != 1 || trace.Candidates[0].Source != "rules:cli_help_export_pdf" {
+	if len(trace.Candidates) != 1 || trace.Candidates[0].Source != "rules:cli_help_document_convert" {
 		t.Fatalf("trace candidates = %#v, want marker-free export-pdf candidate", trace.Candidates)
 	}
 	args, ok := trace.Candidates[0].Execution.Spec["args"].([]any)
@@ -130,7 +130,7 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 		t.Fatalf("trace probes = %#v, want passing L2+ probe", trace.Probes)
 	}
 
-	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
+	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.convert.json"))
 	if len(capability.Bindings) != 1 || capability.Bindings[0].Verify == nil || core.VerifyLevelRank(capability.Bindings[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
 		t.Fatalf("capability = %#v, want one L2+ verified binding", capability)
 	}
@@ -145,7 +145,7 @@ func TestMarkerFreeFakeCLIAcquisitionPromotesParseVerifiedBinding(t *testing.T) 
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
@@ -213,7 +213,7 @@ func TestReplayProposalAcquisitionPromotesParseVerifiedBinding(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
@@ -264,7 +264,7 @@ func TestReplayProposalAcquisitionPromotesVerifySpecBinding(t *testing.T) {
 	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
 		t.Fatalf("trace probes = %#v, want passing L2+ verify probe", trace.Probes)
 	}
-	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.export_pdf.json"))
+	capability := e2etest.ReadJSONFile[core.Capability](t, filepath.Join(home, "capabilities", "document.convert.json"))
 	if len(capability.Bindings) != 1 || capability.Bindings[0].Verify == nil || core.VerifyLevelRank(capability.Bindings[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
 		t.Fatalf("capability = %#v, want verify-spec binding", capability)
 	}
@@ -279,7 +279,7 @@ func TestReplayProposalAcquisitionPromotesVerifySpecBinding(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified || len(runSuccess.Evidence) != 1 {
 		t.Fatalf("run success = %#v, want verified verify-spec reuse", runSuccess)
 	}
@@ -327,7 +327,7 @@ func TestReplayProposalContractBindingRequiresExplicitL1Reuse(t *testing.T) {
 			Code string `json:"code"`
 		} `json:"error"`
 	}
-	e2etest.RunFailJSON(t, repo, env, &defaultFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", inputs, "--json")
+	e2etest.RunFailJSON(t, repo, env, &defaultFailure, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", inputs, "--json")
 	if defaultFailure.Status != "failed" || defaultFailure.Error.Code != "binding_not_found" {
 		t.Fatalf("default run failure = %#v, want binding_not_found below default L2 threshold", defaultFailure)
 	}
@@ -337,7 +337,7 @@ func TestReplayProposalContractBindingRequiresExplicitL1Reuse(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &l1Run, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--min-verify-level", "L1", "--inputs-json", inputs, "--json")
+	e2etest.RunJSON(t, repo, env, &l1Run, calctlBin, "runs", "create", "--capability-id", "document.convert", "--min-verify-level", "L1", "--inputs-json", inputs, "--json")
 	if l1Run.Status != "succeeded" || l1Run.Verified || len(l1Run.Evidence) != 0 {
 		t.Fatalf("L1 run = %#v, want unverified execution through explicit L1 threshold", l1Run)
 	}
@@ -353,7 +353,7 @@ func TestReplayProposalContractBindingRequiresExplicitL1Reuse(t *testing.T) {
 			Code string `json:"code"`
 		} `json:"error"`
 	}
-	e2etest.RunFailJSON(t, repo, env, &verifyFailure, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--min-verify-level", "L1", "--inputs-json", verifyInputs, "--verify", "--json")
+	e2etest.RunFailJSON(t, repo, env, &verifyFailure, calctlBin, "runs", "create", "--capability-id", "document.convert", "--min-verify-level", "L1", "--inputs-json", verifyInputs, "--verify", "--json")
 	if verifyFailure.Status != "failed" || verifyFailure.Error.Code != "verification_failed" {
 		t.Fatalf("contract verify failure = %#v, want verification_failed", verifyFailure)
 	}
@@ -423,7 +423,7 @@ func TestControlledAcquisitionRejectsInvalidPDF(t *testing.T) {
 	if metrics.Acquisition.AttemptCount != 1 || metrics.Acquisition.FailedCount != 1 || metrics.Acquisition.ProbeFailCount != 1 {
 		t.Fatalf("eval acquisition = %#v, want one failed acquisition attempt", metrics.Acquisition)
 	}
-	if len(metrics.Acquisition.ByCapability) != 1 || metrics.Acquisition.ByCapability[0].CapabilityID != "document.export_pdf" || metrics.Acquisition.ByCapability[0].Attempts != 1 || metrics.Acquisition.ByCapability[0].Failed != 1 || metrics.Acquisition.ByCapability[0].ProbeFailures != 1 {
-		t.Fatalf("eval by capability = %#v, want failed document.export_pdf attempt", metrics.Acquisition.ByCapability)
+	if len(metrics.Acquisition.ByCapability) != 1 || metrics.Acquisition.ByCapability[0].CapabilityID != "document.convert" || metrics.Acquisition.ByCapability[0].Attempts != 1 || metrics.Acquisition.ByCapability[0].Failed != 1 || metrics.Acquisition.ByCapability[0].ProbeFailures != 1 {
+		t.Fatalf("eval by capability = %#v, want failed document.convert attempt", metrics.Acquisition.ByCapability)
 	}
 }

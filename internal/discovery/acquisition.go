@@ -171,6 +171,7 @@ func (run *acquisitionRun) propose(ctx context.Context) CodedError {
 		Observations: run.observations,
 		Catalog:      capabilities,
 		DebugFilter:  run.opts.CapabilityID,
+		TraceID:      run.traceID,
 	})
 	run.proposalMS = time.Since(started).Milliseconds()
 	run.proposal = result.Diagnostics

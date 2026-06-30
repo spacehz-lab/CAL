@@ -22,17 +22,17 @@ func TestEvaluateVerifySpecTextPredicatesReadPathContent(t *testing.T) {
 		Method: core.VerifyMethodExecute,
 		Checks: []core.VerifyCheck{
 			{
-				Subject:   "artifact",
+				Subject:   core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"},
 				Predicate: core.VerifyPredicateContains,
 				Params:    map[string]any{"value": `"status":"ok"`},
 			},
 			{
-				Subject:   "target",
+				Subject:   core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"},
 				Predicate: core.VerifyPredicateRegex,
 				Params:    map[string]any{"pattern": `"checks":\[`},
 			},
 			{
-				Subject:   "target",
+				Subject:   core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"},
 				Predicate: core.VerifyPredicateContainsAny,
 				Params:    map[string]any{"values": []any{`"result":"warn"`, `"result":"ok"`}},
 			},
@@ -56,7 +56,7 @@ func TestEvaluateVerifySpecTextPredicateReportsMissingPath(t *testing.T) {
 		Level:  core.VerifyLevelL2,
 		Method: core.VerifyMethodExecute,
 		Checks: []core.VerifyCheck{{
-			Subject:   "artifact",
+			Subject:   core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"},
 			Predicate: core.VerifyPredicateContains,
 			Params:    map[string]any{"value": "ok"},
 		}},
@@ -73,7 +73,7 @@ func TestEvaluateVerifySpecContainsUsesStdoutValue(t *testing.T) {
 		Level:  core.VerifyLevelL2,
 		Method: core.VerifyMethodExecute,
 		Checks: []core.VerifyCheck{{
-			Subject:   "stdout",
+			Subject:   core.VerifySubject{Type: core.VerifySubjectStdout},
 			Predicate: core.VerifyPredicateContains,
 			Params:    map[string]any{"value": "ready"},
 		}},

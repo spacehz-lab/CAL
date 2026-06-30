@@ -23,7 +23,7 @@ func TestMaterializeProbePlanResolvesWorkdirAndFixtures(t *testing.T) {
 		Verify: core.VerifySpec{
 			Level:  core.VerifyLevelL2,
 			Method: core.VerifyMethodExecute,
-			Checks: []core.VerifyCheck{{Subject: "target", Predicate: core.VerifyPredicateExists}},
+			Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 		},
 	})
 	if err != nil {

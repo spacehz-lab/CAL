@@ -52,8 +52,8 @@ func TestReplayFiltersProviderAndDebugFilter(t *testing.T) {
 			}
 		],
 		"probe_plans": [
-			{"candidate_index": 0, "inputs": {"target": "/tmp/encoded.txt"}, "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}},
-			{"candidate_index": 1, "inputs": {"target": "/tmp/out.sha1"}, "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}
+			{"candidate_index": 0, "inputs": {"target": "/tmp/encoded.txt"}, "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}},
+			{"candidate_index": 1, "inputs": {"target": "/tmp/out.sha1"}, "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}
 		]
 	}`)
 
@@ -79,7 +79,7 @@ func TestReplayRejectsOutOfRangeProbePlan(t *testing.T) {
 			"description": "Compute a checksum.",
 			"execution": {"kind": "cli", "spec": {"args": ["sha1", "{{target}}"]}}
 		}],
-		"probe_plans": [{"candidate_index": 2, "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}]
+		"probe_plans": [{"candidate_index": 2, "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}]
 	}`))
 	if err == nil || !strings.Contains(err.Error(), "out of range") {
 		t.Fatalf("ParseReplay() error = %v, want out of range error", err)
@@ -103,7 +103,7 @@ func TestReplayRejectsMissingSelectedProbePlan(t *testing.T) {
 			}
 		],
 		"probe_plans": [
-			{"candidate_index": 0, "inputs": {"target": "/tmp/out.sha1"}, "verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}
+			{"candidate_index": 0, "inputs": {"target": "/tmp/out.sha1"}, "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}
 		]
 	}`)
 
@@ -154,7 +154,7 @@ func replayJSON() string {
 		"probe_plans": [{
 			"candidate_index": 0,
 			"inputs": {"target": "/tmp/out.sha1"},
-			"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}
+			"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}
 		}]
 	}`
 }

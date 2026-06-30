@@ -17,7 +17,7 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document between formats.","source_surface_ids":["s1"],"confidence":"high"}]}`),
 		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document between formats.","execution":{"kind":"cli","spec":{"args":["export-pdf","--source","{{source}}","--target","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
-		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"format","params":{"format":"pdf"}}]}}`),
+		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -45,6 +45,14 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 	if result.Diagnostics == nil || result.Diagnostics.SchemaVersion != cliProposalSchema || len(result.Diagnostics.Stages) != 3 {
 		t.Fatalf("diagnostics = %#v, want surface, capability, and binding stages", result.Diagnostics)
 	}
+	if len(result.Diagnostics.Attempts) != 4 {
+		t.Fatalf("attempts = %#v, want four stage attempts", result.Diagnostics.Attempts)
+	}
+	for _, attempt := range result.Diagnostics.Attempts {
+		if attempt.Status != caltrace.ProposalAttemptSucceeded || attempt.RawResponse == "" || attempt.Error != nil {
+			t.Fatalf("attempt = %#v, want successful raw response", attempt)
+		}
+	}
 	stage := result.Diagnostics.Stages[0]
 	if stage.Name != caltrace.ProposalStageSurface || stage.Summary[caltrace.ProposalSummaryRaw] != 1 || stage.Summary[caltrace.ProposalSummarySelected] != 1 || len(stage.Items) != 1 || stage.Items[0].Name != "export-pdf" {
 		t.Fatalf("surface diagnostics = %#v, want exported Stage1 item", stage)
@@ -59,12 +67,46 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 	}
 }
 
+func TestLLMProposerReturnsRawEvidenceAttemptOnFailure(t *testing.T) {
+	badEvidence := []byte(`{"verify":{"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"missing"},"predicate":"exists"}]}}`)
+	client := &fakeStageClient{responses: [][]byte{
+		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"}]}`),
+		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"}]}`),
+		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document.","execution":{"kind":"cli","spec":{"args":["export-pdf","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
+		badEvidence,
+	}}
+
+	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
+		Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
+		Observations: []caltrace.Observation{{
+			Type:    "cli_output",
+			Content: map[string]any{"text": "export-pdf"},
+		}},
+	})
+	if err == nil || !strings.Contains(err.Error(), `file subject input "missing" is not available`) {
+		t.Fatalf("Propose() error = %v, want evidence input failure", err)
+	}
+	if result.Diagnostics == nil || len(result.Diagnostics.Attempts) != 4 {
+		t.Fatalf("diagnostics = %#v, want attempts including failed evidence", result.Diagnostics)
+	}
+	attempt := result.Diagnostics.Attempts[3]
+	if attempt.Stage != caltrace.ProposalStageEvidence || attempt.Status != caltrace.ProposalAttemptFailed || attempt.CapabilityID != "document.convert" {
+		t.Fatalf("attempt = %#v, want failed evidence attempt for document.convert", attempt)
+	}
+	if attempt.CandidateIndex == nil || *attempt.CandidateIndex != 0 {
+		t.Fatalf("attempt = %#v, want candidate_index 0", attempt)
+	}
+	if attempt.RawResponse != string(badEvidence) || attempt.Error == nil || !strings.Contains(attempt.Error.Message, `file subject input "missing"`) {
+		t.Fatalf("attempt = %#v, want raw failed evidence response and error", attempt)
+	}
+}
+
 func TestLLMProposerHashesEachCandidateEvidenceIndependently(t *testing.T) {
 	surface := []byte(`{"surface_items":[{"id":"s1","kind":"command","name":"convert","description":"Convert documents.","decision":"keep"}]}`)
 	capability := []byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"}]}`)
 	binding := []byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document with mode A.","execution":{"kind":"cli","spec":{"args":["convert-a","{{source}}","{{target}}"]}}},{"capability_id":"document.convert","description":"Convert a document with mode B.","execution":{"kind":"cli","spec":{"args":["convert-b","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/a.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]},{"candidate_index":1,"inputs":{"target":"{{workdir}}/b.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`)
-	evidenceA := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}`)
-	evidenceB := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"non_empty"}]}}`)
+	evidenceA := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`)
+	evidenceB := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"non_empty"}]}}`)
 	client := &fakeStageClient{responses: [][]byte{surface, capability, binding, evidenceA, evidenceB}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -95,6 +137,24 @@ func TestLLMProposerHashesEachCandidateEvidenceIndependently(t *testing.T) {
 	}
 	if result.Candidates[1].Provenance.ProposalHash == combinedB {
 		t.Fatalf("second candidate hash includes previous candidate evidence")
+	}
+}
+
+func TestDraftEvidenceRejectsUnavailableFileInput(t *testing.T) {
+	client := &fakeStageClient{responses: [][]byte{
+		[]byte(`{"verify":{"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"missing"},"predicate":"exists"}]}}`),
+	}}
+	proposer := NewLLMProposer(client)
+	_, _, err := proposer.draftEvidence(context.Background(), Request{
+		Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI},
+	}, 0, caltrace.Candidate{
+		CapabilityID: "file.read",
+	}, probeMaterial{
+		CandidateIndex: 0,
+		Inputs:         map[string]any{"target": "{{workdir}}/out.txt"},
+	})
+	if err == nil || !strings.Contains(err.Error(), `file subject input "missing" is not available`) {
+		t.Fatalf("draftEvidence() error = %v, want unavailable file input error", err)
 	}
 }
 
@@ -139,7 +199,7 @@ func TestLLMProposerReturnsDiagnosticsWhenSurfaceHasNoKeptItems(t *testing.T) {
 func TestLLMProposerReturnsCapabilityDiagnosticsWhenCapabilityHasNoKeptItems(t *testing.T) {
 	client := &fakeStageClient{responses: [][]byte{
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","decision":"keep"}]}`),
-		[]byte(`{"capabilities":[{"capability_id":"document.export_pdf","description":"Export PDF.","source_surface_ids":["s1"],"confidence":"high"}]}`),
+		[]byte(`{"capabilities":[{"capability_id":"document.convert.pdf","description":"Export PDF.","source_surface_ids":["s1"],"confidence":"high"}]}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -185,7 +245,7 @@ func TestLLMProposerDebugFilterSkipsOtherCapabilities(t *testing.T) {
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"},{"id":"s2","kind":"command","name":"encode","description":"Encode text.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"},{"capability_id":"text.encode","description":"Encode text.","source_surface_ids":["s2"],"confidence":"high"}]}`),
 		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document.","execution":{"kind":"cli","spec":{"args":["export-pdf","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
-		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}`),
+		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -240,8 +300,8 @@ func TestLLMProposerKeepsSuccessfulCapabilityWhenAnotherPipelineFails(t *testing
 func TestProposeBindingsTimesOutSlowBindingPipeline(t *testing.T) {
 	proposer := NewLLMProposer(&blockingStageClient{})
 	req := Request{Provider: core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI}}
-	run := proposer.newBindingRun(req, profile{concurrency: 1, bindingTimeout: 10 * time.Millisecond}, nil, nil, newLogger("provider_cli"))
-	_, _, err := run.run(context.Background(), []capabilityPlan{{CapabilityID: "text.encode", Description: "Encode text."}})
+	run := proposer.newBindingRun(req, profile{concurrency: 1, bindingTimeout: 10 * time.Millisecond}, nil, nil, newLogger("provider_cli", "trace_test"))
+	_, _, _, err := run.run(context.Background(), []capabilityPlan{{CapabilityID: "text.encode", Description: "Encode text."}})
 	if err == nil || !strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 		t.Fatalf("bindingRun.run() error = %v, want deadline exceeded", err)
 	}
@@ -292,7 +352,7 @@ func (client *stagePromptClient) Complete(_ context.Context, prompt sharedllm.Pr
 	case prompt.System == cliBindingSystemPrompt && strings.Contains(prompt.User, `"capability_id":"text.encode"`):
 		return []byte(`{"candidates":[],"probe_material":[]}`), nil
 	case prompt.System == cliEvidenceSystemPrompt:
-		return []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":"target","predicate":"exists"}]}}`), nil
+		return []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`), nil
 	default:
 		return nil, sharedllm.ErrEmptyResponse
 	}

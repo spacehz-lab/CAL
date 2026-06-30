@@ -89,6 +89,8 @@ verify
   method execute | contract
   checks[]
     subject
+      type file | stdout | stderr | exit_code
+      input file subjects only
     predicate
     params optional
 ```
@@ -134,12 +136,18 @@ bytes_equal_transform
 hash_line_matches
 ```
 
+Checks use typed subjects. `file` subjects read a path from a named input such
+as `target`; `stdout`, `stderr`, and `exit_code` read process results. CAL uses
+the same core VerifySpec rule table for Stage4 prompt injection and
+`ValidateVerifySpec`, so invalid subject/predicate/parameter combinations are
+rejected before probing or promotion.
+
 Examples:
 
 ```text
-target bytes_equal_transform source with transform base64_decode
+file(target) bytes_equal_transform source with transform base64_decode
 stdout hash_line_matches source with algorithm sha1
-target exists + non_empty + format pdf
+file(target) exists + non_empty + format pdf
 ```
 
 Checks must reference only evidence subjects available in the probe context.

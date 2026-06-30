@@ -39,7 +39,7 @@ func TestPromotionCandidateIndexIsSerializedWhenZero(t *testing.T) {
 		Status: StatusCompleted,
 		Promotions: []Promotion{{
 			CandidateIndex: 0,
-			CapabilityID:   "document.export_pdf",
+			CapabilityID:   "document.convert",
 			ProviderID:     "provider_cli",
 		}},
 	}
@@ -54,6 +54,7 @@ func TestPromotionCandidateIndexIsSerializedWhenZero(t *testing.T) {
 }
 
 func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
+	candidateIndex := 0
 	record := Trace{
 		ID:     "trace_abc",
 		Status: StatusCompleted,
@@ -77,6 +78,14 @@ func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
 					ProposalSummarySelected: 1,
 				},
 			}},
+			Attempts: []ProposalAttempt{{
+				Stage:          ProposalStageEvidence,
+				CapabilityID:   "document.convert",
+				CandidateIndex: &candidateIndex,
+				Status:         ProposalAttemptFailed,
+				Error:          &core.RecordError{Code: "proposal_stage_failed", Message: "bad verify"},
+				RawResponse:    `{"verify":{}}`,
+			}},
 		},
 	}
 
@@ -85,7 +94,7 @@ func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
 		t.Fatalf("Marshal() error = %v", err)
 	}
 	text := string(data)
-	for _, want := range []string{`"name":"surface"`, `"name":"binding"`, `"raw":2`, `"selected":1`, `"decision":"keep"`, `"reason":"local_policy"`} {
+	for _, want := range []string{`"name":"surface"`, `"name":"binding"`, `"raw":2`, `"selected":1`, `"decision":"keep"`, `"reason":"local_policy"`, `"attempts"`, `"stage":"evidence"`, `"candidate_index":0`, `"status":"failed"`, `"raw_response":"{\"verify\":{}}"`} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("trace JSON = %s, want %s", data, want)
 		}

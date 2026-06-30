@@ -124,7 +124,7 @@ func writeBrewMixedReplayProposal(t *testing.T, path string) string {
     {
       "candidate_index": 1,
       "inputs": {},
-      "verify": {"level":"L2","method":"execute","checks":[{"subject":"output","predicate":"contains","params":{"value":"HOMEBREW_VERSION"}}]}
+      "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"stdout"},"predicate":"contains","params":{"value":"HOMEBREW_VERSION"}}]}
     }
   ]
 }`

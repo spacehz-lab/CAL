@@ -15,7 +15,7 @@ func TestRecordsAcquisitionCountsMultiCandidateTrace(t *testing.T) {
 			Candidates: []caltrace.Candidate{
 				{
 					ProviderID:   "provider_fake",
-					CapabilityID: "document.export_pdf",
+					CapabilityID: "document.convert",
 					Source:       "proposal:multi",
 					Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 				},
@@ -42,7 +42,7 @@ func TestRecordsAcquisitionCountsMultiCandidateTrace(t *testing.T) {
 			},
 			Promotions: []caltrace.Promotion{{
 				CandidateIndex:   0,
-				CapabilityID:     "document.export_pdf",
+				CapabilityID:     "document.convert",
 				BindingID:        "binding_pdf",
 				ProviderID:       "provider_fake",
 				CapabilityAction: "created",
@@ -65,7 +65,7 @@ func TestRecordsAcquisitionCountsMultiCandidateTrace(t *testing.T) {
 	}
 	document := metrics.ByCapability[0]
 	image := metrics.ByCapability[1]
-	if document.CapabilityID != "document.export_pdf" || document.Attempts != 1 || document.Completed != 1 || document.Promotions != 1 || document.ProbePasses != 1 {
+	if document.CapabilityID != "document.convert" || document.Attempts != 1 || document.Completed != 1 || document.Promotions != 1 || document.ProbePasses != 1 {
 		t.Fatalf("document bucket = %#v, want promoted document capability", document)
 	}
 	if image.CapabilityID != "image.resize" || image.Attempts != 1 || image.Failed != 1 || image.Promotions != 0 || image.ProbeFailures != 1 {
@@ -83,13 +83,13 @@ func TestRecordsAcquisitionCountsTraceWithoutCandidates(t *testing.T) {
 			{
 				ID:     "trace_no_candidates",
 				Status: caltrace.StatusFailed,
-				Hint:   "document.export_pdf",
+				Hint:   "document.convert",
 				Probes: []caltrace.Probe{
 					{CandidateIndex: -1, Passed: true, Verify: evalVerifySpec(core.VerifyLevelL2)},
 					{CandidateIndex: -1, Passed: false, Verify: evalVerifySpec(core.VerifyLevelL2)},
 				},
 				Promotions: []caltrace.Promotion{
-					{CapabilityID: "document.export_pdf", ProviderID: "provider_fake"},
+					{CapabilityID: "document.convert", ProviderID: "provider_fake"},
 					{CapabilityID: "image.resize", ProviderID: "provider_fake"},
 				},
 			},
@@ -105,7 +105,7 @@ func TestRecordsAcquisitionCountsTraceWithoutCandidates(t *testing.T) {
 	if len(metrics.ByCapability) != 2 {
 		t.Fatalf("by capability = %#v, want primary and promoted capability buckets", metrics.ByCapability)
 	}
-	if metrics.ByCapability[0].CapabilityID != "document.export_pdf" || metrics.ByCapability[0].Attempts != 1 || metrics.ByCapability[0].Failed != 1 || metrics.ByCapability[0].Promotions != 2 || metrics.ByCapability[0].Probes != 2 {
+	if metrics.ByCapability[0].CapabilityID != "document.convert" || metrics.ByCapability[0].Attempts != 1 || metrics.ByCapability[0].Failed != 1 || metrics.ByCapability[0].Promotions != 2 || metrics.ByCapability[0].Probes != 2 {
 		t.Fatalf("primary capability bucket = %#v, want trace-level counts", metrics.ByCapability[0])
 	}
 	if metrics.ByCapability[1].CapabilityID != "image.resize" || metrics.ByCapability[1].Promotions != 1 {

@@ -72,7 +72,7 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
@@ -97,8 +97,8 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "export this text document as pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(useTarget)+`}`, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.export_pdf" || useSuccess.Selection.BindingID == "" || useSuccess.Selection.ProviderID != provider.ID {
-		t.Fatalf("use success = %#v, want selected cupsfilter document.export_pdf binding", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.convert" || useSuccess.Selection.BindingID == "" || useSuccess.Selection.ProviderID != provider.ID {
+		t.Fatalf("use success = %#v, want selected cupsfilter document.convert binding", useSuccess)
 	}
 	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.BindingID != useSuccess.Selection.BindingID || useSuccess.Run.ProviderID != provider.ID {
 		t.Fatalf("use run = %#v, want verified selected cupsfilter binding", useSuccess.Run)
