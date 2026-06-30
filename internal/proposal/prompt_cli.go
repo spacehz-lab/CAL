@@ -137,7 +137,7 @@ const cliCapabilitySystemPrompt = `Return only JSON. Choose provider-independent
 Response shape:
 {"capabilities":[{"capability_id":"subject.operation","description":"...","source_surface_ids":["s1"],"confidence":"high|medium|low"}]}.
 
-Capability is a semantic planning stage only. Do not produce execution args, probes, verifiers, input schemas, or binding constraints.
+Capability is a semantic planning stage only. Do not produce execution args, probes, verifiers, or input schemas.
 
 Capability id rules:
 - capability_id must be exactly two lowercase dotted parts: <subject>.<operation>.
@@ -148,7 +148,7 @@ Capability id rules:
 - New terms must be minimal, generic, reusable, and provider-independent.
 - capability_id must describe the reusable semantic operation, not the provider surface.
 - Do not include provider names, executable names, command names, flags, paths, versions, formats, encodings, algorithms, modes, variants, target artifact kinds, or input/output media in capability_id.
-- Discriminators for format, encoding, algorithm, mode, variant, artifact kind, or concrete I/O shape belong to later Binding inputs and constraints.
+- Discriminators for format, encoding, algorithm, mode, variant, artifact kind, or concrete I/O shape belong to later Binding execution inputs and Evidence checks.
 
 Grouping rules:
 - Merge surfaces only when they share the same semantic subject and operation.
@@ -170,7 +170,7 @@ Reuse and description rules:
 
 const cliBindingSystemPrompt = `Return only JSON. For one planned capability, produce provider-specific CLI candidate executions and probe material.
 Response shape:
-{"candidates":[{"provider_id":"optional","capability_id":"same as plan","description":"...","input_constraints":{},"execution":{"kind":"cli","spec":{"args":["subcommand","{{source}}","{{target}}"],"stdout_path_input":"optional"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.artifact"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}.
+{"candidates":[{"provider_id":"optional","capability_id":"same as plan","description":"...","execution":{"kind":"cli","spec":{"args":["subcommand","{{source}}","{{target}}"],"stdout_path_input":"optional"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.artifact"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}.
 
 Rules:
 - Only produce provider-specific candidate executions and probe material.
@@ -184,7 +184,7 @@ Rules:
 - Use stdout_path_input only when the CLI writes the primary artifact to stdout.
 - Do not set stdout_path_input when args already include an output path placeholder such as --output {{target}}, --out {{target}}, or -o {{target}}.
 - Every {{placeholder}} in args or stdout_path_input must have a probe input or fixture.
-- input_constraints may only describe inputs referenced by execution.
+- Do not output separate input schemas.
 - Prefer one candidate.
 - Return more than one candidate only when observations clearly show different execution families or input modes.
 - Never exceed max_candidates_per_capability.
@@ -198,10 +198,12 @@ Response shape:
 
 Rules:
 - Do not write code, scripts, verifier packages, or pass/fail claims.
-- Use method="execute" only for safe, short, local, read-only probes.
+- Use method="execute" for safe, short, local probes that only read probe fixtures and write declared probe outputs inside the probe workdir.
 - CAL executes the candidate and evaluates checks locally.
 - Even execute+L1 must have checks.
 - Use method="contract" when a real probe would install, remove, update, upgrade, clean, link, unlink, tap, untap, edit, start services, require network, require interaction, or change external state.
+- For unsafe commands with a clear observed command path and documented operation semantics, use method="contract", level="L1", checks:[].
+- Use contract L0 only when observations are too ambiguous to identify a reliable command path or operation semantics.
 - Dry-run flags do not by themselves make package-manager update or upgrade commands safe.
 - Contract verification cannot exceed L1, must use checks:[], and must not include pass/fail claims from execution.
 - Use L3 when execute checks verify the semantic result itself.
@@ -215,4 +217,6 @@ Rules:
 - Use file subjects for artifact path checks and file content checks.
 - For generated file artifacts, prefer exists, non_empty, and format when they prove the output shape.
 - Use file contains, contains_any, or regex only when observations explicitly guarantee stable literal output content.
+- For stable literal output content, prefer contains over anchored full-file regex. Use anchored regex only when observations specify the exact whole file content including newline behavior.
+- Fixture content is probe-only sample input. Do not use fixture content as durable expected output unless observations explicitly say the command always emits that literal.
 - Use stdout, stderr, and exit_code subjects only for process result checks.`

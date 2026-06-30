@@ -187,14 +187,9 @@ candidate
   description
   source optional
   provenance optional
-  input_constraints optional
   execution
   created_at
 ```
-
-`input_constraints` describes provider-specific accepted values or meanings for
-runtime placeholders used by the candidate execution. It is promoted onto the
-Binding when the candidate passes Verification.
 
 Candidate provenance:
 

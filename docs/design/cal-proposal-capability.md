@@ -65,8 +65,7 @@ modes
 target artifact kinds
 ```
 
-Discriminators belong to Binding execution, input constraints, and Evidence
-checks.
+Discriminators belong to Binding execution inputs and Evidence checks.
 
 ## Reuse Rules
 

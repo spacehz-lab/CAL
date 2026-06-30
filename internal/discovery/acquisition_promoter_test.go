@@ -39,10 +39,7 @@ func TestAcquisitionPromoterCreatesPromotedBinding(t *testing.T) {
 		ProviderID:   "provider_cli",
 		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
-		InputConstraints: map[string]any{
-			"target": map[string]any{"type": "string", "description": "output PDF path"},
-		},
-		Execution: core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"run"}}},
+		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"run"}}},
 	}, caltrace.Probe{
 		Passed:   true,
 		Verify:   fileExistsVerifySpec(),
@@ -56,9 +53,6 @@ func TestAcquisitionPromoterCreatesPromotedBinding(t *testing.T) {
 	}
 	if binding.State != core.BindingStatePromoted || binding.Verify == nil || len(binding.Evidence) != 1 {
 		t.Fatalf("binding = %#v, want promoted binding with verify spec and evidence", binding)
-	}
-	if binding.InputConstraints["target"] == nil {
-		t.Fatalf("input constraints = %#v, want promoted binding constraints", binding.InputConstraints)
 	}
 }
 

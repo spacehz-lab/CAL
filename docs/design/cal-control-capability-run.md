@@ -122,9 +122,8 @@ Run history can improve future selection, but absence of history must not make a
 If history-based scoring is added, it may compute history from stored Run records instead of denormalizing statistics onto Binding.
 
 After selecting a binding, Run validates the provided input object against the
-selected `Binding.execution` placeholders and `Binding.input_constraints`.
-Missing runtime inputs or rejected constraint values return `invalid_run_input`
-before provider execution starts.
+selected `Binding.execution` placeholders. Missing runtime inputs return
+`invalid_run_input` before provider execution starts.
 
 ## Execution
 

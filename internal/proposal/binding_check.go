@@ -24,8 +24,6 @@ const (
 	bindingReasonInvalidCLIInputTemplate  = "invalid_cli_input_template"
 	bindingReasonProviderExecutableInArgs = "provider_executable_in_args"
 	bindingReasonMissingProbeInput        = "missing_probe_input"
-	bindingReasonUnknownInputConstraint   = "unknown_input_constraint"
-	bindingReasonInvalidInputConstraint   = "invalid_input_constraint"
 	bindingReasonCandidateLimit           = "candidate_limit"
 )
 
@@ -59,32 +57,7 @@ func bindingCandidateSkipReason(req Request, capability capabilityPlan, candidat
 			return bindingReasonWithDetail(bindingReasonMissingProbeInput, input)
 		}
 	}
-	requiredSet := stringSet(required)
-	for input := range candidate.InputConstraints {
-		if _, ok := requiredSet[input]; !ok {
-			return bindingReasonWithDetail(bindingReasonUnknownInputConstraint, input)
-		}
-		if !validInputConstraint(candidate.InputConstraints[input]) {
-			return bindingReasonWithDetail(bindingReasonInvalidInputConstraint, input)
-		}
-	}
 	return ""
-}
-
-func validInputConstraint(constraint any) bool {
-	fields, ok := constraint.(map[string]any)
-	if !ok {
-		return false
-	}
-	if enum, ok := fields["enum"]; ok {
-		switch enum.(type) {
-		case []any, []string:
-			return true
-		default:
-			return false
-		}
-	}
-	return true
 }
 
 func bindingReasonWithDetail(reason, detail string) string {
@@ -159,12 +132,4 @@ func probeInputSet(material probeMaterial) map[string]struct{} {
 		}
 	}
 	return inputs
-}
-
-func stringSet(values []string) map[string]struct{} {
-	set := make(map[string]struct{}, len(values))
-	for _, value := range values {
-		set[value] = struct{}{}
-	}
-	return set
 }

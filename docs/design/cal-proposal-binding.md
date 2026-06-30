@@ -36,7 +36,6 @@ candidates[]
   provider_id
   capability_id
   description
-  input_constraints optional
   execution
 
 probe_material[]
@@ -60,7 +59,6 @@ CLI args are present and are strings
 CLI args do not include the provider executable path or executable name
 probe_material.candidate_index is valid and unique
 probe inputs or fixtures cover every execution placeholder
-input_constraints only describe inputs referenced by execution
 ```
 
 Invalid candidates are skipped. A Binding stage fails only when it has no usable
@@ -86,15 +84,10 @@ path input that should receive stdout, usually `target`.
 If a target artifact is checked later, candidate execution must produce that
 target either through an argument placeholder or through `stdout_path_input`.
 
-## Input Constraints
-
-`input_constraints` may describe only placeholders that appear in execution.
-
-Use constraints for documented accepted values, formats, modes, or meanings.
-Do not invent enum values.
-
 Runtime discriminators such as `format`, `algorithm`, `encoding`, and `mode`
-stay in inputs and constraints. They do not alter `capability_id`.
+stay in execution inputs. They do not alter `capability_id`.
+
+Binding must not output separate input schemas.
 
 ## Diagnostics
 

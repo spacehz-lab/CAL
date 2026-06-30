@@ -38,8 +38,11 @@ CAL_LLM_API=chat_completions \
 CAL_LLM_BASE_URL=<openai-compatible base url> \
 CAL_LLM_MODEL=<model> \
 CAL_LLM_API_KEY=<api key> \
-  go test ./tests/e2e/live_llm -count=1 -v
+  make e2e-live-llm
 ```
+
+The default live LLM package timeout is 20 minutes. Override it with
+`LIVE_LLM_TEST_TIMEOUT=<duration>` when needed.
 
 `CAL_LLM_API_KEY` must stay in the environment. Do not write it into repository
 files, traces, logs, or committed artifacts.

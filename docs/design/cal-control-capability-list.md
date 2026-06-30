@@ -109,8 +109,8 @@ description
 `list` should include enough information for an agent to decide whether a capability is relevant and whether it can provide the required inputs.
 
 Capability records describe abstract reusable operations. Provider-specific
-runtime inputs and accepted values belong to `Binding.input_constraints` and
-the selected `Binding.execution`, not to capability-level schemas.
+runtime inputs belong to the selected `Binding.execution`, not to
+capability-level schemas.
 
 ## Binding Exposure
 
@@ -130,7 +130,6 @@ Do not include by default:
 
 ```text
 execution spec
-input constraints
 raw UI selectors
 paths that are not needed for selection
 Trace references

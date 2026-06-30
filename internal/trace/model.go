@@ -139,14 +139,13 @@ type ProposalItem struct {
 
 // Candidate records one inferred candidate binding in a trace.
 type Candidate struct {
-	ProviderID       string               `json:"provider_id"`
-	CapabilityID     string               `json:"capability_id"`
-	Description      string               `json:"description,omitempty"`
-	Source           string               `json:"source,omitempty"`
-	Provenance       *CandidateProvenance `json:"provenance,omitempty"`
-	InputConstraints map[string]any       `json:"input_constraints,omitempty"`
-	Execution        core.Execution       `json:"execution"`
-	CreatedAt        string               `json:"created_at,omitempty"`
+	ProviderID   string               `json:"provider_id"`
+	CapabilityID string               `json:"capability_id"`
+	Description  string               `json:"description,omitempty"`
+	Source       string               `json:"source,omitempty"`
+	Provenance   *CandidateProvenance `json:"provenance,omitempty"`
+	Execution    core.Execution       `json:"execution"`
+	CreatedAt    string               `json:"created_at,omitempty"`
 }
 
 // CandidateProvenance records proposal origin without making it trusted proof.

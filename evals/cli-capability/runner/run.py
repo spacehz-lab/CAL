@@ -198,7 +198,6 @@ class BenchmarkRunner:
                     "capability_id": candidate.get("capability_id", ""),
                     "description": candidate.get("description", ""),
                     "execution": candidate.get("execution", {}),
-                    "input_constraints": candidate.get("input_constraints", {}),
                     "probe": {"status": "not_run"},
                     "promotion": {},
                     "reuse": [],

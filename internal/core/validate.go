@@ -158,7 +158,7 @@ func validateVerifyCheckParams(check VerifyCheck, rule VerifySubjectRule) error 
 				return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
 			}
 		default:
-			if _, ok := check.Params[key]; !ok || stringParam(check.Params, key) == "" {
+			if _, ok := check.Params[key]; !ok {
 				return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
 			}
 		}

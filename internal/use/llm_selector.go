@@ -86,14 +86,13 @@ type llmRequest struct {
 }
 
 type llmCard struct {
-	CapabilityID          string         `json:"capability_id"`
-	CapabilityDescription string         `json:"capability_description,omitempty"`
-	BindingID             string         `json:"binding_id"`
-	ProviderID            string         `json:"provider_id"`
-	ExecutionKind         string         `json:"execution_kind"`
-	RequiredInputs        []string       `json:"required_inputs,omitempty"`
-	InputConstraints      map[string]any `json:"input_constraints,omitempty"`
-	ExecutionArgs         []string       `json:"execution_args,omitempty"`
+	CapabilityID          string   `json:"capability_id"`
+	CapabilityDescription string   `json:"capability_description,omitempty"`
+	BindingID             string   `json:"binding_id"`
+	ProviderID            string   `json:"provider_id"`
+	ExecutionKind         string   `json:"execution_kind"`
+	RequiredInputs        []string `json:"required_inputs,omitempty"`
+	ExecutionArgs         []string `json:"execution_args,omitempty"`
 }
 
 func buildLLMPrompt(req Request, candidates []candidate) (sharedllm.Prompt, map[string]candidate, error) {
@@ -108,7 +107,6 @@ func buildLLMPrompt(req Request, candidates []candidate) (sharedllm.Prompt, map[
 			ProviderID:            candidate.binding.ProviderID,
 			ExecutionKind:         string(candidate.binding.Execution.Kind),
 			RequiredInputs:        candidate.required,
-			InputConstraints:      candidate.binding.InputConstraints,
 			ExecutionArgs:         executionArgs(candidate.binding.Execution),
 		})
 	}

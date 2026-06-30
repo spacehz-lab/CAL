@@ -71,3 +71,20 @@ func TestCLICapabilityPromptIncludesExistingCapabilityDescriptions(t *testing.T)
 		t.Fatalf("prompt still contains existing_capability_ids: %s", prompt.User)
 	}
 }
+
+func TestCLIEvidencePromptAllowsSafeWorkdirOutputs(t *testing.T) {
+	if strings.Contains(cliEvidenceSystemPrompt, "read-only") {
+		t.Fatalf("evidence prompt still says read-only:\n%s", cliEvidenceSystemPrompt)
+	}
+	for _, want := range []string{
+		"read probe fixtures and write declared probe outputs inside the probe workdir",
+		`use method="contract", level="L1", checks:[]`,
+		"Use contract L0 only when observations are too ambiguous",
+		"prefer contains over anchored full-file regex",
+		"install, remove, update, upgrade",
+	} {
+		if !strings.Contains(cliEvidenceSystemPrompt, want) {
+			t.Fatalf("evidence prompt missing %q:\n%s", want, cliEvidenceSystemPrompt)
+		}
+	}
+}

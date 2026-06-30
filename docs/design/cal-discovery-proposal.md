@@ -177,8 +177,8 @@ mode
 target artifact kind
 ```
 
-Those discriminators belong in the binding execution, input constraints, and
-verify checks. For example:
+Those discriminators belong in binding execution inputs and verify checks. For
+example:
 
 ```text
 file.checksum
@@ -252,7 +252,6 @@ CAL must validate Proposal material before Verification:
 capability_id shape and ownership
 candidate execution completeness
 probe inputs cover execution placeholders
-input_constraints only reference execution inputs
 target artifacts are produced by execution before checks reference them
 verify checks reference only available inputs, outputs, or evidence subjects
 verify level is derived or validated locally

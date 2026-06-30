@@ -114,11 +114,16 @@ L0 unsupported
 CAL owns final level validation. A model-suggested level is process material,
 not proof.
 
-`method` describes evidence collection. `execute` runs the probe and evaluates
-built-in checks locally. `contract` records weak evidence without executing the
-probe when real execution would install, remove, update, edit, start services,
-require network, require interaction, or change external state. Contract
-verification cannot exceed `L1` and must not include checks.
+`method` describes evidence collection. `execute` runs safe local probes and
+evaluates built-in checks locally. Safe execute probes may read probe fixtures
+and write declared probe outputs inside the probe workdir. `contract` records
+weak evidence without executing the probe when real execution would install,
+remove, update, edit, start services, require network, require interaction, or
+change external state. Unsafe commands with a clear observed command path and
+documented operation semantics use contract `L1`; contract `L0` is reserved for
+ambiguous observations where CAL cannot identify a reliable command path or
+operation semantics. Contract verification cannot exceed `L1` and must not
+include checks.
 
 ## Built-In Checks
 

@@ -180,6 +180,17 @@ func TestValidateVerifySpecRejectsWrongPredicateParamKey(t *testing.T) {
 	}
 }
 
+func TestValidateVerifySpecAllowsEmptyPredicateValue(t *testing.T) {
+	verify := VerifySpec{
+		Level:  VerifyLevelL2,
+		Method: VerifyMethodExecute,
+		Checks: []VerifyCheck{{Subject: VerifySubject{Type: VerifySubjectStderr}, Predicate: VerifyPredicateEquals, Params: map[string]any{"value": ""}}},
+	}
+	if err := ValidateVerifySpec(verify); err != nil {
+		t.Fatalf("ValidateVerifySpec() error = %v, want empty value accepted", err)
+	}
+}
+
 func TestValidateVerifySpecRejectsInvalidRegexPattern(t *testing.T) {
 	verify := VerifySpec{
 		Level:  VerifyLevelL2,

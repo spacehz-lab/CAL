@@ -140,7 +140,6 @@ Binding
   id optional
   provider_id
   capability_id
-  input_constraints optional
   execution
   verify
   evidence
@@ -158,7 +157,6 @@ candidate.description        -> Capability.description
 
 candidate.provider_id        -> Binding.provider_id
 candidate.capability_id      -> Binding.capability_id
-candidate.input_constraints  -> Binding.input_constraints
 candidate.execution          -> Binding.execution
 
 probe.verify                 -> Binding.verify

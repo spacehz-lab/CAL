@@ -105,7 +105,6 @@ Binding.provider_id
 Provider.name
 Binding.execution.kind
 required runtime inputs
-Binding.input_constraints
 Binding.verify.level
 compact verification summary
 ```
@@ -116,7 +115,8 @@ fallback source code, or provider documentation dumps as executable knowledge.
 The resolver does not send the full durable catalog to an LLM. It first builds
 a local high-recall shortlist over promoted bindings. If runtime LLM settings
 are configured and multiple candidates remain or a candidate is missing inputs,
-it sends only topK binding cards plus necessary constraint summaries to an LLM.
+it sends only topK binding cards plus necessary execution and verification
+summaries to an LLM.
 Without LLM settings, it uses the local selector and local input planning. This
 mirrors the progressive-disclosure shape used by skill systems: expose metadata
 first, then expand details only for the likely relevant entries.
@@ -180,8 +180,8 @@ for a `shasum` binding, or:
 {"algorithm": "sha1"}
 ```
 
-for an `openssl` binding, but only when those values are supported by the
-binding's declared input constraints or documented binding contract.
+for an `openssl` binding, but only when those values are explicit in the
+selected binding execution or documented binding contract.
 
 Use must not invent arbitrary business inputs. If the task requires a missing
 business input, such as a source file, query string, or output format that
@@ -285,7 +285,6 @@ binding_id belongs to capability_id
 binding state is promoted
 provider_id constraint matches when supplied
 final inputs satisfy runtime required inputs
-final inputs satisfy Binding.input_constraints
 selected execution kind is supported
 ```
 

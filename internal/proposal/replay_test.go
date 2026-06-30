@@ -26,9 +26,6 @@ func TestParseReplayProposesResult(t *testing.T) {
 	if candidate.ProviderID != "provider_cli" || candidate.CapabilityID != "file.checksum" || candidate.Description == "" {
 		t.Fatalf("candidate = %#v, want replay candidate", candidate)
 	}
-	if candidate.InputConstraints["algorithm"] == nil {
-		t.Fatalf("input constraints = %#v, want algorithm constraint", candidate.InputConstraints)
-	}
 	plan := result.ProbePlans[0]
 	if plan.CandidateIndex != 0 || plan.Verify.Level != core.VerifyLevelL2 || plan.Inputs["target"] != "/tmp/out.sha1" {
 		t.Fatalf("probe plan = %#v, want replay probe plan", plan)
@@ -143,9 +140,6 @@ func replayJSON() string {
 			"capability_id": "file.checksum",
 			"description": "Compute a file checksum.",
 			"source": "replay:test",
-			"input_constraints": {
-				"algorithm": {"enum": ["sha1"]}
-			},
 			"execution": {
 				"kind": "cli",
 				"spec": {"args": ["sha1", "{{target}}"]}

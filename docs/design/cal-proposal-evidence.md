@@ -60,16 +60,27 @@ The model may suggest a level, but CAL owns final level validation. Checks such
 as `exists` and `non_empty` must not be treated as L3 unless the capability
 semantics are only artifact creation.
 
+Probe fixtures are temporary sample inputs for acquisition. Evidence must not
+promote fixture content into durable `VerifySpec` checks unless observations
+explicitly say the command always emits that literal. Proposal normalizes
+fixture-only literal checks out of the final verify spec and caps the verify
+level to match the remaining checks.
+
 ## Verification Methods
 
 ```text
 execute
-  CAL executes the probe and evaluates built-in checks locally.
+  CAL executes the probe and evaluates built-in checks locally. Safe execute
+  probes may read probe fixtures and write declared probe outputs inside the
+  probe workdir.
 
 contract
   CAL does not execute the probe. It records weak contract evidence from
   observations when execution would install, remove, update, edit, start
   services, require network, require interaction, or change external state.
+  Unsafe commands with a clear observed command path and documented operation
+  semantics use contract L1. Contract L0 is reserved for ambiguous observations
+  where CAL cannot identify a reliable command path or operation semantics.
 ```
 
 `contract` cannot exceed `L1` and must not include checks. `contract + L0` is
@@ -133,6 +144,10 @@ uses `params.format`; `bytes_equal_transform` uses `params.source` and
 `params.transform`; `hash_line_matches` uses `params.source` and
 `params.algorithm`. File subjects must include `subject.input`, and that input
 must be available in the probe material and future run inputs.
+
+For stable literal output content, Evidence should prefer `contains` over
+anchored full-file `regex`. Anchored regex is appropriate only when observations
+specify the exact whole file content, including newline behavior.
 
 Examples:
 

@@ -89,14 +89,13 @@ func (promoter acquisitionPromoter) promotedCapability(candidate caltrace.Candid
 	}
 
 	binding := core.Binding{
-		ID:               bindingID,
-		CapabilityID:     candidate.CapabilityID,
-		ProviderID:       candidate.ProviderID,
-		InputConstraints: candidate.InputConstraints,
-		Execution:        candidate.Execution,
-		Verify:           &probe.Verify,
-		Evidence:         probe.Evidence,
-		State:            core.BindingStatePromoted,
+		ID:           bindingID,
+		CapabilityID: candidate.CapabilityID,
+		ProviderID:   candidate.ProviderID,
+		Execution:    candidate.Execution,
+		Verify:       &probe.Verify,
+		Evidence:     probe.Evidence,
+		State:        core.BindingStatePromoted,
 	}
 	capability := core.Capability{
 		ID:          candidate.CapabilityID,

@@ -2,7 +2,6 @@ package runtime
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"sort"
 
@@ -21,15 +20,6 @@ func (runner Runner) Validate(binding core.Binding, inputs map[string]any) error
 		value, ok := inputs[name]
 		if !ok || value == nil || value == "" {
 			return fmt.Errorf("missing required input: %s", name)
-		}
-	}
-	for name, constraint := range binding.InputConstraints {
-		value, ok := inputs[name]
-		if !ok {
-			continue
-		}
-		if err := validateInputConstraint(name, value, constraint); err != nil {
-			return err
 		}
 	}
 	return nil
@@ -60,42 +50,6 @@ func (runner Runner) RequiredInputs(execution core.Execution) ([]string, error) 
 	}
 	sort.Strings(names)
 	return names, nil
-}
-
-func validateInputConstraint(name string, value any, constraint any) error {
-	fields, ok := constraint.(map[string]any)
-	if !ok {
-		return fmt.Errorf("input constraint %q must be an object", name)
-	}
-	enumValue, ok := fields["enum"]
-	if !ok {
-		return nil
-	}
-	values, err := enumValues(enumValue)
-	if err != nil {
-		return fmt.Errorf("input constraint %q enum: %w", name, err)
-	}
-	for _, allowed := range values {
-		if reflect.DeepEqual(value, allowed) || fmt.Sprint(value) == fmt.Sprint(allowed) {
-			return nil
-		}
-	}
-	return fmt.Errorf("input %q value %q is not allowed by selected binding", name, fmt.Sprint(value))
-}
-
-func enumValues(value any) ([]any, error) {
-	switch typed := value.(type) {
-	case []any:
-		return typed, nil
-	case []string:
-		values := make([]any, len(typed))
-		for index, item := range typed {
-			values[index] = item
-		}
-		return values, nil
-	default:
-		return nil, fmt.Errorf("must be an array")
-	}
 }
 
 func executionArgs(execution core.Execution) ([]string, error) {
