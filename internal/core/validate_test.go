@@ -138,14 +138,14 @@ func TestValidateVerifySpecRejectsContractAboveL1(t *testing.T) {
 	}
 }
 
-func TestValidateVerifySpecRejectsContractChecks(t *testing.T) {
+func TestValidateVerifySpecAllowsContractAdvisoryChecks(t *testing.T) {
 	verify := VerifySpec{
 		Level:  VerifyLevelL1,
 		Method: VerifyMethodContract,
 		Checks: []VerifyCheck{{Subject: VerifySubject{Type: VerifySubjectStdout}, Predicate: VerifyPredicateNonEmpty}},
 	}
-	if err := ValidateVerifySpec(verify); err == nil {
-		t.Fatal("ValidateVerifySpec() error = nil, want contract checks error")
+	if err := ValidateVerifySpec(verify); err != nil {
+		t.Fatalf("ValidateVerifySpec() error = %v, want contract advisory checks allowed", err)
 	}
 }
 
@@ -199,6 +199,48 @@ func TestValidateVerifySpecRejectsInvalidRegexPattern(t *testing.T) {
 	}
 	if err := ValidateVerifySpec(verify); err == nil {
 		t.Fatal("ValidateVerifySpec() error = nil, want invalid regex error")
+	}
+}
+
+func TestValidateVerifySpecRejectsUnsupportedParamValue(t *testing.T) {
+	verify := VerifySpec{
+		Level:  VerifyLevelL3,
+		Method: VerifyMethodExecute,
+		Checks: []VerifyCheck{{
+			Subject:   VerifySubject{Type: VerifySubjectFile, Input: "target"},
+			Predicate: VerifyPredicateBytesEqualTransform,
+			Params:    map[string]any{"source": "source", "transform": "identity"},
+		}},
+	}
+	if err := ValidateVerifySpec(verify); err == nil {
+		t.Fatal("ValidateVerifySpec() error = nil, want unsupported transform error")
+	}
+}
+
+func TestValidateVerifySpecAllowsSupportedParamValues(t *testing.T) {
+	verify := VerifySpec{
+		Level:  VerifyLevelL3,
+		Method: VerifyMethodExecute,
+		Checks: []VerifyCheck{
+			{
+				Subject:   VerifySubject{Type: VerifySubjectFile, Input: "target"},
+				Predicate: VerifyPredicateBytesEqualTransform,
+				Params:    map[string]any{"source": "source", "transform": "BASE64_ENCODE"},
+			},
+			{
+				Subject:   VerifySubject{Type: VerifySubjectFile, Input: "target"},
+				Predicate: VerifyPredicateFormat,
+				Params:    map[string]any{"format": "PDF"},
+			},
+			{
+				Subject:   VerifySubject{Type: VerifySubjectStdout},
+				Predicate: VerifyPredicateHashLineMatches,
+				Params:    map[string]any{"source": "source", "algorithm": "SHA-256"},
+			},
+		},
+	}
+	if err := ValidateVerifySpec(verify); err != nil {
+		t.Fatalf("ValidateVerifySpec() error = %v, want supported param values accepted", err)
 	}
 }
 

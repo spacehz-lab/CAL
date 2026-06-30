@@ -120,5 +120,15 @@ feasibility and provide a performance reference.
 No benchmark result is committed by default. Generated results should be written
 under `evals/out/cli-capability/`.
 
+Each run writes:
+
+- `flow.json`: the primary step-by-step evidence artifact, organized around
+  provider resolution, registration, the four acquisition stages, direct reuse,
+  and intent-level Use;
+- `summary.json`: aggregate task/provider metrics derived from the run records;
+- `index.html`: a human-readable flow report with a closed-loop matrix and
+  acquisition-stage detail;
+- `cald.log`: local service log for debugging.
+
 For reported release results, reference the exact generated run directory and
 keep API keys, raw secret-bearing prompts, and machine-specific dumps out of git.

@@ -44,8 +44,22 @@
           "content": "cal benchmark base64 encode fixture\n"
         }
       ],
-      "verifier": {
-        "id": "base64_encode_matches_source"
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "bytes_equal_transform",
+            "params": {
+              "source": "source",
+              "transform": "base64_encode"
+            }
+          }
+        ]
       }
     }
   ]

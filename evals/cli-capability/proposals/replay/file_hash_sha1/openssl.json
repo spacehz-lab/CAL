@@ -42,8 +42,22 @@
           "content": "cal benchmark acquisition fixture"
         }
       ],
-      "verifier": {
-        "id": "sha1_matches_source"
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "hash_line_matches",
+            "params": {
+              "source": "source",
+              "algorithm": "sha1"
+            }
+          }
+        ]
       }
     }
   ]

@@ -91,6 +91,7 @@ func normalizeSurfaceItem(item surface) surface {
 	item.Name = strings.TrimSpace(item.Name)
 	item.Description = strings.TrimSpace(item.Description)
 	item.EvidenceSource = strings.TrimSpace(item.EvidenceSource)
+	item.Reason = strings.TrimSpace(item.Reason)
 	item.Decision = caltrace.ProposalDecision(strings.ToLower(strings.TrimSpace(string(item.Decision))))
 	if item.Decision == "" {
 		item.Decision = caltrace.ProposalDecisionKeep
@@ -154,5 +155,6 @@ func surfaceTraceItem(item surface) caltrace.ProposalItem {
 		Kind:     item.Kind,
 		Name:     item.Name,
 		Decision: item.Decision,
+		Reason:   item.Reason,
 	}
 }

@@ -22,6 +22,10 @@ candidate only when observations clearly show different execution families or
 input modes. The local profile caps candidates per capability before Evidence
 planning so verification cost does not grow unbounded.
 
+Binding should choose the most direct observed command, subcommand, mode, or
+option path that supports the current capability. It should not expand a broad
+surface into speculative alternatives.
+
 Each per-capability Binding pipeline has a bounded timeout. The default CLI
 profile uses a conservative four-minute timeout so a few slow LLM calls cannot
 block the whole provider acquisition. A timed-out pipeline is treated as failed,
@@ -45,6 +49,25 @@ probe_material[]
 ```
 
 The candidate `capability_id` must match the current capability plan item.
+Binding must not create or rename `capability_id`. The capability was selected
+by Capability planning.
+
+## Decision Process
+
+Binding should internally decide each candidate in this order:
+
+```text
+choose the most direct observed provider-specific command path
+build tokenized CLI args without the provider executable name or path
+use placeholders only for runtime-controlled values
+cover every placeholder with probe input or fixture material
+keep probe paths inside {{workdir}} or provide fixture content
+use stdout_path_input only when stdout is the primary artifact
+return one candidate unless observations show distinct execution families or input modes
+```
+
+This decision process is prompt guidance only. The model must still output only
+the JSON response shape and must not expose hidden reasoning steps.
 
 ## Local Validation
 
@@ -77,6 +100,11 @@ runtime inputs use placeholders such as {{source}}, {{target}}, {{format}}
 Every placeholder used in `execution.spec.args` must have a matching runtime
 input or fixture-backed input in probe material.
 
+Probe inputs must be controlled by CAL. Paths should stay inside `{{workdir}}`,
+or the material should provide content through fixtures. Binding should not
+reference real user files, global configuration, network resources, or external
+state as probe material.
+
 If the observed CLI prints the candidate's primary result to stdout, Binding
 must make stdout explicit by setting `execution.spec.stdout_path_input` to the
 path input that should receive stdout, usually `target`.
@@ -88,6 +116,10 @@ Runtime discriminators such as `format`, `algorithm`, `encoding`, and `mode`
 stay in execution inputs. They do not alter `capability_id`.
 
 Binding must not output separate input schemas.
+
+Binding should not use shell pipes, redirects, command chaining, or
+shell-specific syntax unless the observed provider surface itself requires that
+shape and it cannot be represented as ordinary tokenized args.
 
 ## Diagnostics
 
@@ -123,4 +155,5 @@ Binding cannot conclude:
 The execution passed.
 The binding is durable.
 The verification level is final.
+The candidate should be promoted.
 ```

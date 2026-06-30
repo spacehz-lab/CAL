@@ -17,7 +17,7 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document between formats.","source_surface_ids":["s1"],"confidence":"high"}]}`),
 		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document between formats.","execution":{"kind":"cli","spec":{"args":["export-pdf","--source","{{source}}","--target","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
-		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}}`),
+		[]byte(`{"verify": {"method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -68,7 +68,7 @@ func TestLLMProposerRunsFourStages(t *testing.T) {
 }
 
 func TestLLMProposerReturnsRawEvidenceAttemptOnFailure(t *testing.T) {
-	badEvidence := []byte(`{"verify":{"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"missing"},"predicate":"exists"}]}}`)
+	badEvidence := []byte(`{"verify":{"method":"execute","checks":[{"subject":{"type":"file","input":"missing"},"predicate":"exists"}]}}`)
 	client := &fakeStageClient{responses: [][]byte{
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"}]}`),
@@ -105,8 +105,8 @@ func TestLLMProposerHashesEachCandidateEvidenceIndependently(t *testing.T) {
 	surface := []byte(`{"surface_items":[{"id":"s1","kind":"command","name":"convert","description":"Convert documents.","decision":"keep"}]}`)
 	capability := []byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"}]}`)
 	binding := []byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document with mode A.","execution":{"kind":"cli","spec":{"args":["convert-a","{{source}}","{{target}}"]}}},{"capability_id":"document.convert","description":"Convert a document with mode B.","execution":{"kind":"cli","spec":{"args":["convert-b","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/a.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]},{"candidate_index":1,"inputs":{"target":"{{workdir}}/b.out"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`)
-	evidenceA := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`)
-	evidenceB := []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"non_empty"}]}}`)
+	evidenceA := []byte(`{"verify": {"method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`)
+	evidenceB := []byte(`{"verify": {"method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"non_empty"}]}}`)
 	client := &fakeStageClient{responses: [][]byte{surface, capability, binding, evidenceA, evidenceB}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -142,7 +142,7 @@ func TestLLMProposerHashesEachCandidateEvidenceIndependently(t *testing.T) {
 
 func TestDraftEvidenceRejectsUnavailableFileInput(t *testing.T) {
 	client := &fakeStageClient{responses: [][]byte{
-		[]byte(`{"verify":{"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"missing"},"predicate":"exists"}]}}`),
+		[]byte(`{"verify":{"method":"execute","checks":[{"subject":{"type":"file","input":"missing"},"predicate":"exists"}]}}`),
 	}}
 	proposer := NewLLMProposer(client)
 	_, _, err := proposer.draftEvidence(context.Background(), Request{
@@ -245,7 +245,7 @@ func TestLLMProposerDebugFilterSkipsOtherCapabilities(t *testing.T) {
 		[]byte(`{"surface_items":[{"id":"s1","kind":"command","name":"export-pdf","description":"Export text to PDF.","decision":"keep"},{"id":"s2","kind":"command","name":"encode","description":"Encode text.","decision":"keep"}]}`),
 		[]byte(`{"capabilities":[{"capability_id":"document.convert","description":"Convert a document.","source_surface_ids":["s1"],"confidence":"high"},{"capability_id":"text.encode","description":"Encode text.","source_surface_ids":["s2"],"confidence":"high"}]}`),
 		[]byte(`{"candidates":[{"capability_id":"document.convert","description":"Convert a document.","execution":{"kind":"cli","spec":{"args":["export-pdf","{{source}}","{{target}}"]}}}],"probe_material":[{"candidate_index":0,"inputs":{"target":"{{workdir}}/out.pdf"},"fixtures":[{"input":"source","filename":"input.txt","content":"hello"}]}]}`),
-		[]byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`),
+		[]byte(`{"verify": {"method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`),
 	}}
 
 	result, err := NewLLMProposer(client).Propose(context.Background(), Request{
@@ -352,7 +352,7 @@ func (client *stagePromptClient) Complete(_ context.Context, prompt sharedllm.Pr
 	case prompt.System == cliBindingSystemPrompt && strings.Contains(prompt.User, `"capability_id":"text.encode"`):
 		return []byte(`{"candidates":[],"probe_material":[]}`), nil
 	case prompt.System == cliEvidenceSystemPrompt:
-		return []byte(`{"verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`), nil
+		return []byte(`{"verify": {"method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"}]}}`), nil
 	default:
 		return nil, sharedllm.ErrEmptyResponse
 	}

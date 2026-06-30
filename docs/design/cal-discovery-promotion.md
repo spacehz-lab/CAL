@@ -76,8 +76,8 @@ L0 unsupported
   Not promoted.
 ```
 
-CAL owns final level validation. Promotion must not trust a model-suggested
-level that has not been validated by Verification.
+CAL owns final level derivation. Promotion must not trust a level that has not
+passed Verification.
 
 ## Handling
 

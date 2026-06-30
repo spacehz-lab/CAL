@@ -41,6 +41,7 @@ surface_items[]
   description optional
   evidence_source
   decision keep | defer | skip
+  reason optional
 ```
 
 `keep` means the item is documented enough to consider for capability planning.
@@ -48,11 +49,26 @@ surface_items[]
 stable semantic operation.
 `skip` means the item should not enter Capability planning.
 
+`reason` is a short Stage1 decision explanation for trace diagnostics. It should
+explain why the item was kept, deferred, or skipped without adding hidden
+capability semantics. Capability planning receives only the slim surface fields
+it needs and should not depend on the Stage1 reason text.
+
 ## Rules
 
 Surface must not propose `capability_id`.
 
 Surface must not produce candidate executions, probe inputs, or verify checks.
+
+Surface should follow a decision rubric before writing JSON:
+
+```text
+documented CLI entry point?
+metadata/help/version/usage/self-documentation/alias-only?
+stable operation meaning suitable for Capability planning?
+too shallow, ambiguous, interactive, server/listener, protocol-specific, or low-level?
+keep / defer / skip
+```
 
 Surface should prefer broad command or action coverage over semantic depth, but
 it must still prune or defer:
@@ -144,6 +160,7 @@ trace.proposal.stages[]
     kind
     name
     decision
+    reason
 ```
 
 `items[]` records final Stage1 decisions after local policy. A model-returned

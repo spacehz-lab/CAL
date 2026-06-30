@@ -16,6 +16,7 @@ type surface struct {
 	Description    string                    `json:"description,omitempty"`
 	EvidenceSource string                    `json:"evidence_source,omitempty"`
 	Decision       caltrace.ProposalDecision `json:"decision,omitempty"`
+	Reason         string                    `json:"reason,omitempty"`
 	Metadata       map[string]any            `json:"metadata,omitempty"`
 }
 
@@ -55,4 +56,13 @@ type probeMaterial struct {
 
 type evidenceOutput struct {
 	Verify core.VerifySpec `json:"verify"`
+}
+
+type evidenceDraftOutput struct {
+	Verify evidenceDraftVerify `json:"verify"`
+}
+
+type evidenceDraftVerify struct {
+	Method core.VerifyMethod  `json:"method"`
+	Checks []core.VerifyCheck `json:"checks,omitempty"`
 }

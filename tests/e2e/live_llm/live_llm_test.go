@@ -388,13 +388,14 @@ func TestLiveLLMAcquisitionHandlesNestedCommandContractAndExecute(t *testing.T) 
 		Outputs  map[string]any     `json:"outputs"`
 	}
 	reportPath := filepath.Join(temp, "doctor-report.json")
-	e2etest.RunJSON(t, repo, env, &inspectRun, calctlBin, "runs", "create", "--capability-id", "system.validate", "--provider-id", executeAcquisition.Providers[0].ID, "--inputs-json", `{"target":`+strconv.Quote(reportPath)+`}`, "--verify", "--json")
+	reportInput := liveLLMOutputPathInput(t, executeTrace, "system.validate")
+	e2etest.RunJSON(t, repo, env, &inspectRun, calctlBin, "runs", "create", "--capability-id", "system.validate", "--provider-id", executeAcquisition.Providers[0].ID, "--inputs-json", `{"`+reportInput+`":`+strconv.Quote(reportPath)+`}`, "--verify", "--json")
 	if inspectRun.Status != "succeeded" || !inspectRun.Verified || len(inspectRun.Evidence) == 0 {
 		t.Fatalf("system.validate run = %#v, want verified L2+ nested command reuse", inspectRun)
 	}
 	report, err := os.ReadFile(reportPath)
 	if err != nil {
-		t.Fatalf("read doctor report: %v", err)
+		t.Fatalf("read doctor report for input %s: %v", reportInput, err)
 	}
 	if !strings.Contains(string(report), `"status":"ok"`) {
 		t.Fatalf("doctor report = %s, want status ok", report)
@@ -549,6 +550,25 @@ func assertLiveLLMCapabilityProbeAtLeast(t *testing.T, trace caltrace.Trace, cap
 		return
 	}
 	t.Fatalf("trace probes = %#v, missing probe for %s", trace.Probes, capabilityID)
+}
+
+func liveLLMOutputPathInput(t *testing.T, trace caltrace.Trace, capabilityID string) string {
+	t.Helper()
+	for _, probe := range trace.Probes {
+		if probe.CandidateIndex < 0 || probe.CandidateIndex >= len(trace.Candidates) {
+			continue
+		}
+		if trace.Candidates[probe.CandidateIndex].CapabilityID != capabilityID || !probe.Passed || probe.Verify.Method != core.VerifyMethodExecute {
+			continue
+		}
+		for _, check := range probe.Verify.Checks {
+			if check.Subject.Type == core.VerifySubjectFile && strings.TrimSpace(check.Subject.Input) != "" {
+				return check.Subject.Input
+			}
+		}
+	}
+	t.Fatalf("trace probes = %#v, missing execute file output input for %s", trace.Probes, capabilityID)
+	return ""
 }
 
 func writeLiveLLMSeedConvertProposal(t *testing.T, path, capabilityID string) string {

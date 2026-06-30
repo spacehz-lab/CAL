@@ -111,8 +111,7 @@ L0 unsupported
   No reliable deterministic verification is available.
 ```
 
-CAL owns final level validation. A model-suggested level is process material,
-not proof.
+CAL owns final level derivation. A model output is process material, not proof.
 
 `method` describes evidence collection. `execute` runs safe local probes and
 evaluates built-in checks locally. Safe execute probes may read probe fixtures
@@ -146,6 +145,12 @@ as `target`; `stdout`, `stderr`, and `exit_code` read process results. CAL uses
 the same core VerifySpec rule table for Stage4 prompt injection and
 `ValidateVerifySpec`, so invalid subject/predicate/parameter combinations are
 rejected before probing or promotion.
+
+The rule table includes fixed parameter value sets for built-ins that need
+them: `format` supports `pdf`, `png`, `json`, and `text`;
+`bytes_equal_transform.transform` supports `base64_encode` and
+`base64_decode`; `hash_line_matches.algorithm` supports `sha1`, `sha256`, and
+common SHA aliases.
 
 Examples:
 

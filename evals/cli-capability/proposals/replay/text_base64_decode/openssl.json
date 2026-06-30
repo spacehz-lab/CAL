@@ -45,8 +45,22 @@
           "content": "Y2FsIGJlbmNobWFyayBiYXNlNjQgZGVjb2RlIGZpeHR1cmUK"
         }
       ],
-      "verifier": {
-        "id": "base64_decode_matches_source"
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "bytes_equal_transform",
+            "params": {
+              "source": "source",
+              "transform": "base64_decode"
+            }
+          }
+        ]
       }
     }
   ]

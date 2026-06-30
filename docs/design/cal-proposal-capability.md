@@ -10,13 +10,15 @@ that later Binding and Evidence stages must use.
 ```text
 Provider
 kept surface_items[] projected to id, kind, name, and description
-existing Capability ids
+existing Capability ids and descriptions
 capability policy preferred_subjects and preferred_operations
 optional debug capability filter
 ```
 
-`existing Capability ids` are a bounded local lookup result. They are reuse
-candidates, not proof that the provider implements those capabilities.
+`existing Capability ids and descriptions` are a bounded local lookup result.
+They are reuse candidates, not proof that the provider implements those
+capabilities. Reuse requires both the id and description to be valid and
+semantically equivalent to the observed operation.
 
 `capability policy` supplies preferred subject and operation vocabularies.
 Capability should choose from these vocabularies whenever a semantically correct
@@ -67,6 +69,29 @@ target artifact kinds
 
 Discriminators belong to Binding execution inputs and Evidence checks.
 
+This is a generic discriminator rule, not a closed list of special cases. If a
+future surface varies by a runtime-selectable or binding-specific detail, keep
+the `capability_id` generic and let later stages express the detail through
+execution inputs and verification checks.
+
+## Decision Process
+
+Capability should internally decide each item in this order:
+
+```text
+identify the semantic subject
+identify the semantic operation direction
+reuse an existing valid equivalent id when possible
+use preferred subjects and operations when accurate
+create a new provider-independent term only when required
+merge only compatible source surfaces
+split or keep the clearest surface when command family, inputs, execution,
+output, or operation direction differs
+```
+
+This decision process is prompt guidance only. The model must still output only
+the JSON response shape and must not expose hidden reasoning steps.
+
 ## Reuse Rules
 
 Reuse an existing Capability id only when the observed subject and operation are
@@ -95,6 +120,16 @@ Surfaces should be merged only when they share the same semantic subject and
 operation and can plausibly share compatible Binding inputs, execution shape,
 and output semantics. Capability should not merge surfaces with clearly
 different inputs, execution shapes, output semantics, or opposite operations.
+
+`confidence` is a planning confidence signal:
+
+```text
+high    surface name and description clearly support the semantic capability
+medium  operation is supported but subject, direction, or grouping is partly inferred
+low     weak but still supported enough to explore
+```
+
+Unsupported mappings should be omitted instead of returned with low confidence.
 
 Out-of-policy but valid subject or operation terms may pass when the model
 created them for observations that cannot be expressed by preferred terms.

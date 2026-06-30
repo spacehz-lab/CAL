@@ -20,7 +20,20 @@ observations
 
 ## Output
 
-Evidence outputs a `verify` spec:
+The Stage4 model output is a draft:
+
+```text
+verify
+  method execute | contract
+  checks[]
+    subject
+      type file | stdout | stderr | exit_code
+      input file subjects only
+    predicate
+    params optional
+```
+
+Proposal materializes the final `VerifySpec` by deriving `level` locally:
 
 ```text
 verify
@@ -36,6 +49,30 @@ verify
 
 `level` describes confidence and promotion/use policy. `method` describes how
 evidence is collected.
+
+## Decision Process
+
+Evidence should internally decide the `VerifySpec` in this order:
+
+```text
+if the probe is safe, short, local, reads only probe fixtures, and writes only
+declared probe outputs inside the probe workdir, use execute
+
+if execution would install, remove, update, upgrade, clean, link, unlink, tap,
+untap, edit, start services, require network, require interaction, or change
+external state, use contract
+
+contract checks are advisory and are not executed
+
+for execute, choose the strongest built-in deterministic checks supported by
+probe material and observations
+
+CAL derives the final level from method and checks, not from the capability name
+or candidate description
+```
+
+Fixture-only sample content must not become durable expected output unless
+observations explicitly say the command always emits that literal.
 
 ## Verification Levels
 
@@ -56,15 +93,15 @@ L0 unsupported
   No reliable deterministic verification is available.
 ```
 
-The model may suggest a level, but CAL owns final level validation. Checks such
-as `exists` and `non_empty` must not be treated as L3 unless the capability
-semantics are only artifact creation.
+The model must not output `verify.level`. CAL owns final level derivation.
+Checks such as `exists` and `non_empty` must not be treated as L3 unless the
+capability semantics are only artifact creation.
 
 Probe fixtures are temporary sample inputs for acquisition. Evidence must not
 promote fixture content into durable `VerifySpec` checks unless observations
 explicitly say the command always emits that literal. Proposal normalizes
-fixture-only literal checks out of the final verify spec and caps the verify
-level to match the remaining checks.
+fixture-only literal checks out of the final verify spec and derives the verify
+level from the remaining checks.
 
 ## Verification Methods
 
@@ -79,12 +116,12 @@ contract
   observations when execution would install, remove, update, edit, start
   services, require network, require interaction, or change external state.
   Unsafe commands with a clear observed command path and documented operation
-  semantics use contract L1. Contract L0 is reserved for ambiguous observations
-  where CAL cannot identify a reliable command path or operation semantics.
+  semantics use contract L1.
 ```
 
-`contract` cannot exceed `L1` and must not include checks. `contract + L0` is
-not promoted. `execute + L1` still executes the probe and must include checks.
+`contract` is materialized as `L1`. Contract checks, if present, are advisory
+and are not executed. `execute + L1` still executes the probe and must include
+checks.
 
 ## Evidence Subjects
 
@@ -144,6 +181,15 @@ uses `params.format`; `bytes_equal_transform` uses `params.source` and
 `params.transform`; `hash_line_matches` uses `params.source` and
 `params.algorithm`. File subjects must include `subject.input`, and that input
 must be available in the probe material and future run inputs.
+
+The core rule table must also declare bounded parameter values when a predicate
+only supports a fixed set. Initial fixed values are:
+
+```text
+format: pdf | png | json | text
+bytes_equal_transform.transform: base64_encode | base64_decode
+hash_line_matches.algorithm: sha1 | sha256 and common sha-1/sha-256 aliases
+```
 
 For stable literal output content, Evidence should prefer `contains` over
 anchored full-file `regex`. Anchored regex is appropriate only when observations

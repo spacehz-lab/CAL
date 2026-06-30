@@ -12,6 +12,7 @@ func TestNormalizeSurfacesAppliesDefaultsAndTrim(t *testing.T) {
 		Name:           " convert ",
 		Description:    " Convert input. ",
 		EvidenceSource: " help ",
+		Reason:         " stable operation ",
 	}}, DefaultPolicy().Surface, profile{})
 	if err != nil {
 		t.Fatalf("normalizeSurfaces() error = %v", err)
@@ -20,7 +21,7 @@ func TestNormalizeSurfacesAppliesDefaultsAndTrim(t *testing.T) {
 		t.Fatalf("items = %#v, want one item", items)
 	}
 	item := items[0]
-	if item.ID != "s1" || item.Name != "convert" || item.Kind != "command" || item.Decision != caltrace.ProposalDecisionKeep || item.EvidenceSource != "help" {
+	if item.ID != "s1" || item.Name != "convert" || item.Kind != "command" || item.Decision != caltrace.ProposalDecisionKeep || item.EvidenceSource != "help" || item.Reason != "stable operation" {
 		t.Fatalf("item = %#v, want normalized defaults", item)
 	}
 }
@@ -29,7 +30,7 @@ func TestNormalizeSurfacesDropsSkippedDeferredAndDisallowedKinds(t *testing.T) {
 	policy := DefaultPolicy()
 	policy.Surface.AllowedKinds = []string{"command"}
 	items, _, err := normalizeSurfaces([]surface{
-		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep},
+		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep, Reason: "stable operation"},
 		{ID: "s2", Kind: "command", Name: "later", Decision: caltrace.ProposalDecisionDefer},
 		{ID: "s3", Kind: "command", Name: "ignored", Decision: caltrace.ProposalDecisionSkip},
 		{ID: "s4", Kind: "option", Name: "--encode", Decision: caltrace.ProposalDecisionKeep},
@@ -61,7 +62,7 @@ func TestNormalizeSurfacesSkipsNamesAndPatterns(t *testing.T) {
 
 func TestNormalizeSurfacesDeduplicatesByKindAndName(t *testing.T) {
 	items, _, err := normalizeSurfaces([]surface{
-		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep},
+		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep, Reason: "stable operation"},
 		{ID: "s2", Kind: "command", Name: "CONVERT", Decision: caltrace.ProposalDecisionKeep},
 		{ID: "s3", Kind: "option", Name: "convert", Decision: caltrace.ProposalDecisionKeep},
 	}, DefaultPolicy().Surface, profile{})
@@ -108,7 +109,7 @@ func TestNormalizeSurfaceStageRecordsFinalDecisions(t *testing.T) {
 	policy := DefaultPolicy()
 	policy.Surface.SkipNames = []string{"help"}
 	items, stage, err := normalizeSurfaces([]surface{
-		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep},
+		{ID: "s1", Kind: "command", Name: "convert", Decision: caltrace.ProposalDecisionKeep, Reason: "stable operation"},
 		{ID: "s2", Kind: "command", Name: "server", Decision: caltrace.ProposalDecisionDefer},
 		{ID: "s3", Kind: "command", Name: "help", Decision: caltrace.ProposalDecisionKeep},
 		{ID: "s4", Kind: "command", Name: "ignored", Decision: caltrace.ProposalDecisionSkip},
@@ -124,5 +125,8 @@ func TestNormalizeSurfaceStageRecordsFinalDecisions(t *testing.T) {
 	}
 	if len(stage.Items) != 4 || stage.Items[2].Name != "help" || stage.Items[2].Decision != caltrace.ProposalDecisionSkip {
 		t.Fatalf("stage items = %#v, want local policy skip recorded for help", stage.Items)
+	}
+	if stage.Items[0].Reason != "stable operation" {
+		t.Fatalf("stage item reason = %q, want model decision reason", stage.Items[0].Reason)
 	}
 }

@@ -109,11 +109,11 @@ func ValidateVerifySpec(verify VerifySpec) error {
 	if verify.Method == VerifyMethodContract && VerifyLevelRank(verify.Level) > VerifyLevelRank(VerifyLevelL1) {
 		return fmt.Errorf("contract verification cannot exceed L1")
 	}
-	if verify.Method == VerifyMethodContract && len(verify.Checks) > 0 {
-		return fmt.Errorf("contract verification cannot include checks")
-	}
 	if verify.Method == VerifyMethodExecute && verify.Level != VerifyLevelL0 && len(verify.Checks) == 0 {
 		return fmt.Errorf("verify checks are required for execute method")
+	}
+	if verify.Method != VerifyMethodExecute {
+		return nil
 	}
 	rules := verifySubjectRuleMap()
 	for _, check := range verify.Checks {
@@ -151,19 +151,43 @@ func validateVerifyCheck(check VerifyCheck, rules map[VerifySubjectType]VerifySu
 }
 
 func validateVerifyCheckParams(check VerifyCheck, rule VerifySubjectRule) error {
-	for _, key := range rule.RequiredParams[check.Predicate] {
-		switch key {
-		case "values":
-			if len(stringListParam(check.Params, key)) == 0 {
-				return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
+	paramRules := rule.ParamRules[check.Predicate]
+	if len(paramRules) == 0 {
+		paramRules = map[string]VerifyParamRule{}
+		for _, key := range rule.RequiredParams[check.Predicate] {
+			paramRules[key] = VerifyParamRule{Required: true}
+		}
+	}
+	for key, paramRule := range paramRules {
+		if paramRule.Required {
+			switch key {
+			case "values":
+				if len(stringListParam(check.Params, key)) == 0 {
+					return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
+				}
+			default:
+				if _, ok := check.Params[key]; !ok {
+					return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
+				}
 			}
-		default:
-			if _, ok := check.Params[key]; !ok {
-				return fmt.Errorf("verify predicate %s requires params.%s", check.Predicate, key)
+		}
+		if len(paramRule.AllowedValues) > 0 {
+			value := stringParam(check.Params, key)
+			if value == "" || !verifyParamValueAllowed(value, paramRule.AllowedValues) {
+				return fmt.Errorf("verify predicate %s params.%s %q is not supported", check.Predicate, key, value)
 			}
 		}
 	}
 	return nil
+}
+
+func verifyParamValueAllowed(value string, allowedValues []string) bool {
+	for _, allowed := range allowedValues {
+		if strings.EqualFold(strings.TrimSpace(value), strings.TrimSpace(allowed)) {
+			return true
+		}
+	}
+	return false
 }
 
 func verifySubjectRuleMap() map[VerifySubjectType]VerifySubjectRule {

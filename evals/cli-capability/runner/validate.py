@@ -31,11 +31,17 @@ def main() -> int:
         py_compile.compile(str(oracle_path), doraise=True)
         check_fixture_group(task_id, task.get("acquisition") or {})
         check_fixture_group(task_id, task.get("reuse") or {})
+        if task.get("level") == "focus":
+            for provider in task["provider_candidates"]:
+                proposal_path = ROOT / "proposals" / "replay" / task_id / f"{provider}.json"
+                if not proposal_path.exists():
+                    raise SystemExit(f"{task_id}: missing focus replay proposal {proposal_path}")
+                check_replay_proposal(proposal_path)
 
     for path in (ROOT / "oracles").glob("*.py"):
         py_compile.compile(str(path), doraise=True)
     for path in (ROOT / "proposals" / "replay").glob("*/*.json"):
-        read_json(path)
+        check_replay_proposal(path)
     read_jsonl(ROOT / "baselines" / "oracle" / "commands.jsonl")
     print(f"validated {len(tasks)} tasks and {len(provider_ids)} providers")
     return 0
@@ -54,6 +60,83 @@ def check_fixture_group(task_id: str, group: dict) -> None:
                 continue
             if value.startswith("fixtures/") and not (ROOT / value).exists():
                 raise SystemExit(f"{task_id}: missing fixture input {key}={value}")
+
+
+def check_replay_proposal(path: Path) -> None:
+    proposal = read_json(path)
+    candidates = proposal.get("candidates") or []
+    if not candidates:
+        raise SystemExit(f"{path}: replay proposal must include candidates")
+    plans = proposal.get("probe_plans") or []
+    if not plans:
+        raise SystemExit(f"{path}: replay proposal must include probe_plans")
+    for index, plan in enumerate(plans):
+        candidate_index = plan.get("candidate_index")
+        if not isinstance(candidate_index, int) or candidate_index < 0 or candidate_index >= len(candidates):
+            raise SystemExit(f"{path}: probe_plan {index} candidate_index is out of range")
+        if "verifier" in plan:
+            raise SystemExit(f"{path}: probe_plan {index} uses legacy verifier field; use verify")
+        verify = plan.get("verify")
+        if not isinstance(verify, dict):
+            raise SystemExit(f"{path}: probe_plan {index} verify is required")
+        check_verify_spec(path, index, verify)
+
+
+def check_verify_spec(path: Path, index: int, verify: dict) -> None:
+    level = verify.get("level")
+    method = verify.get("method")
+    if level not in {"L0", "L1", "L2", "L3"}:
+        raise SystemExit(f"{path}: probe_plan {index} verify level {level!r} is invalid")
+    if method not in {"execute", "contract"}:
+        raise SystemExit(f"{path}: probe_plan {index} verify method {method!r} is invalid")
+    checks = verify.get("checks") or []
+    if method == "contract" and checks:
+        raise SystemExit(f"{path}: probe_plan {index} contract verify cannot include checks")
+    if method == "execute" and level != "L0" and not checks:
+        raise SystemExit(f"{path}: probe_plan {index} execute verify requires checks")
+    for check_index, check in enumerate(checks):
+        subject = check.get("subject") or {}
+        subject_type = subject.get("type")
+        if subject_type not in {"file", "stdout", "stderr", "exit_code"}:
+            raise SystemExit(f"{path}: probe_plan {index} check {check_index} subject type is invalid")
+        if subject_type == "file" and not subject.get("input"):
+            raise SystemExit(f"{path}: probe_plan {index} check {check_index} file subject requires input")
+        predicate = check.get("predicate")
+        if predicate not in verify_predicates():
+            raise SystemExit(f"{path}: probe_plan {index} check {check_index} predicate {predicate!r} is invalid")
+        params = check.get("params") or {}
+        required = required_params(predicate)
+        for key in required:
+            if key not in params:
+                raise SystemExit(f"{path}: probe_plan {index} check {check_index} predicate {predicate} requires params.{key}")
+
+
+def required_params(predicate: str) -> list[str]:
+    return {
+        "equals": ["value"],
+        "not_equals": ["value"],
+        "contains": ["value"],
+        "contains_any": ["values"],
+        "regex": ["pattern"],
+        "format": ["format"],
+        "bytes_equal_transform": ["source", "transform"],
+        "hash_line_matches": ["source", "algorithm"],
+    }.get(predicate, [])
+
+
+def verify_predicates() -> set[str]:
+    return {
+        "equals",
+        "not_equals",
+        "exists",
+        "non_empty",
+        "format",
+        "contains",
+        "contains_any",
+        "regex",
+        "bytes_equal_transform",
+        "hash_line_matches",
+    }
 
 
 def require(doc: dict, key: str):

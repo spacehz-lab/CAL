@@ -106,9 +106,9 @@ probe inputs and fixtures
 -> verify spec
 ```
 
-Evidence does not execute the provider and does not decide pass/fail. It only
-produces `verify.level` and `verify.checks` for later deterministic
-Verification.
+Evidence does not execute the provider and does not decide pass/fail. The model
+only proposes `verify.method` and `verify.checks`; Proposal derives
+`verify.level` locally for later deterministic Verification.
 
 ## Output Contract
 
@@ -254,12 +254,12 @@ candidate execution completeness
 probe inputs cover execution placeholders
 target artifacts are produced by execution before checks reference them
 verify checks reference only available inputs, outputs, or evidence subjects
-verify level is derived or validated locally
+verify level is derived locally
 contract verification is capped at L1
 ```
 
-The model may suggest `verify.level` and `verify.method`, but CAL owns the final
-accepted verification contract.
+The model may suggest `verify.method` and `verify.checks`, but must not suggest
+`verify.level`. CAL derives the final accepted verification contract locally.
 
 ## Replay Compatibility
 

@@ -24,6 +24,22 @@ Generated outputs belong under:
 evals/out/cli-capability/<run-id>/
 ```
 
+The runner writes `flow.json` as the primary evidence artifact. The HTML report
+renders the same flow as:
+
+```text
+provider.resolve
+-> provider.register
+-> acquisition.stage1.observe
+-> acquisition.stage2.propose
+-> acquisition.stage3.verify
+-> acquisition.stage4.promote
+-> direct_reuse
+-> intent_use
+```
+
+`summary.json` remains the aggregate metrics artifact for scripts and tables.
+
 ## Replay Bootstrap
 
 The first executable slice supports deterministic replay for `file_hash_sha1`:

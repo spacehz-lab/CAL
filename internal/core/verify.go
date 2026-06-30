@@ -64,12 +64,19 @@ type VerifyCheck struct {
 	Params    map[string]any  `json:"params,omitempty"`
 }
 
+// VerifyParamRule describes one predicate parameter constraint.
+type VerifyParamRule struct {
+	Required      bool     `json:"required,omitempty"`
+	AllowedValues []string `json:"allowed_values,omitempty"`
+}
+
 // VerifySubjectRule describes which predicates are valid for one subject type.
 type VerifySubjectRule struct {
-	Type              VerifySubjectType            `json:"type"`
-	RequiresInput     bool                         `json:"requires_input,omitempty"`
-	AllowedPredicates []VerifyPredicate            `json:"allowed_predicates"`
-	RequiredParams    map[VerifyPredicate][]string `json:"required_params,omitempty"`
+	Type              VerifySubjectType                              `json:"type"`
+	RequiresInput     bool                                           `json:"requires_input,omitempty"`
+	AllowedPredicates []VerifyPredicate                              `json:"allowed_predicates"`
+	RequiredParams    map[VerifyPredicate][]string                   `json:"required_params,omitempty"`
+	ParamRules        map[VerifyPredicate]map[string]VerifyParamRule `json:"param_rules,omitempty"`
 }
 
 // VerifySubjectRules returns the code-owned VerifySpec subject contract.
@@ -89,6 +96,14 @@ func VerifySubjectRules() []VerifySubjectRule {
 				VerifyPredicateHashLineMatches,
 			},
 			RequiredParams: verifyRequiredParams(
+				VerifyPredicateFormat,
+				VerifyPredicateContains,
+				VerifyPredicateContainsAny,
+				VerifyPredicateRegex,
+				VerifyPredicateBytesEqualTransform,
+				VerifyPredicateHashLineMatches,
+			),
+			ParamRules: verifyParamRules(
 				VerifyPredicateFormat,
 				VerifyPredicateContains,
 				VerifyPredicateContainsAny,
@@ -116,6 +131,14 @@ func VerifySubjectRules() []VerifySubjectRule {
 				VerifyPredicateRegex,
 				VerifyPredicateHashLineMatches,
 			),
+			ParamRules: verifyParamRules(
+				VerifyPredicateEquals,
+				VerifyPredicateNotEquals,
+				VerifyPredicateContains,
+				VerifyPredicateContainsAny,
+				VerifyPredicateRegex,
+				VerifyPredicateHashLineMatches,
+			),
 		},
 		{
 			Type: VerifySubjectStderr,
@@ -136,6 +159,14 @@ func VerifySubjectRules() []VerifySubjectRule {
 				VerifyPredicateRegex,
 				VerifyPredicateHashLineMatches,
 			),
+			ParamRules: verifyParamRules(
+				VerifyPredicateEquals,
+				VerifyPredicateNotEquals,
+				VerifyPredicateContains,
+				VerifyPredicateContainsAny,
+				VerifyPredicateRegex,
+				VerifyPredicateHashLineMatches,
+			),
 		},
 		{
 			Type: VerifySubjectExitCode,
@@ -144,6 +175,10 @@ func VerifySubjectRules() []VerifySubjectRule {
 				VerifyPredicateNotEquals,
 			},
 			RequiredParams: verifyRequiredParams(
+				VerifyPredicateEquals,
+				VerifyPredicateNotEquals,
+			),
+			ParamRules: verifyParamRules(
 				VerifyPredicateEquals,
 				VerifyPredicateNotEquals,
 			),
@@ -168,20 +203,67 @@ func VerifyLevelRank(level VerifyLevel) int {
 func verifyRequiredParams(predicates ...VerifyPredicate) map[VerifyPredicate][]string {
 	params := map[VerifyPredicate][]string{}
 	for _, predicate := range predicates {
-		switch predicate {
-		case VerifyPredicateEquals, VerifyPredicateNotEquals, VerifyPredicateContains:
-			params[predicate] = []string{"value"}
-		case VerifyPredicateContainsAny:
-			params[predicate] = []string{"values"}
-		case VerifyPredicateRegex:
-			params[predicate] = []string{"pattern"}
-		case VerifyPredicateFormat:
-			params[predicate] = []string{"format"}
-		case VerifyPredicateBytesEqualTransform:
-			params[predicate] = []string{"source", "transform"}
-		case VerifyPredicateHashLineMatches:
-			params[predicate] = []string{"source", "algorithm"}
+		rules := verifyPredicateParamRules(predicate)
+		for _, name := range verifyPredicateParamOrder(predicate) {
+			rule := rules[name]
+			if rule.Required {
+				params[predicate] = append(params[predicate], name)
+			}
 		}
 	}
 	return params
+}
+
+func verifyParamRules(predicates ...VerifyPredicate) map[VerifyPredicate]map[string]VerifyParamRule {
+	rules := map[VerifyPredicate]map[string]VerifyParamRule{}
+	for _, predicate := range predicates {
+		if params := verifyPredicateParamRules(predicate); len(params) > 0 {
+			rules[predicate] = params
+		}
+	}
+	return rules
+}
+
+func verifyPredicateParamRules(predicate VerifyPredicate) map[string]VerifyParamRule {
+	switch predicate {
+	case VerifyPredicateEquals, VerifyPredicateNotEquals, VerifyPredicateContains:
+		return map[string]VerifyParamRule{"value": {Required: true}}
+	case VerifyPredicateContainsAny:
+		return map[string]VerifyParamRule{"values": {Required: true}}
+	case VerifyPredicateRegex:
+		return map[string]VerifyParamRule{"pattern": {Required: true}}
+	case VerifyPredicateFormat:
+		return map[string]VerifyParamRule{"format": {Required: true, AllowedValues: []string{"pdf", "png", "json", "text"}}}
+	case VerifyPredicateBytesEqualTransform:
+		return map[string]VerifyParamRule{
+			"source":    {Required: true},
+			"transform": {Required: true, AllowedValues: []string{"base64_encode", "base64_decode"}},
+		}
+	case VerifyPredicateHashLineMatches:
+		return map[string]VerifyParamRule{
+			"source":    {Required: true},
+			"algorithm": {Required: true, AllowedValues: []string{"sha1", "sha256", "sha-1", "sha-256", "sha_1", "sha_256", "sha 1", "sha 256"}},
+		}
+	default:
+		return nil
+	}
+}
+
+func verifyPredicateParamOrder(predicate VerifyPredicate) []string {
+	switch predicate {
+	case VerifyPredicateEquals, VerifyPredicateNotEquals, VerifyPredicateContains:
+		return []string{"value"}
+	case VerifyPredicateContainsAny:
+		return []string{"values"}
+	case VerifyPredicateRegex:
+		return []string{"pattern"}
+	case VerifyPredicateFormat:
+		return []string{"format"}
+	case VerifyPredicateBytesEqualTransform:
+		return []string{"source", "transform"}
+	case VerifyPredicateHashLineMatches:
+		return []string{"source", "algorithm"}
+	default:
+		return nil
+	}
 }
