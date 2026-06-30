@@ -11,8 +11,6 @@ import (
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
-const maxAcquisitionCandidates = 20
-
 // Store is the persistence surface needed by discovery acquisition.
 type Store interface {
 	ListProviders() ([]core.Provider, error)
@@ -33,15 +31,13 @@ type AcquisitionOptions struct {
 type AcquisitionRunner struct {
 	observer observe.Observer
 	proposer proposal.Proposer
-	verifier acquisitionVerifier
 }
 
 // NewAcquisitionRunner builds a provider acquisition runner with explicit dependencies.
-func NewAcquisitionRunner(observer observe.Observer, proposer proposal.Proposer, probePlanner proposal.ProbePlanner) AcquisitionRunner {
+func NewAcquisitionRunner(observer observe.Observer, proposer proposal.Proposer) AcquisitionRunner {
 	return AcquisitionRunner{
 		observer: observer,
 		proposer: proposer,
-		verifier: newAcquisitionVerifier(probePlanner),
 	}
 }
 
@@ -73,9 +69,6 @@ func (runner AcquisitionRunner) validate() error {
 	if runner.proposer == nil {
 		return newCodedError(CodeProposerUnavailable, "discovery acquisition proposer is not configured")
 	}
-	if runner.verifier.planner == nil {
-		return newCodedError(CodeProbePlannerUnavailable, "discovery acquisition probe planner is not configured")
-	}
 	return nil
 }
 
@@ -88,7 +81,9 @@ type acquisitionRun struct {
 
 	provider     core.Provider
 	observations []caltrace.Observation
+	proposal     *caltrace.ProposalTrace
 	candidates   []caltrace.Candidate
+	probePlans   []proposal.ProbePlan
 	probes       []caltrace.Probe
 	promotions   []caltrace.Promotion
 	proposalMS   int64
@@ -170,33 +165,34 @@ func (run *acquisitionRun) propose(ctx context.Context) CodedError {
 	if err != nil {
 		return newCodedError(CodeCandidateProposalFailed, err.Error())
 	}
-	selectedCapabilityIDs := proposal.SelectExistingCapabilityIDs(run.observations, capabilities, run.opts.CapabilityID, 0)
 	started := time.Now()
-	response, err := run.runner.proposer.Propose(ctx, proposal.Request{
-		Provider:              run.provider,
-		Observations:          run.observations,
-		ExistingCapabilityIDs: selectedCapabilityIDs,
-		Hint:                  run.opts.CapabilityID,
+	result, err := run.runner.proposer.Propose(ctx, proposal.Request{
+		Provider:     run.provider,
+		Observations: run.observations,
+		Catalog:      capabilities,
+		DebugFilter:  run.opts.CapabilityID,
+		TraceID:      run.traceID,
 	})
 	run.proposalMS = time.Since(started).Milliseconds()
+	run.proposal = result.Diagnostics
 	if err != nil {
 		return newCodedError(CodeCandidateProposalFailed, err.Error())
 	}
-	if len(response.Candidates) == 0 {
+	if len(result.Candidates) == 0 {
 		if run.opts.CapabilityID == "" {
 			return newCodedError(CodeCandidateNotFound, "no candidate was proposed")
 		}
 		return newCodedErrorf(CodeCandidateNotFound, "no candidate was proposed for capability %q", run.opts.CapabilityID)
 	}
-	candidates, err := run.uniqueCandidates(response.Candidates)
-	if err != nil {
-		return newCodedError(CodeCandidateProposalFailed, err.Error())
+	if len(result.ProbePlans) != len(result.Candidates) {
+		return newCodedErrorf(CodeCandidateProposalFailed, "proposal returned %d candidates and %d probe plans", len(result.Candidates), len(result.ProbePlans))
 	}
-	run.candidates = run.limitedCandidates(candidates)
+	run.candidates = result.Candidates
+	run.probePlans = result.ProbePlans
 	for index := range run.candidates {
 		run.candidates[index].CreatedAt = run.now.Format(time.RFC3339Nano)
 	}
-	run.logProposed(len(capabilities), len(selectedCapabilityIDs))
+	run.logProposed(len(capabilities))
 	return CodedError{}
 }
 
@@ -209,7 +205,14 @@ func (run *acquisitionRun) verify(ctx context.Context) CodedError {
 		if err != nil {
 			return newCodedError(CodeVerificationFailed, err.Error())
 		}
-		probe, err := run.runner.verifier.Verify(ctx, run.provider, candidate, index, workDir, run.now)
+		probe, err := verifyProbe(ctx, probeVerification{
+			Provider:       run.provider,
+			Candidate:      candidate,
+			Plan:           run.probePlans[index],
+			CandidateIndex: index,
+			WorkDir:        workDir,
+			Now:            run.now,
+		})
 		run.probes = append(run.probes, probe)
 		if probe.Passed {
 			passed++
@@ -244,29 +247,4 @@ func (run *acquisitionRun) promote() CodedError {
 		run.promotions = append(run.promotions, promotion)
 	}
 	return CodedError{}
-}
-
-func (run *acquisitionRun) limitedCandidates(candidates []caltrace.Candidate) []caltrace.Candidate {
-	if len(candidates) <= maxAcquisitionCandidates {
-		return candidates
-	}
-	return candidates[:maxAcquisitionCandidates]
-}
-
-func (run *acquisitionRun) uniqueCandidates(candidates []caltrace.Candidate) ([]caltrace.Candidate, error) {
-	seen := make(map[string]struct{}, len(candidates))
-	unique := make([]caltrace.Candidate, 0, len(candidates))
-	for _, candidate := range candidates {
-		canonical, err := core.CanonicalExecution(candidate.Execution)
-		if err != nil {
-			return nil, err
-		}
-		key := candidate.ProviderID + "|" + candidate.CapabilityID + "|" + canonical
-		if _, ok := seen[key]; ok {
-			continue
-		}
-		seen[key] = struct{}{}
-		unique = append(unique, candidate)
-	}
-	return unique, nil
 }

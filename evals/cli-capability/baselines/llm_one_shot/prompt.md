@@ -17,7 +17,7 @@ Return exactly one JSON object:
 
 Rules:
 
-- Do not use CAL capabilities, bindings, traces, or verifier packages.
+- Do not use CAL capabilities, bindings, traces, or verify specs.
 - Produce a direct CLI command for the requested provider.
 - Use the supplied `target` path when the provider supports writing output to a
   file.

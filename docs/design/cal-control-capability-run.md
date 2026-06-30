@@ -70,7 +70,9 @@ calctl runs create --capability-id <capability-id> --strategy default --inputs-j
 
 `--inputs-file` reads the capability input object from a JSON file. It is not the business input file unless the capability schema defines it that way.
 
-`--verify` runs the selected binding's verifier after execution. Without it, `run` is a lightweight capability invocation and returns `verified:false`.
+`--verify` evaluates the selected binding's `verify.checks` after execution.
+Without it, `run` is a lightweight capability invocation and returns
+`verified:false`.
 
 `--provider` constrains binding selection to one provider.
 
@@ -99,9 +101,10 @@ load Capability by capability_id
 -> filter bindings that are promoted
 -> filter binding_id if supplied
 -> filter provider_id if supplied
--> reject bindings whose verifier is missing
+-> reject bindings whose verify spec is missing when verification is required
 -> reject bindings whose execution kind is unsupported in this runtime
--> sort remaining bindings by deterministic binding id
+-> prefer stronger verification levels when verification is requested
+-> sort remaining bindings by deterministic binding id as a stable tie-break
 -> select the first binding
 ```
 
@@ -119,9 +122,8 @@ Run history can improve future selection, but absence of history must not make a
 If history-based scoring is added, it may compute history from stored Run records instead of denormalizing statistics onto Binding.
 
 After selecting a binding, Run validates the provided input object against the
-selected `Binding.execution` placeholders and `Binding.input_constraints`.
-Missing runtime inputs or rejected constraint values return `invalid_run_input`
-before provider execution starts.
+selected `Binding.execution` placeholders. Missing runtime inputs return
+`invalid_run_input` before provider execution starts.
 
 ## Execution
 
@@ -147,19 +149,25 @@ use an `LLM proposer` to decide whether execution succeeded
 
 ## Verification
 
-By default, Run does not execute the selected binding's verifier. This keeps ordinary capability reuse lightweight.
+By default, Run does not evaluate the selected binding's verify spec. This keeps
+ordinary capability reuse lightweight.
 
-When `--verify` is supplied, Run executes the selected binding's verifier after provider execution. Verification result is part of the run result:
+When `--verify` is supplied, Run executes the binding, builds a verification
+context from inputs, execution result, and produced artifacts, then evaluates
+`Binding.verify.checks`. Verification result is part of the run result:
 
 ```text
 verified true
 verified false
-verifier_error
+verification_error
 ```
 
-If execution completes but verification fails in `--verify` mode, Run returns `verification_failed` unless the binding is explicitly safe to retry.
+If execution completes but verification fails in `--verify` mode, Run returns
+`verification_failed` unless the binding is explicitly safe to retry.
 
-Automatic fallback after verifier failure is allowed only for bindings marked safe for retry or idempotent. Otherwise CAL should return the failed run and let the agent or user decide the next step.
+Automatic fallback after verification failure is allowed only for bindings
+marked safe for retry or idempotent. Otherwise CAL should return the failed run
+and let the agent or user decide the next step.
 
 ## Output
 
@@ -168,13 +176,13 @@ Successful output shape:
 ```json
 {
   "run_id": "run_123",
-  "capability_id": "document.export_pdf",
+  "capability_id": "document.convert",
   "binding_id": "binding_soffice_pdf",
   "provider_id": "provider_soffice",
   "resolution": {
     "strategy": "default",
     "bindings_considered": 2,
-    "reason": "selected promoted binding with verifier and recent successful run"
+    "reason": "selected promoted binding with L2 verification and recent successful run"
   },
   "status": "succeeded",
   "verified": false,
@@ -182,12 +190,12 @@ Successful output shape:
 }
 ```
 
-Successful verified output additionally includes verifier outputs and evidence:
+Successful verified output additionally includes outputs and evidence:
 
 ```json
 {
   "run_id": "run_123",
-  "capability_id": "document.export_pdf",
+  "capability_id": "document.convert",
   "binding_id": "binding_soffice_pdf",
   "provider_id": "provider_soffice",
   "status": "succeeded",
@@ -196,10 +204,15 @@ Successful verified output additionally includes verifier outputs and evidence:
     "target": "report.pdf"
   },
   "evidence": [
-    {
-      "id": "file_parse_pdf",
-      "type": "file_parse_pdf"
-    }
+	    {
+	      "id": "verify_target_format",
+	      "type": "verify_check",
+	      "content": {
+	        "subject": {"type": "file", "input": "target"},
+	        "predicate": "format",
+	        "format": "pdf"
+	      }
+	    }
   ],
   "duration_ms": 842
 }
@@ -210,13 +223,13 @@ Failure output shape:
 ```json
 {
   "run_id": "run_124",
-  "capability_id": "document.export_pdf",
+  "capability_id": "document.convert",
   "binding_id": "binding_soffice_pdf",
   "provider_id": "provider_soffice",
   "resolution": {
     "strategy": "default",
     "bindings_considered": 2,
-    "reason": "selected promoted binding with verifier"
+    "reason": "selected promoted binding with L2 verification"
   },
   "status": "failed",
   "verified": false,
@@ -260,7 +273,7 @@ selected provider id
 input summary or full capability input object
 outputs or outcome when available
 evidence references for verified runs
-verifier result when requested
+verification result when requested
 timing
 error code and message
 ```
@@ -274,7 +287,7 @@ Capability Run owns:
 ```text
 binding resolution for one capability_id
 runtime execution of Binding.execution
-deterministic verifier execution when requested
+deterministic verify.checks evaluation when requested
 run record writing
 evidence reference writing when verification runs
 structured success and failure output
@@ -287,7 +300,7 @@ natural-language task interpretation
 Use selection
 capability catalog listing
 Discovery Entry
-Discovery Inference
+Discovery Proposal
 Discovery Verification
 Discovery Promotion
 Trace writing
@@ -302,7 +315,7 @@ A skill or agent policy can use Run like this:
 After selecting an exact capability_id from CAL Capability List, call `calctl runs create`.
 Do not preselect a binding unless the user or task requires a specific provider.
 Trust CAL to choose the binding according to its resolver policy.
-If Run returns a verifier failure, do not assume the task succeeded.
+If Run returns a verification failure, do not assume the task succeeded.
 If Run returns no runnable binding, continue normal agent behavior or trigger explicit discovery.
 ```
 

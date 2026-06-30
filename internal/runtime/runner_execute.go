@@ -15,6 +15,8 @@ import (
 
 // ExecutionResult captures one provider execution attempt.
 type ExecutionResult struct {
+	Stdout   string
+	Stderr   string
 	Output   string
 	ExitCode int
 }
@@ -56,8 +58,8 @@ func executeCLI(ctx context.Context, provider core.Provider, execution core.Exec
 		return ExecutionResult{}, err
 	}
 	cmd := exec.CommandContext(ctx, provider.Path, args...)
-	output, err := runCLICommand(cmd, execution, inputs)
-	result := ExecutionResult{Output: output}
+	stdout, stderr, err := runCLICommand(cmd, execution, inputs)
+	result := ExecutionResult{Stdout: stdout, Stderr: stderr, Output: stdout + stderr}
 	if cmd.ProcessState != nil {
 		result.ExitCode = cmd.ProcessState.ExitCode()
 	}
@@ -67,31 +69,30 @@ func executeCLI(ctx context.Context, provider core.Provider, execution core.Exec
 	return result, nil
 }
 
-func runCLICommand(cmd *exec.Cmd, execution core.Execution, inputs map[string]any) (string, error) {
+func runCLICommand(cmd *exec.Cmd, execution core.Execution, inputs map[string]any) (string, string, error) {
 	stdoutPathInput, ok, err := stdoutPathInput(execution)
 	if err != nil {
-		return "", err
-	}
-	if !ok {
-		output, err := cmd.CombinedOutput()
-		return string(output), err
-	}
-
-	path, ok := inputs[stdoutPathInput].(string)
-	if !ok || path == "" {
-		return "", fmt.Errorf("stdout path input %q is required", stdoutPathInput)
+		return "", "", err
 	}
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return stderr.String(), err
+		return stdout.String(), stderr.String(), err
+	}
+	if !ok {
+		return stdout.String(), stderr.String(), nil
+	}
+
+	path, ok := inputs[stdoutPathInput].(string)
+	if !ok || path == "" {
+		return stdout.String(), stderr.String(), fmt.Errorf("stdout path input %q is required", stdoutPathInput)
 	}
 	if err := os.WriteFile(path, stdout.Bytes(), 0o644); err != nil {
-		return stderr.String(), fmt.Errorf("write stdout target: %w", err)
+		return stdout.String(), stderr.String(), fmt.Errorf("write stdout target: %w", err)
 	}
-	return stderr.String(), nil
+	return stdout.String(), stderr.String(), nil
 }
 
 func stdoutPathInput(execution core.Execution) (string, bool, error) {

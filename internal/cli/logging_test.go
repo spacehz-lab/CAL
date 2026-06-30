@@ -15,15 +15,18 @@ func TestDiscoverScanInfoLogsUseStderr(t *testing.T) {
 	t.Setenv(logging.EnvLogLevel, "")
 	home := t.TempDir()
 	startCLITestCald(t, home)
-	installCLITestVerifier(t, home, "file_parse_pdf", pdfMagicVerifierScript())
-	if err := os.WriteFile(filepath.Join(home, "config.json"), []byte(`{"provider_sources": [{"kind": "path", "value": "PATH"}],"logging":{"level":"info","file":{"enabled":false}}}`), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(home, "config.json"), []byte(`{"logging":{"level":"info","file":{"enabled":false}}}`), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
 	providerPath := writeAcquisitionScript(t)
+	store := newTestStoreWithHome(t, home)
+	if err := store.PutProvider(testCLIProvider("provider_cli", providerPath)); err != nil {
+		t.Fatalf("PutProvider() error = %v", err)
+	}
 	var out bytes.Buffer
 	var stderr bytes.Buffer
 	cmd := NewRootCommand(Config{Home: home, Out: &out, Err: &stderr})
-	cmd.SetArgs([]string{"discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json"})
+	cmd.SetArgs([]string{"discovery", "run", "--provider-id", "provider_cli", "--mode", "rules", "--json"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("discovery run error = %v\nstderr=%s\nstdout=%s", err, stderr.String(), out.String())
 	}

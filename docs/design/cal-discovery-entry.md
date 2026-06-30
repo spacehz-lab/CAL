@@ -1,98 +1,46 @@
 # CAL Discovery Entry
 
-Discovery Entry is the first step of Discovery.
+Discovery Entry is the narrow provider registration step before targeted
+Discovery.
 
-It finds local provider entries from configured provider sources and creates or updates `Provider` records.
-
-Entry only proves that a provider entry exists. It does not infer capabilities, propose bindings, run probes, or verify workflows.
+It turns one explicit provider entry path into one stored `Provider` record.
+Entry only proves that a provider entry exists. It does not infer capabilities,
+propose bindings, run probes, or verify workflows.
 
 ## Input
 
-Entry reads `provider_sources` from `CAL_HOME/config.json`.
+Entry receives one `provider_path` from the caller.
 
 ```text
-Config
-  provider_sources []ProviderSource
-
-ProviderSource
-  kind path
-  value string
+provider_path string
 ```
 
-Default `darwin` config:
-
-```json
-{
-  "provider_sources": [
-    {"kind": "path", "value": "PATH"},
-    {"kind": "path", "value": "/Applications"},
-    {"kind": "path", "value": "/System/Applications"},
-    {"kind": "path", "value": "$HOME/Applications"}
-  ]
-}
-```
-
-Default `linux` config:
-
-```json
-{
-  "provider_sources": [
-    {"kind": "path", "value": "PATH"},
-    {"kind": "path", "value": "$HOME/.local/bin"},
-    {"kind": "path", "value": "/usr/local/bin"},
-    {"kind": "path", "value": "/usr/bin"},
-    {"kind": "path", "value": "/bin"},
-    {"kind": "path", "value": "/snap/bin"}
-  ]
-}
-```
-
-Default `windows` config:
-
-```json
-{
-  "provider_sources": [
-    {"kind": "path", "value": "PATH"},
-    {"kind": "path", "value": "%ProgramFiles%"},
-    {"kind": "path", "value": "%ProgramFiles(x86)%"},
-    {"kind": "path", "value": "%LocalAppData%\\Programs"}
-  ]
-}
-```
-
-`kind: "path"` is the only supported v0 provider source kind. `PATH` means the
-current process `PATH`.
-
-Other values are directory paths. They may use `$HOME` or environment variables.
+The path must resolve to one supported provider entry, such as a CLI executable
+or an app bundle. Directory-wide scanning is not part of the current public
+contract.
 
 ## Handling
 
 Entry handling:
 
 ```text
-open CAL_HOME
--> ensure CAL_HOME exists
--> ensure config.json exists
-   -> if missing: write platform default config
-   -> if present: load user config
--> read provider_sources
--> expand configured paths
-   -> PATH expands to the current process PATH directories
-   -> other paths expand $HOME and environment variables
--> inspect each directory
--> identify provider entries
+provider_path
+-> trim and expand environment variables
+-> resolve to an absolute clean path
+-> inspect the explicit entry
 -> normalize provider entry facts
--> create or update Provider records
+-> create or update Provider
 ```
 
-Path inspection is platform-specific. The Entry contract is only that supported provider entries found under `provider_sources` become `Provider` records.
+Path inspection is platform-specific. The Entry contract is only that a
+supported explicit provider entry becomes a `Provider` record.
 
 ## Output
 
 Entry outputs:
 
 ```text
-[]Provider
+Provider
 ```
 
 Persisted shape:
@@ -103,7 +51,9 @@ CAL_HOME/
     <provider-id>.json
 ```
 
-If Entry runs as part of a full Discovery attempt, its process details may also be written into that attempt's `Trace`.
+If Entry runs as part of a future larger discovery attempt, its process details
+may also be written into that attempt's `Trace`. In the current command slice,
+`calctl providers add --provider-path <path>` writes only the Provider record.
 
 ## Data Structure
 
@@ -150,6 +100,8 @@ Provider id:
 provider_<short_hash(platform|kind|absolute_clean_path)>
 ```
 
-`Provider` is an entry fact. It is not a product family, a capability, a binding, or proof that a workflow works.
+`Provider` is an entry fact. It is not a product family, a capability, a
+binding, or proof that a workflow works.
 
-Two different entries can remain two different Providers, even when they belong to the same product.
+Two different entries can remain two different Providers, even when they belong
+to the same product.

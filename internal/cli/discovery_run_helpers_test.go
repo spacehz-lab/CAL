@@ -3,7 +3,6 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"strconv"
 	"testing"
 )
 
@@ -12,7 +11,7 @@ func writeAcquisitionScript(t *testing.T) string {
 	path := filepath.Join(t.TempDir(), "fake-cli")
 	script := `#!/bin/sh
 if [ "$1" = "--help" ]; then
-  echo "CAL_CAPABILITY document.export_pdf"
+  echo "CAL_CAPABILITY document.convert"
   echo "CAL_COMMAND export-pdf --source {{source}} --target {{target}}"
   exit 0
 fi
@@ -80,26 +79,20 @@ func writeDiscoveryProposal(t *testing.T, providerID string) string {
 	}
 	content := `{
   "metadata": {"source": "replay"},
-  "verifier_packages": [{
-    "id": "pdf_magic_check",
-    "description": "Check that the generated artifact is a PDF file.",
-    "verify_py": ` + strconv.Quote(pdfMagicVerifierScript()) + `
-  }],
   "candidates": [{
     ` + providerField + `
-    "capability_id": "document.export_pdf",
+    "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
     "execution": {
       "kind": "cli",
       "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-    },
-    "rationale": "replayed proposal maps make-pdf to PDF export"
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verifier": {"id": "pdf_magic_check"}
+    "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {

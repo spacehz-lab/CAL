@@ -42,6 +42,9 @@ cald
 
 `calctl` should stay a thin adapter. It manages the `cald` process shape, discovers the local endpoint, calls the local HTTP control API, and renders command output. It should not call discovery, runtime, eval, store, or promotion workflows directly.
 
+Long-running synchronous discovery calls use a longer local HTTP client timeout
+than ordinary control calls. Probe execution remains bounded inside `cald`.
+
 The data model must stay the same either way.
 
 ## calctl And cald Relationship
@@ -100,9 +103,9 @@ remote HTTP service in v1.
 
 `cald` may be unavailable. Commands that only read durable state should still work when possible. Commands that require service-owned state or long-running discovery jobs should return a structured service-unavailable error when `cald` is not running.
 
-Current implementation slice: `calctl` routes provider source management,
-provider finding, discovery acquisition, capabilities listing, intent-level use,
-runtime runs, eval summaries, traces, and service status through `cald`.
+Current implementation slice: `calctl` routes provider registration, discovery
+acquisition, capabilities listing, intent-level use, runtime runs, eval
+summaries, traces, and service status through `cald`.
 Future automatic discovery workers are not required for the current closed loop.
 
 ## Logging
@@ -154,9 +157,9 @@ files such as `calctl.log.1`. The default rotation policy is 10 MB per file and
 5 retained rotated files.
 
 Discovery debug logs may include provider ids, capability ids, selector counts,
-verifier id, trace id, and structured error codes. Logs must not include API
-keys, full prompts, full LLM responses, full observation text, file contents,
-vectors, or user input payloads.
+verification levels, verify check counts, trace id, and structured error codes.
+Logs must not include API keys, full prompts, full LLM responses, full
+observation text, file contents, vectors, or user input payloads.
 
 The current diagnostic event surface is intentionally limited to major workflow
 boundaries:
@@ -167,16 +170,15 @@ boundaries:
   verification, promotion, completion, and structured failure stages.
 - `proposal llm ...` records live proposal start, completion, and failure
   stages with safe counts such as observation, candidate, probe-plan, and
-  verifier-package counts.
+  verify-check counts.
 - `proposal materializer ...` records replay/live proposal materialization with
   safe counts and proposal hashes, not raw proposal bodies.
 - `observe cli documentation ...` records local CLI documentation source
   attempts, selected source, byte counts, duration, and timeout/empty-output
   classifications.
-- `runtime binding ...`, `runtime execution ...`, `runtime verifier ...`, and
-  `runtime run ...` record binding resolution, provider execution, verifier
-  execution or generated verifier installation, and top-level run completion or
-  failure.
+- `runtime binding ...`, `runtime execution ...`, `runtime verification ...`,
+  and `runtime run ...` record binding resolution, provider execution,
+  verify-check evaluation, and top-level run completion or failure.
 - `eval compute ...` records aggregate experiment record counts.
 
 ## Primary Agent Path
@@ -236,23 +238,16 @@ running service through HTTP.
 ### Discovery
 
 ```bash
-calctl providers sources list --json
-calctl providers sources add --kind path --value <path> --json
-calctl providers sources remove --kind path --value <path> --json
-
-calctl providers find --kind cli --json
-calctl providers find --kind app --json
-
-calctl discovery run --provider-path <provider-path> --json
+calctl providers add --provider-path <provider-path> --json
+calctl providers get --provider-path <provider-path> --json
 calctl discovery run --provider-id <provider-id> --json
 ```
 
 Purpose:
 
 ```text
-manage provider sources
-find CLI or app provider entries without running acquisition
-run targeted Discovery Inference, Verification, and Promotion for selected providers
+register CLI or app provider entries without running acquisition
+run targeted Discovery Proposal, Verification, and Promotion for selected providers
 promote verified Capability and Binding records through cald
 ```
 
@@ -314,9 +309,9 @@ Detailed design:
 docs/design/cal-control-use.md
 ```
 
-`use` must not generate new capabilities, generate verifiers, trigger
-discovery, or claim execution success from LLM output. It selects from promoted
-records and delegates execution to Run.
+`use` must not generate new capabilities, generate verify checks or script
+fallbacks, trigger discovery, or claim execution success from LLM output. It
+selects from promoted records and delegates execution to Run.
 
 ### Execution
 

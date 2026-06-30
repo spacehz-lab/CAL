@@ -21,9 +21,9 @@ type CapabilitySummary struct {
 
 // BindingSummary describes promoted binding availability for one capability.
 type BindingSummary struct {
-	Available   int      `json:"available"`
-	ProviderIDs []string `json:"provider_ids"`
-	Verifiers   []string `json:"verifiers"`
+	Available    int      `json:"available"`
+	ProviderIDs  []string `json:"provider_ids"`
+	VerifyLevels []string `json:"verify_levels"`
 }
 
 // Catalog builds read models for reusable capabilities.
@@ -60,7 +60,7 @@ func (catalog Catalog) List(capabilities []core.Capability, opts ListOptions) Ca
 
 func summarizeCapability(capability core.Capability, providerID string) (CapabilitySummary, bool) {
 	providerIDs := map[string]struct{}{}
-	verifiers := map[string]struct{}{}
+	verifyLevels := map[string]struct{}{}
 	available := 0
 
 	for _, binding := range capability.Bindings {
@@ -72,8 +72,8 @@ func summarizeCapability(capability core.Capability, providerID string) (Capabil
 		}
 		available++
 		providerIDs[binding.ProviderID] = struct{}{}
-		if binding.Verifier != nil {
-			verifiers[binding.Verifier.ID] = struct{}{}
+		if binding.Verify != nil {
+			verifyLevels[string(binding.Verify.Level)] = struct{}{}
 		}
 	}
 	if available == 0 {
@@ -84,9 +84,9 @@ func summarizeCapability(capability core.Capability, providerID string) (Capabil
 		ID:          capability.ID,
 		Description: capability.Description,
 		Bindings: BindingSummary{
-			Available:   available,
-			ProviderIDs: sortedStrings(providerIDs),
-			Verifiers:   sortedStrings(verifiers),
+			Available:    available,
+			ProviderIDs:  sortedStrings(providerIDs),
+			VerifyLevels: sortedStrings(verifyLevels),
 		},
 	}, true
 }

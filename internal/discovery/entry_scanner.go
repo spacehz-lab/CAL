@@ -14,7 +14,6 @@ import (
 
 // EntryOptions configures Discovery Entry scanning.
 type EntryOptions struct {
-	Paths   []string
 	Entries []string
 }
 
@@ -35,12 +34,6 @@ func newEntryScanner() *entryScanner {
 
 func (scanner *entryScanner) Scan(ctx context.Context, opts EntryOptions) ([]core.Provider, error) {
 	scanner.logStarted(opts)
-	for _, discoveryPath := range opts.Paths {
-		if err := scanner.inspectDiscoveryPath(ctx, discoveryPath); err != nil {
-			scanner.logFailed("paths")
-			return nil, err
-		}
-	}
 	for _, entryPath := range opts.Entries {
 		if err := scanner.inspectEntryPath(ctx, entryPath); err != nil {
 			scanner.logFailed("entries")
@@ -57,21 +50,6 @@ func (scanner *entryScanner) Scan(ctx context.Context, opts EntryOptions) ([]cor
 	})
 	scanner.logCompleted(providers)
 	return providers, nil
-}
-
-func (scanner *entryScanner) inspectDiscoveryPath(ctx context.Context, discoveryPath string) error {
-	if strings.TrimSpace(discoveryPath) == "" {
-		return nil
-	}
-	if discoveryPath == "PATH" {
-		for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
-			if err := scanner.inspectDirectory(ctx, dir); err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-	return scanner.inspectDirectory(ctx, scanner.expandPath(discoveryPath))
 }
 
 func (scanner *entryScanner) inspectEntryPath(ctx context.Context, entryPath string) error {
@@ -106,43 +84,6 @@ func (scanner *entryScanner) inspectEntryPath(ctx context.Context, entryPath str
 		return err
 	}
 	scanner.found[provider.ID] = provider
-	return nil
-}
-
-func (scanner *entryScanner) inspectDirectory(ctx context.Context, dir string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	if strings.TrimSpace(dir) == "" {
-		return nil
-	}
-	entries, err := os.ReadDir(dir)
-	if os.IsNotExist(err) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	for _, entry := range entries {
-		path := filepath.Join(dir, entry.Name())
-		info, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-		kind := core.ProviderKindCLI
-		switch {
-		case info.IsDir() && isAppBundle(path):
-			kind = core.ProviderKindApp
-		case isExecutable(info, path):
-		default:
-			continue
-		}
-		provider, err := scanner.newProvider(kind, scanner.providerName(path), path)
-		if err != nil {
-			return err
-		}
-		scanner.found[provider.ID] = provider
-	}
 	return nil
 }
 
@@ -183,7 +124,6 @@ func (scanner *entryScanner) newProvider(kind core.ProviderKind, name, path stri
 
 func (scanner *entryScanner) logStarted(opts EntryOptions) {
 	slog.Info("discovery entry started",
-		"paths_count", len(opts.Paths),
 		"entries_count", len(opts.Entries),
 	)
 }

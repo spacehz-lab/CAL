@@ -50,26 +50,20 @@ type Provider struct {
 
 // Binding connects one capability to one provider-specific execution.
 type Binding struct {
-	ID               string         `json:"id"`
-	CapabilityID     string         `json:"capability_id"`
-	ProviderID       string         `json:"provider_id"`
-	InputConstraints map[string]any `json:"input_constraints,omitempty"`
-	Execution        Execution      `json:"execution"`
-	Verifier         *Verifier      `json:"verifier,omitempty"`
-	Evidence         []EvidenceRef  `json:"evidence,omitempty"`
-	State            BindingState   `json:"state"`
-	CreatedAt        string         `json:"created_at,omitempty"`
+	ID           string        `json:"id"`
+	CapabilityID string        `json:"capability_id"`
+	ProviderID   string        `json:"provider_id"`
+	Execution    Execution     `json:"execution"`
+	Verify       *VerifySpec   `json:"verify,omitempty"`
+	Evidence     []EvidenceRef `json:"evidence,omitempty"`
+	State        BindingState  `json:"state"`
+	CreatedAt    string        `json:"created_at,omitempty"`
 }
 
 // Execution is the concrete provider-specific execution plan.
 type Execution struct {
 	Kind ExecutionKind  `json:"kind"`
 	Spec map[string]any `json:"spec,omitempty"`
-}
-
-// Verifier describes a deterministic outcome check.
-type Verifier struct {
-	ID string `json:"id"`
 }
 
 // EvidenceRef points to evidence collected during discovery or run verification.

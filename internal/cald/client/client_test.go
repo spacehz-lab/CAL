@@ -63,6 +63,17 @@ func TestClientDecodesAPIError(t *testing.T) {
 	}
 }
 
+func TestClientDiscoveryUsesLongerTimeout(t *testing.T) {
+	client := NewForEndpoint("http://127.0.0.1")
+	discoveryClient := client.withTimeout(discoveryTimeout)
+	if client.http.Timeout != defaultTimeout {
+		t.Fatalf("default timeout = %s, want %s", client.http.Timeout, defaultTimeout)
+	}
+	if discoveryClient.http.Timeout != discoveryTimeout {
+		t.Fatalf("discovery timeout = %s, want %s", discoveryClient.http.Timeout, discoveryTimeout)
+	}
+}
+
 func writeEndpoint(t *testing.T, home, baseURL string) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(cald.EndpointFilePath(home)), 0o700); err != nil {

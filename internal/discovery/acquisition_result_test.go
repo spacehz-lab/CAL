@@ -13,7 +13,7 @@ func TestAcquisitionRunCompleteWritesTraceAndResult(t *testing.T) {
 	now := time.Unix(0, 42).UTC()
 	run := &acquisitionRun{
 		store:   store,
-		opts:    AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"},
+		opts:    AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.convert"},
 		now:     now,
 		traceID: caltrace.NewID(now),
 		provider: core.Provider{
@@ -21,7 +21,7 @@ func TestAcquisitionRunCompleteWritesTraceAndResult(t *testing.T) {
 			Kind: core.ProviderKindCLI,
 		},
 		observations: []caltrace.Observation{{ProviderID: "provider_cli"}},
-		candidates:   []caltrace.Candidate{{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"}},
+		candidates:   []caltrace.Candidate{{ProviderID: "provider_cli", CapabilityID: "document.convert"}},
 		probes:       []caltrace.Probe{{CandidateIndex: 0, Passed: true}},
 		promotions: []caltrace.Promotion{{
 			CandidateIndex:   0,
@@ -50,7 +50,7 @@ func TestAcquisitionRunFailWritesTraceAndReturnsCodedError(t *testing.T) {
 	store := newAcquisitionTestStore(t)
 	run := &acquisitionRun{
 		store:   store,
-		opts:    AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"},
+		opts:    AcquisitionOptions{ProviderID: "provider_cli", CapabilityID: "document.convert"},
 		now:     time.Unix(0, 42).UTC(),
 		traceID: caltrace.NewID(time.Unix(0, 42).UTC()),
 		provider: core.Provider{
@@ -58,7 +58,7 @@ func TestAcquisitionRunFailWritesTraceAndReturnsCodedError(t *testing.T) {
 			Kind: core.ProviderKindCLI,
 		},
 		observations: []caltrace.Observation{{ProviderID: "provider_cli"}},
-		candidates:   []caltrace.Candidate{{ProviderID: "provider_cli", CapabilityID: "document.export_pdf"}},
+		candidates:   []caltrace.Candidate{{ProviderID: "provider_cli", CapabilityID: "document.convert"}},
 	}
 	codedErr := newCodedError(CodeVerificationFailed, "verification failed")
 

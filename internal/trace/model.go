@@ -11,6 +11,7 @@ type Trace struct {
 	Hint         string            `json:"hint,omitempty"`
 	ProviderIDs  []string          `json:"provider_ids,omitempty"`
 	Observations []Observation     `json:"observations,omitempty"`
+	Proposal     *ProposalTrace    `json:"proposal,omitempty"`
 	Candidates   []Candidate       `json:"candidates,omitempty"`
 	Probes       []Probe           `json:"probes,omitempty"`
 	Promotions   []Promotion       `json:"promotions,omitempty"`
@@ -41,17 +42,110 @@ type Observation struct {
 	CreatedAt  string            `json:"created_at,omitempty"`
 }
 
+// ProposalTrace records proposal-stage diagnostics that are not executable candidates.
+type ProposalTrace struct {
+	SchemaVersion string            `json:"schema_version,omitempty"`
+	PromptVersion string            `json:"prompt_version,omitempty"`
+	Model         string            `json:"model,omitempty"`
+	Stages        []ProposalStage   `json:"stages,omitempty"`
+	Attempts      []ProposalAttempt `json:"attempts,omitempty"`
+}
+
+// ProposalStageName identifies a proposal diagnostics stage.
+type ProposalStageName string
+
+const (
+	// ProposalStageSurface records Stage1 surface inventory decisions.
+	ProposalStageSurface ProposalStageName = "surface"
+	// ProposalStageCapability records Stage2 capability planning decisions.
+	ProposalStageCapability ProposalStageName = "capability"
+	// ProposalStageBinding records Stage3 candidate binding decisions.
+	ProposalStageBinding ProposalStageName = "binding"
+	// ProposalStageEvidence identifies Stage4 verification planning work.
+	ProposalStageEvidence ProposalStageName = "evidence"
+)
+
+// ProposalSummaryKey identifies proposal-stage summary counters.
+type ProposalSummaryKey string
+
+const (
+	// ProposalSummaryRaw counts parsed items before local filtering.
+	ProposalSummaryRaw ProposalSummaryKey = "raw"
+	// ProposalSummaryKeep counts items whose final decision is keep.
+	ProposalSummaryKeep ProposalSummaryKey = "keep"
+	// ProposalSummaryDefer counts items whose final decision is defer.
+	ProposalSummaryDefer ProposalSummaryKey = "defer"
+	// ProposalSummarySkip counts items whose final decision is skip.
+	ProposalSummarySkip ProposalSummaryKey = "skip"
+	// ProposalSummarySelected counts items passed to the next Proposal stage.
+	ProposalSummarySelected ProposalSummaryKey = "selected"
+	// ProposalSummaryReused counts items that reuse an existing catalog capability id.
+	ProposalSummaryReused ProposalSummaryKey = "reused"
+	// ProposalSummaryCreated counts items that introduce a new capability id.
+	ProposalSummaryCreated ProposalSummaryKey = "created"
+	// ProposalSummaryOutOfPolicy counts kept items using a subject or operation outside the policy range.
+	ProposalSummaryOutOfPolicy ProposalSummaryKey = "out_of_policy"
+)
+
+// ProposalStage records one proposal stage's parsed decisions.
+type ProposalStage struct {
+	Name       ProposalStageName          `json:"name"`
+	Items      []ProposalItem             `json:"items,omitempty"`
+	Summary    map[ProposalSummaryKey]int `json:"summary,omitempty"`
+	DurationMS int64                      `json:"duration_ms,omitempty"`
+}
+
+// ProposalAttemptStatus identifies whether one Proposal LLM call produced usable output.
+type ProposalAttemptStatus string
+
+const (
+	// ProposalAttemptSucceeded marks one successful Proposal LLM call.
+	ProposalAttemptSucceeded ProposalAttemptStatus = "succeeded"
+	// ProposalAttemptFailed marks one failed Proposal LLM call.
+	ProposalAttemptFailed ProposalAttemptStatus = "failed"
+)
+
+// ProposalAttempt records raw LLM response diagnostics for one Proposal stage call.
+type ProposalAttempt struct {
+	Stage          ProposalStageName     `json:"stage"`
+	CapabilityID   string                `json:"capability_id,omitempty"`
+	CandidateIndex *int                  `json:"candidate_index,omitempty"`
+	Status         ProposalAttemptStatus `json:"status"`
+	DurationMS     int64                 `json:"duration_ms,omitempty"`
+	Error          *core.RecordError     `json:"error,omitempty"`
+	RawResponse    string                `json:"raw_response,omitempty"`
+}
+
+// ProposalDecision records whether a proposal item should continue to the next stage.
+type ProposalDecision string
+
+const (
+	// ProposalDecisionKeep marks an item selected for the next Proposal stage.
+	ProposalDecisionKeep ProposalDecision = "keep"
+	// ProposalDecisionDefer marks an item observed but deferred from this run.
+	ProposalDecisionDefer ProposalDecision = "defer"
+	// ProposalDecisionSkip marks an item filtered out of Proposal planning.
+	ProposalDecisionSkip ProposalDecision = "skip"
+)
+
+// ProposalItem records a non-executable proposal-stage decision.
+type ProposalItem struct {
+	ID       string           `json:"id,omitempty"`
+	Kind     string           `json:"kind,omitempty"`
+	Name     string           `json:"name,omitempty"`
+	Decision ProposalDecision `json:"decision,omitempty"`
+	Reason   string           `json:"reason,omitempty"`
+}
+
 // Candidate records one inferred candidate binding in a trace.
 type Candidate struct {
-	ProviderID       string               `json:"provider_id"`
-	CapabilityID     string               `json:"capability_id"`
-	Description      string               `json:"description,omitempty"`
-	Source           string               `json:"source,omitempty"`
-	Provenance       *CandidateProvenance `json:"provenance,omitempty"`
-	InputConstraints map[string]any       `json:"input_constraints,omitempty"`
-	Execution        core.Execution       `json:"execution"`
-	Rationale        string               `json:"rationale,omitempty"`
-	CreatedAt        string               `json:"created_at,omitempty"`
+	ProviderID   string               `json:"provider_id"`
+	CapabilityID string               `json:"capability_id"`
+	Description  string               `json:"description,omitempty"`
+	Source       string               `json:"source,omitempty"`
+	Provenance   *CandidateProvenance `json:"provenance,omitempty"`
+	Execution    core.Execution       `json:"execution"`
+	CreatedAt    string               `json:"created_at,omitempty"`
 }
 
 // CandidateProvenance records proposal origin without making it trusted proof.
@@ -68,7 +162,7 @@ type Probe struct {
 	CandidateIndex int                `json:"candidate_index"`
 	Passed         bool               `json:"passed"`
 	Inputs         map[string]any     `json:"inputs,omitempty"`
-	Verifier       core.Verifier      `json:"verifier"`
+	Verify         core.VerifySpec    `json:"verify"`
 	Evidence       []core.EvidenceRef `json:"evidence,omitempty"`
 	Reason         string             `json:"reason,omitempty"`
 	Error          *core.RecordError  `json:"error,omitempty"`

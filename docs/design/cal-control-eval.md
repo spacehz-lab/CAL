@@ -108,7 +108,8 @@ duration
 error code
 ```
 
-Capability and Binding records provide current promoted surface size and verifier coverage.
+Capability and Binding records provide current promoted surface size and
+verification-level coverage.
 
 ## Output
 
@@ -139,7 +140,7 @@ Output shape:
     "probe_success_rate": 0.64,
     "by_capability": [
       {
-        "capability_id": "document.export_pdf",
+        "capability_id": "document.convert",
         "attempts": 10,
         "completed": 7,
         "failed": 3,
@@ -169,10 +170,10 @@ Output shape:
     "run_success_count": 39,
     "run_failure_count": 3,
     "verified_run_count": 14,
-    "verifier_fail_count": 1,
+    "verification_fail_count": 1,
     "run_success_rate": 0.93,
     "verified_success_rate": 0.86,
-    "verifier_failure_rate": 0.07,
+    "verification_failure_rate": 0.07,
     "avg_run_duration_ms": 930
   },
   "use": {
@@ -196,7 +197,7 @@ fields shown above. Broader experiment metrics may include:
 acquisition_precision
 acquisition_cost
 safe_probe_success_rate
-outcome_verifier_pass_rate
+outcome_verification_pass_rate
 binding_promotion_rate
 capability_reuse_rate
 intent_selection_success_rate
@@ -239,7 +240,7 @@ emitting stable JSON for experiments
 Eval does not own:
 
 ```text
-Discovery Inference
+Discovery Proposal
 Discovery Verification
 Discovery Promotion
 capabilities listing

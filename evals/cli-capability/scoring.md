@@ -15,7 +15,7 @@ Each task case should end in exactly one top-level outcome:
 - `partial_success`: acquisition produced verified evidence and promotion, but
   a non-core reporting or optional verification step failed.
 - `verification_failure`: a candidate was proposed and probed, but the
-  deterministic verifier rejected the outcome.
+  deterministic verify checks rejected the outcome.
 - `promotion_failure`: verification passed, but Capability or Binding promotion
   failed.
 - `reuse_failure`: in replay mode, promotion succeeded, fixture inputs
@@ -27,7 +27,7 @@ Each task case should end in exactly one top-level outcome:
   the held-out output.
 - `cli_unavailable`: the required provider could not be found or did not meet
   the declared environment requirement.
-- `unsupported`: the task requires a provider behavior or verifier type outside
+- `unsupported`: the task requires a provider behavior or verification type outside
   the current v0 scope.
 - `skipped`: in replay diagnostics, promotion succeeded, but a direct reuse
   fixture did not contain the runtime inputs required by that binding. Skipped
@@ -42,18 +42,18 @@ reported separately but must not inflate reuse success rate.
 
 ## Verification Boundary
 
-CAL runtime verifier packages and benchmark oracles have different jobs:
+CAL runtime verify specs and benchmark oracles have different jobs:
 
-- CAL verifier packages decide whether a candidate can be promoted into CAL's
+- CAL verify specs decide whether a candidate can be promoted into CAL's
   capability catalog.
 - Capability Use decides whether a user or benchmark intent can route to a
   promoted binding and binding-compatible inputs.
 - Benchmark oracles decide whether the promoted binding solved the held-out task
   on held-out reuse inputs.
 
-This distinction is required because live LLM acquisition may generate verifier
-packages. Reported results should never use an LLM-generated verifier as the only
-success criterion for a benchmark task.
+This distinction is required because live LLM acquisition may propose internal
+verify specs. Reported results should never use CAL's internal verify checks as
+the only success criterion for a benchmark task.
 
 ## Metrics
 
@@ -124,9 +124,9 @@ CAL acquisition failures.
 Baseline results should use the same task ids and fixtures.
 
 - Direct CLI oracle succeeds when the hand-authored invocation produces the
-  expected deterministic verifier result.
+  expected deterministic oracle result.
 - LLM one-shot CLI command succeeds when the generated command produces the
-  expected deterministic verifier result without CAL promotion or reuse.
+  expected deterministic oracle result without CAL promotion or reuse.
 - CAL succeeds only when acquisition, deterministic verification, promotion,
   later Use selection, runtime execution, and independent benchmark oracle
   scoring all succeed. Replay mode additionally requires direct binding reuse.
@@ -145,7 +145,7 @@ Every non-success case should record:
 - failure reason
 - whether a candidate was produced
 - whether a probe was executed
-- verifier id and verifier result when available
+- verification level, check summary, and verification result when available
 - Use selection status, shortlist size, selected capability id, and selected
   binding id when available
 - benchmark oracle id and oracle result when available

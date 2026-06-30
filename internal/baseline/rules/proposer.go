@@ -2,6 +2,7 @@ package rules
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -14,7 +15,7 @@ import (
 type Proposer struct{}
 
 // Propose returns rule-derived candidates for the current skeleton.
-func (Proposer) Propose(_ context.Context, request proposal.Request) (proposal.Response, error) {
+func (Proposer) Propose(_ context.Context, request proposal.Request) (proposal.Result, error) {
 	var candidates []caltrace.Candidate
 	for _, observation := range request.Observations {
 		if observation.Type != "cli_output" {
@@ -24,15 +25,79 @@ func (Proposer) Propose(_ context.Context, request proposal.Request) (proposal.R
 		if !ok {
 			continue
 		}
-		candidate, ok, err := candidateFromHelp(request.Provider.ID, request.Hint, text)
+		candidate, ok, err := candidateFromHelp(request.Provider.ID, request.DebugFilter, text)
 		if err != nil {
-			return proposal.Response{}, err
+			return proposal.Result{}, err
 		}
 		if ok {
 			candidates = append(candidates, candidate)
 		}
 	}
-	return proposal.Response{Candidates: candidates}, nil
+	return proposal.Select(rulesResult(candidates), proposal.SelectOptions{
+		ProviderID:  request.Provider.ID,
+		DebugFilter: request.DebugFilter,
+	})
+}
+
+func rulesResult(candidates []caltrace.Candidate) proposal.Result {
+	probePlans := make([]proposal.ProbePlan, 0, len(candidates))
+	for index, candidate := range candidates {
+		probePlans = append(probePlans, proposal.ProbePlan{
+			CandidateIndex: index,
+			Inputs:         probeInputs(candidate.CapabilityID),
+			Fixtures:       probeFixtures(candidate.CapabilityID),
+			Verify:         verifyForCapability(candidate.CapabilityID),
+		})
+	}
+	return proposal.Result{
+		Candidates: candidates,
+		ProbePlans: probePlans,
+	}
+}
+
+func probeInputs(capabilityID string) map[string]any {
+	switch capabilityID {
+	case "image.resize":
+		return map[string]any{
+			"source": "{{workdir}}/input.png",
+			"target": "{{workdir}}/output.png",
+			"width":  12,
+			"height": 8,
+		}
+	default:
+		return map[string]any{
+			"source": "{{workdir}}/input.txt",
+			"target": "{{workdir}}/output.pdf",
+		}
+	}
+}
+
+func probeFixtures(capabilityID string) []proposal.Fixture {
+	switch capabilityID {
+	case "document.convert":
+		return []proposal.Fixture{{
+			Input:    "source",
+			Filename: "input.txt",
+			Content:  "cal probe input\n",
+		}}
+	case "image.resize":
+		return []proposal.Fixture{{
+			Input:    "source",
+			Filename: "input.png",
+			Content:  mustDecodeString(testPNGBase64),
+		}}
+	default:
+		return nil
+	}
+}
+
+func verifyForCapability(capabilityID string) core.VerifySpec {
+	switch capabilityID {
+	case "image.resize":
+		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "png"}}}}
+	default:
+		return core.VerifySpec{Level: core.VerifyLevelL2, Method: core.VerifyMethodExecute, Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateFormat, Params: map[string]any{"format": "pdf"}}}}
+	}
 }
 
 func candidateFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {
@@ -48,7 +113,7 @@ func candidateFromHelp(providerID, capabilityID, text string) (caltrace.Candidat
 		if len(args) == 0 {
 			return caltrace.Candidate{}, false, fmt.Errorf("CAL_COMMAND marker is empty")
 		}
-		return newCLIHelpCandidate(providerID, capability, descriptionForCapability(capability), args, "rules:cli_help_marker", "CLI help exposed CAL_CAPABILITY and CAL_COMMAND markers"), true, nil
+		return newCLIHelpCandidate(providerID, capability, descriptionForCapability(capability), args, "rules:cli_help_marker"), true, nil
 	}
 
 	if candidate, ok, err := sipsImageResizeFromHelp(providerID, capabilityID, text); ok || err != nil {
@@ -72,11 +137,11 @@ func sipsImageResizeFromHelp(providerID, capabilityID, text string) (caltrace.Ca
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"-z", "{{height}}", "{{width}}", "{{source}}", "--out", "{{target}}"}
-	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_sips_resize", "CLI help exposed sips image resize with output path option"), true, nil
+	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_sips_resize"), true, nil
 }
 
 func cupsfilterDocumentExportPDFFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {
-	const proposedCapability = "document.export_pdf"
+	const proposedCapability = "document.convert"
 	if !matchesCapabilityHint(capabilityID, proposedCapability) {
 		return caltrace.Candidate{}, false, nil
 	}
@@ -88,13 +153,13 @@ func cupsfilterDocumentExportPDFFromHelp(providerID, capabilityID, text string) 
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"-i", "text/plain", "-m", "application/pdf", "{{source}}"}
-	candidate := newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_docs_cupsfilter_pdf", "CLI documentation exposed cupsfilter PDF conversion through stdout")
+	candidate := newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_docs_cupsfilter_pdf")
 	candidate.Execution.Spec[core.ExecutionSpecStdoutPathInput] = "target"
 	return candidate, true, nil
 }
 
 func markerFreeDocumentExportPDFFromHelp(providerID, capabilityID, text string) (caltrace.Candidate, bool, error) {
-	const proposedCapability = "document.export_pdf"
+	const proposedCapability = "document.convert"
 	if !matchesCapabilityHint(capabilityID, proposedCapability) {
 		return caltrace.Candidate{}, false, nil
 	}
@@ -105,14 +170,14 @@ func markerFreeDocumentExportPDFFromHelp(providerID, capabilityID, text string) 
 		return caltrace.Candidate{}, false, nil
 	}
 	args := []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}
-	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_export_pdf", "CLI help exposed an export-pdf command with source and target path options"), true, nil
+	return newCLIHelpCandidate(providerID, proposedCapability, descriptionForCapability(proposedCapability), args, "rules:cli_help_document_convert"), true, nil
 }
 
 func matchesCapabilityHint(hint, capabilityID string) bool {
 	return hint == "" || hint == capabilityID
 }
 
-func newCLIHelpCandidate(providerID, capabilityID, description string, args []string, source, rationale string) caltrace.Candidate {
+func newCLIHelpCandidate(providerID, capabilityID, description string, args []string, source string) caltrace.Candidate {
 	return caltrace.Candidate{
 		ProviderID:   providerID,
 		CapabilityID: capabilityID,
@@ -124,13 +189,12 @@ func newCLIHelpCandidate(providerID, capabilityID, description string, args []st
 				core.ExecutionSpecArgs: args,
 			},
 		},
-		Rationale: rationale,
 	}
 }
 
 func descriptionForCapability(capabilityID string) string {
 	switch capabilityID {
-	case "document.export_pdf":
+	case "document.convert":
 		return "Export or convert a document or text file into a PDF artifact."
 	case "image.resize":
 		return "Resize an image artifact to requested dimensions."
@@ -158,4 +222,14 @@ func parseHelpMarkers(text string) (string, string, bool, bool) {
 		}
 	}
 	return capability, command, hasCapability, hasCommand
+}
+
+const testPNGBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAIAAAACDbGyAAAAFElEQVR4nGM8ceIEA27AhEduBEsDABUMAYuJ1HWoAAAAAElFTkSuQmCC"
+
+func mustDecodeString(value string) string {
+	decoded, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		panic(err)
+	}
+	return string(decoded)
 }

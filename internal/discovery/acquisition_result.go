@@ -17,6 +17,7 @@ func (run *acquisitionRun) fail(stage string, codedErr CodedError) (JobResult, e
 		Hint:         run.opts.CapabilityID,
 		ProviderIDs:  run.providerIDs(),
 		Observations: run.observations,
+		Proposal:     run.proposal,
 		Candidates:   run.candidates,
 		Probes:       run.probes,
 		Error: &core.RecordError{
@@ -41,6 +42,7 @@ func (run *acquisitionRun) complete() (JobResult, error) {
 		Hint:         run.opts.CapabilityID,
 		ProviderIDs:  run.providerIDs(),
 		Observations: run.observations,
+		Proposal:     run.proposal,
 		Candidates:   run.candidates,
 		Probes:       run.probes,
 		Promotions:   run.promotions,
@@ -81,6 +83,7 @@ func (run *acquisitionRun) countCapabilityCreations() int {
 
 func (run *acquisitionRun) logStarted() {
 	slog.Info("discovery acquisition started",
+		"trace_id", run.traceID,
 		"provider_id", run.opts.ProviderID,
 		"capability_hint", run.opts.CapabilityID,
 	)
@@ -88,6 +91,7 @@ func (run *acquisitionRun) logStarted() {
 
 func (run *acquisitionRun) logProviderLoaded() {
 	slog.Info("discovery acquisition provider loaded",
+		"trace_id", run.traceID,
 		"provider_id", run.provider.ID,
 		"provider_kind", run.provider.Kind,
 	)
@@ -95,16 +99,17 @@ func (run *acquisitionRun) logProviderLoaded() {
 
 func (run *acquisitionRun) logObserved() {
 	slog.Info("discovery acquisition observed",
+		"trace_id", run.traceID,
 		"provider_id", run.provider.ID,
 		"observation_count", len(run.observations),
 	)
 }
 
-func (run *acquisitionRun) logProposed(catalogSize, selectedCapabilityCount int) {
+func (run *acquisitionRun) logProposed(catalogSize int) {
 	slog.Info("discovery acquisition proposed",
+		"trace_id", run.traceID,
 		"provider_id", run.provider.ID,
 		"catalog_size", catalogSize,
-		"selected_capability_count", selectedCapabilityCount,
 		"candidate_count", len(run.candidates),
 	)
 }
@@ -117,6 +122,7 @@ func (run *acquisitionRun) logVerified() {
 		}
 	}
 	slog.Info("discovery acquisition verified",
+		"trace_id", run.traceID,
 		"provider_id", run.provider.ID,
 		"probe_count", len(run.probes),
 		"passed_probe_count", passed,
@@ -126,6 +132,7 @@ func (run *acquisitionRun) logVerified() {
 
 func (run *acquisitionRun) logPromoted() {
 	slog.Info("discovery acquisition promoted",
+		"trace_id", run.traceID,
 		"provider_id", run.provider.ID,
 		"promotion_count", len(run.promotions),
 	)
@@ -133,8 +140,8 @@ func (run *acquisitionRun) logPromoted() {
 
 func (run *acquisitionRun) logCompleted(traceID string) {
 	slog.Info("discovery acquisition completed",
-		"provider_id", run.provider.ID,
 		"trace_id", traceID,
+		"provider_id", run.provider.ID,
 		"candidate_count", len(run.candidates),
 		"probe_count", len(run.probes),
 		"promotion_count", len(run.promotions),
@@ -147,6 +154,7 @@ func (run *acquisitionRun) logFailed(stage string, err error, traceWritten bool)
 		code = codedErr.Code
 	}
 	slog.Warn("discovery acquisition failed",
+		"trace_id", run.traceID,
 		"provider_id", run.opts.ProviderID,
 		"stage", stage,
 		"code", code,

@@ -5,58 +5,34 @@ import (
 	"testing"
 )
 
-func TestProvidersSourcesCommands(t *testing.T) {
-	home := t.TempDir()
-	startCLITestCald(t, home)
-	output, err := executeRoot(home, "providers", "sources", "list", "--json")
+func TestProvidersHelpHidesSources(t *testing.T) {
+	output, err := executeRoot(t.TempDir(), "providers", "--help")
 	if err != nil {
-		t.Fatalf("sources list error = %v\n%s", err, output)
+		t.Fatalf("providers help error = %v\n%s", err, output)
 	}
-	if !strings.Contains(output, `"sources"`) || !strings.Contains(output, `"kind": "path"`) {
-		t.Fatalf("sources list output = %q, want JSON provider sources", output)
-	}
-
-	output, err = executeRoot(home, "providers", "sources", "add", "--kind", "path", "--value", "/tmp/cal-extra", "--json")
-	if err != nil {
-		t.Fatalf("sources add error = %v\n%s", err, output)
-	}
-	if !strings.Contains(output, `"changed": true`) {
-		t.Fatalf("sources add output = %q, want changed true", output)
-	}
-
-	output, err = executeRoot(home, "providers", "sources", "remove", "--kind", "path", "--value", "/tmp/cal-extra", "--json")
-	if err != nil {
-		t.Fatalf("sources remove error = %v\n%s", err, output)
-	}
-	if !strings.Contains(output, `"changed": true`) {
-		t.Fatalf("sources remove output = %q, want changed true", output)
+	if strings.Contains(output, "sources") {
+		t.Fatalf("providers help = %q, want sources hidden", output)
 	}
 }
 
-func TestProvidersSourcesCommandsTextOutput(t *testing.T) {
+func TestProvidersAddAndGetByPath(t *testing.T) {
 	home := t.TempDir()
 	startCLITestCald(t, home)
-	output, err := executeRoot(home, "providers", "sources", "add", "--kind", "path", "--value", "/tmp/cal-text")
+	providerPath := writeAcquisitionScript(t)
+
+	output, err := executeRoot(home, "providers", "add", "--provider-path", providerPath, "--json")
 	if err != nil {
-		t.Fatalf("sources add text error = %v\n%s", err, output)
+		t.Fatalf("providers add error = %v\n%s", err, output)
 	}
-	if !strings.Contains(output, "/tmp/cal-text") {
-		t.Fatalf("sources add text output = %q, want added path", output)
+	if !strings.Contains(output, `"path": `) || !strings.Contains(output, providerPath) {
+		t.Fatalf("providers add output = %q, want provider path", output)
 	}
 
-	output, err = executeRoot(home, "providers", "sources", "list")
+	output, err = executeRoot(home, "providers", "get", "--provider-path", providerPath, "--json")
 	if err != nil {
-		t.Fatalf("sources list text error = %v\n%s", err, output)
+		t.Fatalf("providers get by path error = %v\n%s", err, output)
 	}
-	if !strings.Contains(output, "/tmp/cal-text") {
-		t.Fatalf("sources list text output = %q, want added path", output)
-	}
-
-	output, err = executeRoot(home, "providers", "sources", "remove", "--kind", "path", "--value", "/tmp/cal-text")
-	if err != nil {
-		t.Fatalf("sources remove text error = %v\n%s", err, output)
-	}
-	if !strings.Contains(output, "/tmp/cal-text") {
-		t.Fatalf("sources remove text output = %q, want removed path", output)
+	if !strings.Contains(output, `"path": `) || !strings.Contains(output, providerPath) {
+		t.Fatalf("providers get by path output = %q, want provider path", output)
 	}
 }

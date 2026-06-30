@@ -14,7 +14,7 @@
   ],
   "candidates": [
     {
-      "capability_id": "text.encode_base64",
+      "capability_id": "text.encode",
       "description": "Encode source bytes as Base64 text.",
       "execution": {
         "kind": "cli",
@@ -26,8 +26,7 @@
             "{{target}}"
           ]
         }
-      },
-      "rationale": "Benchmark replay proposal for base64 encoding."
+      }
     }
   ],
   "probe_plans": [
@@ -43,8 +42,22 @@
           "content": "cal benchmark base64 encode fixture\n"
         }
       ],
-      "verifier": {
-        "id": "base64_encode_matches_source"
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "bytes_equal_transform",
+            "params": {
+              "source": "source",
+              "transform": "base64_encode"
+            }
+          }
+        ]
       }
     }
   ]

@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -9,53 +8,29 @@ import (
 )
 
 func TestRunDiscoverProviderRequiresExactlyOneTarget(t *testing.T) {
-	for _, opts := range []discoveryRunOptions{
-		{},
-		{providerPath: "/tmp/provider", providerID: "provider_test"},
-	} {
-		_, err := buildDiscoveryRunRequest(opts)
-		commandErr, ok := err.(commandError)
-		if !ok || commandErr.Code != string(commandErrorInvalidDiscoveryTarget) {
-			t.Fatalf("buildDiscoveryRunRequest(%#v) error = %#v, want invalid_discovery_target", opts, err)
-		}
+	_, err := buildDiscoveryRunRequest(discoveryRunOptions{})
+	commandErr, ok := err.(commandError)
+	if !ok || commandErr.Code != string(commandErrorInvalidDiscoveryTarget) {
+		t.Fatalf("buildDiscoveryRunRequest() error = %#v, want invalid_discovery_target", err)
 	}
 }
 
-func TestDiscoverProviderCommandJSONResultAndError(t *testing.T) {
+func TestDiscoverProviderCommandRequiresProviderID(t *testing.T) {
 	home := t.TempDir()
 	startCLITestCald(t, home)
-	installCLITestVerifier(t, home, "file_parse_pdf", pdfMagicVerifierScript())
-	providerPath := writeAcquisitionScript(t)
 
-	output, err := executeRoot(home, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
-	if err != nil {
-		t.Fatalf("discovery run json error = %v\n%s", err, output)
-	}
-	if !strings.Contains(output, `"type": "provider_path"`) || !strings.Contains(output, `"bindings_promoted": 1`) {
-		t.Fatalf("discovery run json output = %q, want provider_path acquisition", output)
-	}
-
-	output, err = executeRoot(home, "discovery", "run", "--provider-path", filepath.Join(home, "missing"), "--json")
+	output, err := executeRoot(home, "discovery", "run", "--json")
 	if err == nil {
-		t.Fatalf("discovery run missing path succeeded, want error\n%s", output)
+		t.Fatalf("discovery run without provider-id succeeded, want error\n%s", output)
 	}
-	if !strings.Contains(output, `"code": "target_provider_not_found"`) || !strings.Contains(output, "provider path") {
-		t.Fatalf("discovery run error output = %q, want provider-path specific error", output)
-	}
-
-	output, err = executeRoot(home, "discovery", "run", "--provider-path", home, "--json")
-	if err == nil {
-		t.Fatalf("discovery run directory path succeeded, want error\n%s", output)
-	}
-	if !strings.Contains(output, `"code": "target_provider_not_found"`) {
-		t.Fatalf("discovery run directory error output = %q, want target_provider_not_found", output)
+	if !strings.Contains(output, `"code": "invalid_discovery_target"`) {
+		t.Fatalf("discovery run error output = %q, want invalid_discovery_target", output)
 	}
 }
 
 func TestDiscoverProviderCommandByID(t *testing.T) {
 	home := t.TempDir()
 	startCLITestCald(t, home)
-	installCLITestVerifier(t, home, "file_parse_pdf", pdfMagicVerifierScript())
 	store := newTestStoreWithHome(t, home)
 	if err := store.PutProvider(testCLIProvider("provider_cli", writeAcquisitionScript(t))); err != nil {
 		t.Fatalf("PutProvider() error = %v", err)

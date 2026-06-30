@@ -9,17 +9,17 @@ import (
 
 func TestPutGetAndListCapability(t *testing.T) {
 	store := newTestStore(t)
-	capability := validCapability("document.export_pdf")
+	capability := validCapability("document.convert")
 	if err := store.PutCapability(capability); err != nil {
 		t.Fatalf("PutCapability() error = %v", err)
 	}
 
-	got, ok, err := store.GetCapability("document.export_pdf")
+	got, ok, err := store.GetCapability("document.convert")
 	if err != nil {
 		t.Fatalf("GetCapability() error = %v", err)
 	}
-	if !ok || got.ID != "document.export_pdf" {
-		t.Fatalf("GetCapability() = %#v, %v, want document.export_pdf", got, ok)
+	if !ok || got.ID != "document.convert" {
+		t.Fatalf("GetCapability() = %#v, %v, want document.convert", got, ok)
 	}
 
 	missing, ok, err := store.GetCapability("document.missing")
@@ -34,8 +34,8 @@ func TestPutGetAndListCapability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListCapabilities() error = %v", err)
 	}
-	if len(capabilities) != 1 || capabilities[0].ID != "document.export_pdf" {
-		t.Fatalf("ListCapabilities() = %#v, want document.export_pdf", capabilities)
+	if len(capabilities) != 1 || capabilities[0].ID != "document.convert" {
+		t.Fatalf("ListCapabilities() = %#v, want document.convert", capabilities)
 	}
 }
 
@@ -97,9 +97,13 @@ func validCapability(id string) core.Capability {
 			CapabilityID: id,
 			ProviderID:   "provider_abc123",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI},
-			Verifier:     &core.Verifier{ID: "file_exists"},
-			Evidence:     []core.EvidenceRef{{ID: "evidence_abc123"}},
-			State:        core.BindingStatePromoted,
+			Verify: &core.VerifySpec{
+				Level:  core.VerifyLevelL2,
+				Method: core.VerifyMethodExecute,
+				Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
+			},
+			Evidence: []core.EvidenceRef{{ID: "evidence_abc123"}},
+			State:    core.BindingStatePromoted,
 		}},
 	}
 }

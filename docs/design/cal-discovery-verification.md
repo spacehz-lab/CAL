@@ -2,9 +2,12 @@
 
 Discovery Verification is the third step of Discovery.
 
-It tests candidate bindings from `Trace.candidates[]` with safe probes and records the outcome in `Trace.probes[]`.
+It executes candidate bindings from `Trace.candidates[]` with safe probes,
+collects evidence, evaluates `verify.checks`, and records the outcome in
+`Trace.probes[]`.
 
-Verification does not create durable `Capability` or `Binding` records. Promotion uses passed probes to create or update those core records.
+Verification does not create durable `Capability` or `Binding` records.
+Promotion uses passed probes to create or update those core records.
 
 ## Input
 
@@ -13,6 +16,7 @@ Verification input:
 ```text
 Trace.candidates[]
 probe plan material
+verify spec
 temporary probe work directory
 ```
 
@@ -20,11 +24,14 @@ Fields:
 
 ```text
 Trace.candidates[]
-  Candidate proposals created by Inference.
+  Candidate proposals created by Proposal.
 
 probe plan material
-  Controlled inputs, fixture files, and deterministic verifier id selected for
-  one candidate.
+  Controlled inputs and fixture files for one candidate.
+
+verify spec
+  Deterministic evidence checks proposed by Proposal Evidence and validated by
+  CAL.
 
 temporary probe work directory
   Isolated working area used to materialize fixtures and obvious path inputs.
@@ -41,8 +48,8 @@ Trace.candidates[]
 -> select candidate
 -> build probe context
 -> execute candidate.execution
--> collect evidence
--> run verifier
+-> collect evidence context
+-> evaluate verify.checks
 -> classify pass / fail / ambiguous
 -> append probe result to Trace.probes[]
 ```
@@ -55,64 +62,111 @@ probe_context
   work_dir
   inputs
   fixtures optional
-  verifier
+  execution_result
+  evidence_context
+  verify
 ```
 
-Fields:
+`execution_result` includes command output, stderr, exit code, and produced
+artifacts when the execution kind exposes them.
+
+`evidence_context` is provider-specific but normalized for verification. CLI
+evidence may include `stdout`, `stderr`, and path inputs such as `source` and
+`target`. Future Web and GUI evidence may include `dom`, `url`, `network`,
+`ax`, `screenshot`, and `app_state`.
+
+Verification must not use an `LLM proposer` to decide success. Proposal may
+produce a `verify` spec, but CAL executes the candidate and evaluates checks
+locally.
+
+## Verify Spec
+
+`verify` is the durable verification plan attached to a passing binding:
 
 ```text
-candidate
-  Selected candidate from Trace.candidates[].
-
-work_dir
-  Temporary directory for materialized inputs, outputs, and fixture files.
-
-inputs
-  Runtime input object passed to the candidate execution and verifier.
-
-fixtures optional
-  Controlled files or values materialized before execution.
-
-verifier
-  Deterministic verifier package id and verifier-specific config.
+verify
+  level L0 | L1 | L2 | L3
+  method execute | contract
+  checks[]
+    subject
+      type file | stdout | stderr | exit_code
+      input file subjects only
+    predicate
+    params optional
 ```
 
-Verification executes the candidate's proposed `execution`. The raw execution result is converted into evidence and checked by a deterministic verifier.
-
-Verification must not use an `LLM proposer` to decide success. An `LLM proposer`
-may only propose a probe plan and generated verifier harness. CAL still executes
-the probe and runs deterministic verification.
-
-Probe planning and outcome verification are separate responsibilities:
+`level` describes the strength of deterministic evidence:
 
 ```text
-ProbePlanner
-  builds fixture inputs and selects a deterministic verifier
+L3 semantic
+  Verifies the semantic result itself.
 
-runtime verifier
-  executes the verifier and decides pass / fail
+L2 structural
+  Verifies output structure, format, or key properties.
+
+L1 behavioral
+  Verifies that an action occurred or state changed.
+
+L0 unsupported
+  No reliable deterministic verification is available.
 ```
 
-Runtime verifier implementations are script packages registered by the runtime
-verifier registry. The registry is a code trust boundary: SOP or `LLM proposer`
-output may reference a local verifier id or provide a new local verifier
-harness package, but it cannot mark verification as passed. CAL installs
-generated harnesses under `CAL_HOME/verifiers/<id>/`, executes verifier scripts
-locally, and uses only the resulting evidence as proof.
+CAL owns final level derivation. A model output is process material, not proof.
 
-Local installations and generated harnesses add verifier scripts under
-`CAL_HOME/verifiers/`. Each verifier directory contains `meta.json` and an
-executable script entry. Verifier scripts receive one JSON request on stdin and
-must write one JSON result on stdout. CAL owns registration, timeout, JSON
-decoding, evidence recording, and pass/fail handling. Generated harnesses are
-local materialized code, not a security sandbox.
+`method` describes evidence collection. `execute` runs safe local probes and
+evaluates built-in checks locally. Safe execute probes may read probe fixtures
+and write declared probe outputs inside the probe workdir. `contract` records
+weak evidence without executing the probe when real execution would install,
+remove, update, edit, start services, require network, require interaction, or
+change external state. Unsafe commands with a clear observed command path and
+documented operation semantics use contract `L1`; contract `L0` is reserved for
+ambiguous observations where CAL cannot identify a reliable command path or
+operation semantics. Contract verification cannot exceed `L1` and must not
+include checks.
 
-SOP or `LLM proposer` probe-plan output must be schema-validated and executed by
-CAL; it must not set `passed` or bypass fixture safety checks. When it supplies
-a generated harness, CAL still performs deterministic local verifier execution.
-Probe fixture files and obvious path inputs are materialized inside the temporary
-probe work directory; paths that escape that directory are rejected before
-provider execution or verifier execution.
+## Built-In Checks
+
+The default verification path is built-in check evaluation, not generated code.
+
+Initial CLI checks should stay small:
+
+```text
+exists
+non_empty
+format
+contains
+regex
+bytes_equal_transform
+hash_line_matches
+```
+
+Checks use typed subjects. `file` subjects read a path from a named input such
+as `target`; `stdout`, `stderr`, and `exit_code` read process results. CAL uses
+the same core VerifySpec rule table for Stage4 prompt injection and
+`ValidateVerifySpec`, so invalid subject/predicate/parameter combinations are
+rejected before probing or promotion.
+
+The rule table includes fixed parameter value sets for built-ins that need
+them: `format` supports `pdf`, `png`, `json`, and `text`;
+`bytes_equal_transform.transform` supports `base64_encode` and
+`base64_decode`; `hash_line_matches.algorithm` supports `sha1`, `sha256`, and
+common SHA aliases.
+
+Examples:
+
+```text
+file(target) bytes_equal_transform source with transform base64_decode
+stdout hash_line_matches source with algorithm sha1
+file(target) exists + non_empty + format pdf
+```
+
+Checks must reference only evidence subjects available in the probe context.
+They must not require hidden probe-only values that future `run --verify` calls
+cannot supply or reproduce.
+
+Each execute probe has a bounded timeout and records `execution_timeout` when
+the candidate command exceeds it. A single probe timeout should fail that
+candidate, not cancel unrelated candidates.
 
 ## Output
 
@@ -138,7 +192,7 @@ Probe:
 probe
   candidate_index
   passed
-  verifier
+  verify
   evidence
   reason optional
   error optional
@@ -155,61 +209,11 @@ candidate_index
 passed
   Whether the candidate passed deterministic verification.
 
-verifier
-  Deterministic check used for the probe.
+verify
+  Verification level, method, and deterministic checks used for the probe.
 
 evidence
   Evidence collected during execution and verification.
-
-reason optional
-  Explanation for failed or ambiguous results.
-
-error optional
-  Execution-level error, such as timeout, permission failure, or crash.
-
-created_at
-  Probe record time.
-```
-
-Verifier:
-
-```text
-verifier
-  id
-```
-
-Verifier ids are lowercase snake_case package ids:
-
-```text
-^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$
-```
-
-The id should describe the evidence check, not the provider or command that
-created the artifact. Do not include provider names, CLI flags, paths, random
-hashes, or fixture literals in verifier ids.
-
-Generated verifier proposal ids are proposal-local semantic ids and must not
-start with `verifier_`. CAL rewrites each generated harness to a stable
-installed id before installing it:
-
-```text
-verifier_<proposal_local_id>_<hash12>
-```
-
-The first generated package format is a single `python3` `verify.py` file with
-a fixed timeout and no overwrite of existing verifier ids.
-
-CAL does not ship embedded default verifier packages. Replay fixtures and live
-LLM proposals must carry generated verifier packages, or the referenced verifier
-must already exist under `CAL_HOME/verifiers/`.
-
-Evidence:
-
-```text
-evidence[]
-  type
-  content optional
-  ref optional
 ```
 
 Evidence examples:
@@ -232,7 +236,7 @@ Use `content` for small facts. Use `ref` for files or larger artifacts.
 Verification can conclude:
 
 ```text
-The candidate passed.
+The candidate passed at a verified level.
 The candidate failed.
 The result is ambiguous.
 ```
@@ -244,4 +248,4 @@ The binding is durable.
 The capability should be added to the core model.
 ```
 
-Promotion makes that decision from a passed probe.
+Promotion makes that decision from a passed probe and its verification level.

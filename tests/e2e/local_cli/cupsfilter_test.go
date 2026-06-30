@@ -32,7 +32,6 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	e2etest.Build(t, repo, caldBin, "./cmd/cald")
 
 	home := filepath.Join(temp, "home")
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
 
@@ -43,7 +42,7 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--mode", "rules", "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition discovery = %#v, want one promoted cupsfilter binding", acquisition)
 	}
@@ -59,8 +58,8 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	if !e2etest.HasObservation(trace.Observations, "help", "cupsfilter") {
 		t.Fatalf("trace observations = %#v, want help observation describing cupsfilter", trace.Observations)
 	}
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || trace.Probes[0].Verifier.ID != "file_parse_pdf" {
-		t.Fatalf("trace probes = %#v, want passing file_parse_pdf probe", trace.Probes)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probes = %#v, want passing L2+ probe", trace.Probes)
 	}
 
 	source := filepath.Join(temp, "source.txt")
@@ -73,12 +72,12 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 		Verified bool               `json:"verified"`
 		Evidence []core.EvidenceRef `json:"evidence"`
 	}
-	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.export_pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
+	e2etest.RunJSON(t, repo, env, &runSuccess, calctlBin, "runs", "create", "--capability-id", "document.convert", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(target)+`}`, "--verify", "--json")
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != "file_parse_pdf" {
-		t.Fatalf("run evidence = %#v, want file_parse_pdf evidence", runSuccess.Evidence)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 
 	useTarget := filepath.Join(temp, "use-target.pdf")
@@ -98,8 +97,8 @@ func TestCupsfilterAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "export this text document as pdf", "--inputs-json", `{"source":`+strconv.Quote(source)+`,"target":`+strconv.Quote(useTarget)+`}`, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.export_pdf" || useSuccess.Selection.BindingID == "" || useSuccess.Selection.ProviderID != provider.ID {
-		t.Fatalf("use success = %#v, want selected cupsfilter document.export_pdf binding", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.convert" || useSuccess.Selection.BindingID == "" || useSuccess.Selection.ProviderID != provider.ID {
+		t.Fatalf("use success = %#v, want selected cupsfilter document.convert binding", useSuccess)
 	}
 	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.BindingID != useSuccess.Selection.BindingID || useSuccess.Run.ProviderID != provider.ID {
 		t.Fatalf("use run = %#v, want verified selected cupsfilter binding", useSuccess.Run)

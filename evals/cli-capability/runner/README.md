@@ -10,8 +10,8 @@ with fixed scoring contracts:
    held-out fixture inputs satisfy the promoted binding contract.
 5. Route held-out intents through Capability Use and execute the selected
    promoted bindings.
-6. Score held-out outputs with `oracles/*.py`, not with CAL's generated
-   verifier packages.
+6. Score held-out outputs with `oracles/*.py`, not with CAL's internal verify
+   specs or script fallbacks.
 7. Report four evidence layers:
    - acquisition evidence;
    - held-out task success;
@@ -23,6 +23,22 @@ Generated outputs belong under:
 ```text
 evals/out/cli-capability/<run-id>/
 ```
+
+The runner writes `flow.json` as the primary evidence artifact. The HTML report
+renders the same flow as:
+
+```text
+provider.resolve
+-> provider.register
+-> acquisition.stage1.observe
+-> acquisition.stage2.propose
+-> acquisition.stage3.verify
+-> acquisition.stage4.promote
+-> direct_reuse
+-> intent_use
+```
+
+`summary.json` remains the aggregate metrics artifact for scripts and tables.
 
 ## Replay Bootstrap
 
@@ -71,10 +87,10 @@ python3 evals/cli-capability/runner/run.py \
   --cald build/bin/cald
 ```
 
-Live mode does not use replay proposals. CAL asks the configured model to infer
-candidate capabilities, verifier harnesses, and probe plans from observed CLI
+Live mode does not use replay proposals. CAL asks the configured model to
+propose candidate capabilities, verify specs, and probe plans from observed CLI
 behavior. The benchmark scores intent-level Use with fixed oracle scripts, not
-with the generated verifier package.
+with CAL's internal verification result.
 
 Replay mode is strict and fails on any recorded benchmark failure. Live mode is
 allowed to record failed providers or candidates, but the run is considered

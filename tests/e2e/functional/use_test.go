@@ -18,7 +18,6 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 	secondPath := filepath.Join(temp, "second-exporter")
 	e2etest.WriteFakeExporter(t, firstPath, e2etest.WriteParseablePDFCommand())
 	e2etest.WriteFakeExporter(t, secondPath, e2etest.WriteParseablePDFCommand())
-	e2etest.WritePDFMagicVerifier(t, home, "file_parse_pdf")
 
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
@@ -29,7 +28,7 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &first, calctlBin, "discovery", "run", "--provider-path", firstPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, firstPath, &first, "--mode", "rules", "--json")
 	if first.State != "succeeded" || first.CapabilitiesPromoted != 1 || first.BindingsPromoted != 1 || len(first.Providers) != 1 {
 		t.Fatalf("first acquisition = %#v, want created capability and binding", first)
 	}
@@ -40,7 +39,7 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &second, calctlBin, "discovery", "run", "--provider-path", secondPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, secondPath, &second, "--mode", "rules", "--json")
 	if second.State != "succeeded" || second.CapabilitiesPromoted != 0 || second.BindingsPromoted != 1 || len(second.Providers) != 1 {
 		t.Fatalf("second acquisition = %#v, want reused capability and second binding", second)
 	}
@@ -65,8 +64,8 @@ func TestUseSelectsProviderScopedBinding(t *testing.T) {
 		} `json:"run"`
 	}
 	e2etest.RunJSON(t, repo, env, &useSuccess, calctlBin, "use", "--intent", "export this document as pdf", "--provider-id", second.Providers[0].ID, "--inputs-json", `{"source":`+strconv.Quote(source)+`}`, "--verify", "--json")
-	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.export_pdf" || useSuccess.Selection.ProviderID != second.Providers[0].ID {
-		t.Fatalf("use success = %#v, want provider-scoped document.export_pdf selection", useSuccess)
+	if useSuccess.Status != "succeeded" || useSuccess.Selection.CapabilityID != "document.convert" || useSuccess.Selection.ProviderID != second.Providers[0].ID {
+		t.Fatalf("use success = %#v, want provider-scoped document.convert selection", useSuccess)
 	}
 	if useSuccess.Run.Status != "succeeded" || !useSuccess.Run.Verified || useSuccess.Run.BindingID != useSuccess.Selection.BindingID || useSuccess.Run.ProviderID != second.Providers[0].ID {
 		t.Fatalf("use run = %#v, want verified run on selected provider binding", useSuccess.Run)

@@ -11,7 +11,7 @@ func TestRecordsReuseSeparatesRunFailureFromVerifierFailure(t *testing.T) {
 		runs: []core.Run{
 			{ID: "run_verified_success", Status: core.RunStatusSucceeded, Verified: true, DurationMS: 20},
 			{ID: "run_execution_failed", Status: core.RunStatusFailed, DurationMS: 40},
-			{ID: "run_verified_failed", Status: core.RunStatusFailed, Verified: true},
+			{ID: "run_verified_failed", Status: core.RunStatusFailed, Error: &core.RecordError{Code: "verification_failed"}},
 		},
 	}.reuse()
 

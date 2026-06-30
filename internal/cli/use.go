@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/spacehz-lab/cal/internal/core"
 	caluse "github.com/spacehz-lab/cal/internal/use"
 )
 
@@ -17,6 +18,7 @@ func newUseCommand(cfg Config) *cobra.Command {
 	var providerID string
 	var strategy string
 	var verifyRun bool
+	var minVerifyLevel string
 	cmd := &cobra.Command{
 		Use:   "use [intent]",
 		Short: "Route an intent to a promoted capability",
@@ -36,11 +38,12 @@ func newUseCommand(cfg Config) *cobra.Command {
 				return writeCommandError(cmd, jsonOut, err)
 			}
 			result, err := client.Use(cmd.Context(), caluse.Request{
-				Intent:     intent,
-				Inputs:     inputs,
-				ProviderID: providerID,
-				Strategy:   strategy,
-				Verify:     verifyRun,
+				Intent:         intent,
+				Inputs:         inputs,
+				ProviderID:     providerID,
+				Strategy:       strategy,
+				Verify:         verifyRun,
+				MinVerifyLevel: core.VerifyLevel(minVerifyLevel),
 			})
 			if err != nil {
 				return writeCommandError(cmd, jsonOut, err)
@@ -73,5 +76,6 @@ func newUseCommand(cfg Config) *cobra.Command {
 	cmd.Flags().StringVar(&providerID, "provider-id", "", "provider_id request field")
 	cmd.Flags().StringVar(&strategy, "strategy", "default", "binding resolution strategy")
 	cmd.Flags().BoolVar(&verifyRun, "verify", false, "verify the outcome after execution")
+	cmd.Flags().StringVar(&minVerifyLevel, "min-verify-level", "", "minimum verification level: L1, L2, or L3")
 	return cmd
 }

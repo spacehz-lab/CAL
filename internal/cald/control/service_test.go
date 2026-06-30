@@ -40,7 +40,7 @@ func testProviderRecord() core.Provider {
 
 func testCapabilityRecord(t *testing.T, providerID string) core.Capability {
 	t.Helper()
-	capabilityID := "document.export_pdf"
+	capabilityID := "document.convert"
 	execution := core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"--version"}},
@@ -57,9 +57,17 @@ func testCapabilityRecord(t *testing.T, providerID string) core.Capability {
 			CapabilityID: capabilityID,
 			ProviderID:   providerID,
 			Execution:    execution,
-			Verifier:     &core.Verifier{ID: "verifier_test"},
+			Verify:       testVerifySpec(),
 			Evidence:     []core.EvidenceRef{{ID: "evidence_test"}},
 			State:        core.BindingStatePromoted,
 		}},
+	}
+}
+
+func testVerifySpec() *core.VerifySpec {
+	return &core.VerifySpec{
+		Level:  core.VerifyLevelL2,
+		Method: core.VerifyMethodExecute,
+		Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 	}
 }

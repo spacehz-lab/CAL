@@ -12,7 +12,7 @@ func TestAcquisitionPromoterRejectsFailedProbe(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	_, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 	}, caltrace.Probe{Passed: false})
@@ -25,7 +25,7 @@ func TestAcquisitionPromoterRequiresDescription(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	_, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI},
 	}, passedFileExistsProbe())
 	if err == nil {
@@ -37,28 +37,22 @@ func TestAcquisitionPromoterCreatesPromotedBinding(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	capability, binding, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
-		InputConstraints: map[string]any{
-			"target": map[string]any{"type": "string", "description": "output PDF path"},
-		},
-		Execution: core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"run"}}},
+		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"run"}}},
 	}, caltrace.Probe{
 		Passed:   true,
-		Verifier: core.Verifier{ID: "file_exists"},
+		Verify:   fileExistsVerifySpec(),
 		Evidence: []core.EvidenceRef{{ID: "evidence_file_exists"}},
 	})
 	if err != nil {
 		t.Fatalf("promotedCapability() error = %v", err)
 	}
-	if capability.ID != "document.export_pdf" || capability.Description == "" || len(capability.Bindings) != 1 {
+	if capability.ID != "document.convert" || capability.Description == "" || len(capability.Bindings) != 1 {
 		t.Fatalf("capability = %#v, want one promoted binding", capability)
 	}
-	if binding.State != core.BindingStatePromoted || binding.Verifier == nil || len(binding.Evidence) != 1 {
-		t.Fatalf("binding = %#v, want promoted binding with verifier and evidence", binding)
-	}
-	if binding.InputConstraints["target"] == nil {
-		t.Fatalf("input constraints = %#v, want promoted binding constraints", binding.InputConstraints)
+	if binding.State != core.BindingStatePromoted || binding.Verify == nil || len(binding.Evidence) != 1 {
+		t.Fatalf("binding = %#v, want promoted binding with verify spec and evidence", binding)
 	}
 }
 
@@ -66,7 +60,7 @@ func TestAcquisitionPromoterBindingIDUsesExecutionSpec(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	first, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"old"}}},
 	}, passedFileExistsProbe())
@@ -75,7 +69,7 @@ func TestAcquisitionPromoterBindingIDUsesExecutionSpec(t *testing.T) {
 	}
 	second, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"new"}}},
 	}, passedFileExistsProbe())
@@ -91,7 +85,7 @@ func TestAcquisitionPromoterMergeKeepsDifferentBindings(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	first, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"old"}}},
 	}, passedFileExistsProbe())
@@ -100,7 +94,7 @@ func TestAcquisitionPromoterMergeKeepsDifferentBindings(t *testing.T) {
 	}
 	second, _, err := promoter.promotedCapability(caltrace.Candidate{
 		ProviderID:   "provider_cli",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Description:  "Export a document to PDF.",
 		Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"new"}}},
 	}, passedFileExistsProbe())
@@ -116,27 +110,27 @@ func TestAcquisitionPromoterMergeKeepsDifferentBindings(t *testing.T) {
 func TestAcquisitionPromoterMergeReplacesSameBinding(t *testing.T) {
 	promoter := newAcquisitionTestPromoter()
 	existing := core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []core.Binding{{
 			ID:           "binding_same",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			ProviderID:   "provider_cli",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"old"}}},
-			Verifier:     &core.Verifier{ID: "file_exists"},
+			Verify:       fileExistsVerifySpecPtr(),
 			Evidence:     []core.EvidenceRef{{ID: "old_evidence"}},
 			State:        core.BindingStatePromoted,
 		}},
 	}
 	promoted := core.Capability{
-		ID:          "document.export_pdf",
+		ID:          "document.convert",
 		Description: "Export a document to PDF.",
 		Bindings: []core.Binding{{
 			ID:           "binding_same",
-			CapabilityID: "document.export_pdf",
+			CapabilityID: "document.convert",
 			ProviderID:   "provider_cli",
 			Execution:    core.Execution{Kind: core.ExecutionKindCLI, Spec: map[string]any{"args": []string{"new"}}},
-			Verifier:     &core.Verifier{ID: "file_exists"},
+			Verify:       fileExistsVerifySpecPtr(),
 			Evidence:     []core.EvidenceRef{{ID: "new_evidence"}},
 			State:        core.BindingStatePromoted,
 		}},
@@ -158,7 +152,20 @@ func newAcquisitionTestPromoter() acquisitionPromoter {
 func passedFileExistsProbe() caltrace.Probe {
 	return caltrace.Probe{
 		Passed:   true,
-		Verifier: core.Verifier{ID: "file_exists"},
+		Verify:   fileExistsVerifySpec(),
 		Evidence: []core.EvidenceRef{{ID: "evidence_file_exists"}},
+	}
+}
+
+func fileExistsVerifySpecPtr() *core.VerifySpec {
+	verify := fileExistsVerifySpec()
+	return &verify
+}
+
+func fileExistsVerifySpec() core.VerifySpec {
+	return core.VerifySpec{
+		Level:  core.VerifyLevelL2,
+		Method: core.VerifyMethodExecute,
+		Checks: []core.VerifyCheck{{Subject: core.VerifySubject{Type: core.VerifySubjectFile, Input: "target"}, Predicate: core.VerifyPredicateExists}},
 	}
 }

@@ -32,7 +32,6 @@ func TestSipsAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	e2etest.Build(t, repo, caldBin, "./cmd/cald")
 
 	home := filepath.Join(temp, "home")
-	e2etest.WriteImageDimensionsVerifier(t, home, "image_dimensions_match")
 	env := e2etest.WithHomeEnv(os.Environ(), home)
 	e2etest.StartCald(t, repo, env, caldBin)
 
@@ -43,7 +42,7 @@ func TestSipsAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 		BindingsPromoted     int                       `json:"bindings_promoted"`
 		Providers            []e2etest.ProviderSummary `json:"providers"`
 	}
-	e2etest.RunJSON(t, repo, env, &acquisition, calctlBin, "discovery", "run", "--provider-path", providerPath, "--mode", "rules", "--json")
+	runDiscoveryForProviderPath(t, repo, env, calctlBin, providerPath, &acquisition, "--mode", "rules", "--json")
 	if acquisition.State != "succeeded" || acquisition.CapabilitiesPromoted != 1 || acquisition.BindingsPromoted != 1 || acquisition.TraceID == "" || len(acquisition.Providers) != 1 {
 		t.Fatalf("acquisition discovery = %#v, want one promoted sips binding", acquisition)
 	}
@@ -56,8 +55,8 @@ func TestSipsAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	if !e2etest.HasObservation(trace.Observations, "help", "--resampleHeightWidth") {
 		t.Fatalf("trace observations = %#v, want help observation describing resize", trace.Observations)
 	}
-	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || trace.Probes[0].Verifier.ID != "image_dimensions_match" {
-		t.Fatalf("trace probes = %#v, want passing image_dimensions_match probe", trace.Probes)
+	if len(trace.Probes) != 1 || !trace.Probes[0].Passed || core.VerifyLevelRank(trace.Probes[0].Verify.Level) < core.VerifyLevelRank(core.VerifyLevelL2) {
+		t.Fatalf("trace probes = %#v, want passing L2+ probe", trace.Probes)
 	}
 
 	source := filepath.Join(temp, "source.png")
@@ -72,8 +71,8 @@ func TestSipsAcquisitionPromotesRealLocalCLIBinding(t *testing.T) {
 	if runSuccess.Status != "succeeded" || !runSuccess.Verified {
 		t.Fatalf("run success = %#v, want verified success", runSuccess)
 	}
-	if len(runSuccess.Evidence) != 1 || runSuccess.Evidence[0].ID != "image_dimensions_match" {
-		t.Fatalf("run evidence = %#v, want image_dimensions_match evidence", runSuccess.Evidence)
+	if len(runSuccess.Evidence) != 1 {
+		t.Fatalf("run evidence = %#v, want one evidence", runSuccess.Evidence)
 	}
 	e2etest.AssertPNGDimensions(t, target, 12, 8)
 

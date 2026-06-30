@@ -11,14 +11,14 @@ func TestPutAndListRun(t *testing.T) {
 	store := newTestStore(t)
 	if err := store.PutRun(core.Run{
 		ID:           "run_b",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Status:       core.RunStatusFailed,
 	}); err != nil {
 		t.Fatalf("PutRun(run_b) error = %v", err)
 	}
 	if err := store.PutRun(core.Run{
 		ID:           "run_a",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Status:       core.RunStatusSucceeded,
 		Verified:     true,
 	}); err != nil {
@@ -38,7 +38,7 @@ func TestGetRun(t *testing.T) {
 	store := newTestStore(t)
 	run := core.Run{
 		ID:           "run_one",
-		CapabilityID: "document.export_pdf",
+		CapabilityID: "document.convert",
 		Status:       core.RunStatusSucceeded,
 	}
 	if err := store.PutRun(run); err != nil {
@@ -81,7 +81,7 @@ func TestListRunsRejectsInvalidJSON(t *testing.T) {
 
 func TestListRunsRejectsInvalidRecord(t *testing.T) {
 	store := newTestStore(t)
-	writeStoreFile(t, filepath.Join(store.Home(), runsDir, "bad.json"), `{"id":"run_bad","capability_id":"document.export_pdf"}`)
+	writeStoreFile(t, filepath.Join(store.Home(), runsDir, "bad.json"), `{"id":"run_bad","capability_id":"document.convert"}`)
 
 	if _, err := store.ListRuns(); err == nil {
 		t.Fatal("ListRuns() error = nil, want validation error")

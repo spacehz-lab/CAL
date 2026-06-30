@@ -12,13 +12,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/spacehz-lab/cal/internal/calpath"
-	"github.com/spacehz-lab/cal/internal/core"
 	caltrace "github.com/spacehz-lab/cal/internal/trace"
 )
 
@@ -263,22 +261,13 @@ func FindProvider(providers []ProviderSummary, name, kind string) (ProviderSumma
 	return ProviderSummary{}, false
 }
 
-// WriteConfig writes a minimal CAL config with one CLI directory and one app directory.
-func WriteConfig(t *testing.T, path, cliDir, appDir string) {
-	t.Helper()
-	content := `{"provider_sources":[{"kind":"path","value":` + strconv.Quote(cliDir) + `},{"kind":"path","value":` + strconv.Quote(appDir) + `}]}`
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
-}
-
 // WriteFakeExecutable writes a fake PATH executable for smoke tests.
 func WriteFakeExecutable(t *testing.T, path string) {
 	t.Helper()
 	script := `#!/bin/sh
 if [ "$1" = "--help" ]; then
   echo "Fake Exporter"
-  echo "CAL_CAPABILITY document.export_pdf"
+  echo "CAL_CAPABILITY document.convert"
   echo "CAL_COMMAND export-pdf --source {{source}} --target {{target}}"
   exit 0
 fi
@@ -319,7 +308,7 @@ func WriteFakeExporter(t *testing.T, path, targetWriteCommand string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ]; then
   echo "Fake Exporter"
-  echo "CAL_CAPABILITY document.export_pdf"
+  echo "CAL_CAPABILITY document.convert"
   echo "CAL_COMMAND export-pdf --source {{source}} --target {{target}}"
   exit 0
 fi
@@ -439,31 +428,69 @@ exit 64
 	}
 }
 
+// WriteConditionalPDFExporter writes a proposal-backed exporter that can emit
+// an invalid PDF for runtime verifier-failure tests.
+func WriteConditionalPDFExporter(t *testing.T, path string) {
+	t.Helper()
+	script := `#!/bin/sh
+if [ "$1" = "--help" ]; then
+  echo "Conditional PDF Exporter 1.0"
+  echo "Usage: conditional-pdf make-pdf --in <path> --out <path>"
+  exit 0
+fi
+if [ "$1" = "make-pdf" ]; then
+  source=""
+  target=""
+  while [ "$#" -gt 0 ]; do
+    case "$1" in
+      --in)
+        source="$2"
+        shift 2
+        ;;
+      --out)
+        target="$2"
+        shift 2
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+  if [ -z "$source" ] || [ -z "$target" ]; then
+    exit 2
+  fi
+  if grep -q 'bad-runtime-pdf' "$source"; then
+    printf '%s\n' 'not a pdf' > "$target"
+    exit 0
+  fi
+  ` + WriteParseablePDFCommand() + `
+  exit $?
+fi
+exit 64
+`
+	if err := os.WriteFile(path, []byte(script), 0o755); err != nil {
+		t.Fatalf("write conditional PDF exporter: %v", err)
+	}
+}
+
 // WriteReplayProposal writes a replay proposal fixture.
 func WriteReplayProposal(t *testing.T, path string) string {
 	t.Helper()
 	content := `{
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
-  "verifier_packages": [{
-    "id": "pdf_magic_check",
-    "description": "Passes when the target artifact starts with a PDF marker.",
-    "verify_py": ` + strconv.Quote(pdfMagicVerifierPY()) + `
-  }],
   "candidates": [{
-    "capability_id": "document.export_pdf",
+    "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
     "execution": {
       "kind": "cli",
       "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-    },
-    "rationale": "replayed proposal maps make-pdf to PDF export"
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verifier": {"id": "pdf_magic_check"},
-    "rationale": "PDF parsing is deterministic evidence"
+    "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
@@ -472,71 +499,55 @@ func WriteReplayProposal(t *testing.T, path string) string {
 	return path
 }
 
-// WriteReplayGeneratedVerifierProposal writes a replay proposal with a generated verifier.
-func WriteReplayGeneratedVerifierProposal(t *testing.T, path string) string {
+// WriteContractReplayProposal writes a replay proposal with L1 contract evidence.
+func WriteContractReplayProposal(t *testing.T, path string) string {
 	t.Helper()
-	verifyPY := pdfMagicVerifierPY()
 	content := `{
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
-  "verifier_packages": [{
-    "id": "pdf_magic_check",
-    "description": "Passes when the target artifact starts with a PDF marker.",
-    "verify_py": ` + strconv.Quote(verifyPY) + `
-  }],
   "candidates": [{
-    "capability_id": "document.export_pdf",
+    "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
     "execution": {
       "kind": "cli",
       "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
-    },
-    "rationale": "replayed proposal maps make-pdf to PDF export"
+    }
+  }],
+  "probe_plans": [{
+    "candidate_index": 0,
+    "inputs": {"source": "{{workdir}}/contract-source.txt", "target": "{{workdir}}/contract-output.pdf"},
+    "verify": {"level":"L1","method":"contract","checks":[]}
+  }]
+}`
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("write contract replay proposal: %v", err)
+	}
+	return path
+}
+
+// WriteReplayVerifySpecProposal writes a replay proposal with built-in verify checks.
+func WriteReplayVerifySpecProposal(t *testing.T, path string) string {
+	t.Helper()
+	content := `{
+  "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
+  "candidates": [{
+    "capability_id": "document.convert",
+    "description": "Export a document to a PDF artifact.",
+    "execution": {
+      "kind": "cli",
+      "spec": {"args": ["make-pdf", "--in", "{{source}}", "--out", "{{target}}"]}
+    }
   }],
   "probe_plans": [{
     "candidate_index": 0,
     "inputs": {"target": "{{workdir}}/output.pdf"},
     "fixtures": [{"input": "source", "filename": "input.txt", "content": "hello\n"}],
-    "verifier": {"id": "pdf_magic_check"},
-    "rationale": "the generated verifier checks the PDF marker"
+    "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
   }]
 }`
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatalf("write generated verifier proposal: %v", err)
+		t.Fatalf("write verify-spec proposal: %v", err)
 	}
 	return path
-}
-
-func pdfMagicVerifierPY() string {
-	return `import json
-import os
-import sys
-
-def fail(code, message):
-    print(json.dumps({"passed": False, "error": {"code": code, "message": message}}))
-    sys.exit(0)
-
-request = json.load(sys.stdin)
-verifier_id = request["verifier"]["id"]
-inputs = request.get("inputs") or {}
-target = inputs.get("target")
-if not isinstance(target, str) or not target:
-    fail("missing_input", 'verifier input "target" is required')
-if not os.path.exists(target):
-    fail("file_missing", "target file is missing")
-with open(target, "rb") as handle:
-    content = handle.read(8)
-if not content.startswith(b"%PDF"):
-    fail("pdf_magic_missing", "target does not start with a PDF marker")
-print(json.dumps({
-    "passed": True,
-    "evidence": [{
-        "id": verifier_id,
-        "type": verifier_id,
-        "content": {"target": target},
-    }],
-    "outputs": {"target": target},
-}))
-`
 }
 
 // WriteParseablePDFCommand returns shell code that writes a minimal parseable PDF.
@@ -622,44 +633,28 @@ func WriteMultiCapabilityProposal(t *testing.T, path string) string {
 	t.Helper()
 	content := `{
   "metadata": {"source": "replay", "prompt_version": "test-v1", "model": "fixture", "schema_version": "proposal.v1"},
-  "verifier_packages": [
-    {
-      "id": "pdf_magic_check",
-      "description": "Passes when the target artifact starts with a PDF marker.",
-      "verify_py": ` + strconv.Quote(pdfMagicVerifierPY()) + `
-    },
-    {
-      "id": "file_exists_check",
-      "description": "Passes when the target file exists.",
-      "verify_py": ` + strconv.Quote(fileExistsVerifierPY()) + `
-    }
-  ],
   "candidates": [
     {
-      "capability_id": "document.export_pdf",
+      "capability_id": "document.convert",
     "description": "Export a document to a PDF artifact.",
-      "execution": {"kind": "cli", "spec": {"args": ["make-pdf", "--out", "{{target}}"]}},
-      "rationale": "provider can create a PDF file"
+      "execution": {"kind": "cli", "spec": {"args": ["make-pdf", "--out", "{{target}}"]}}
     },
     {
-      "capability_id": "text.write_file",
+      "capability_id": "text.write",
       "description": "Write a text file artifact.",
-      "execution": {"kind": "cli", "spec": {"args": ["write-note", "--out", "{{target}}"]}},
-      "rationale": "provider can write a text note"
+      "execution": {"kind": "cli", "spec": {"args": ["write-note", "--out", "{{target}}"]}}
     }
   ],
   "probe_plans": [
     {
       "candidate_index": 0,
       "inputs": {"target": "{{workdir}}/output.pdf"},
-      "verifier": {"id": "pdf_magic_check"},
-      "rationale": "PDF parser validates the generated file"
+      "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"pdf"}}]}
     },
     {
       "candidate_index": 1,
       "inputs": {"target": "{{workdir}}/note.txt"},
-      "verifier": {"id": "file_exists_check"},
-      "rationale": "file existence validates note creation"
+      "verify": {"level":"L2","method":"execute","checks":[{"subject":{"type":"file","input":"target"},"predicate":"exists"},{"subject":{"type":"file","input":"target"},"predicate":"non_empty"}]}
     }
   ]
 }`
@@ -667,109 +662,6 @@ func WriteMultiCapabilityProposal(t *testing.T, path string) string {
 		t.Fatalf("write multi-capability proposal: %v", err)
 	}
 	return path
-}
-
-func fileExistsVerifierPY() string {
-	return `import json
-import os
-import sys
-
-request = json.load(sys.stdin)
-verifier_id = request["verifier"]["id"]
-target = (request.get("inputs") or {}).get("target")
-if not isinstance(target, str) or not os.path.exists(target):
-    print(json.dumps({"passed": False, "error": {"code": "file_missing", "message": "target file is missing"}}))
-    sys.exit(0)
-print(json.dumps({
-    "passed": True,
-    "evidence": [{
-        "id": verifier_id,
-        "type": verifier_id,
-        "content": {"target": target},
-    }],
-    "outputs": {"target": target},
-}))
-`
-}
-
-// WriteLocalVerifier writes one verifier package under the CAL home for tests.
-func WriteLocalVerifier(t *testing.T, home string, id string, verifyPY string) {
-	t.Helper()
-	dir := filepath.Join(home, "verifiers", id)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		t.Fatalf("create local verifier dir: %v", err)
-	}
-	meta := map[string]any{
-		"id":         id,
-		"runtime":    "python3",
-		"entry":      "verify.py",
-		"timeout_ms": 3000,
-	}
-	content, err := json.MarshalIndent(meta, "", "  ")
-	if err != nil {
-		t.Fatalf("encode local verifier metadata: %v", err)
-	}
-	content = append(content, '\n')
-	if err := os.WriteFile(filepath.Join(dir, "meta.json"), content, 0o644); err != nil {
-		t.Fatalf("write local verifier metadata: %v", err)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "verify.py"), []byte(verifyPY), 0o644); err != nil {
-		t.Fatalf("write local verifier script: %v", err)
-	}
-}
-
-// WritePDFMagicVerifier writes a PDF marker verifier package under the CAL home.
-func WritePDFMagicVerifier(t *testing.T, home string, id string) {
-	t.Helper()
-	WriteLocalVerifier(t, home, id, pdfMagicVerifierPY())
-}
-
-// WriteFileExistsVerifier writes a target-exists verifier package under the CAL home.
-func WriteFileExistsVerifier(t *testing.T, home string, id string) {
-	t.Helper()
-	WriteLocalVerifier(t, home, id, fileExistsVerifierPY())
-}
-
-// WriteImageDimensionsVerifier writes an image dimensions verifier package under the CAL home.
-func WriteImageDimensionsVerifier(t *testing.T, home string, id string) {
-	t.Helper()
-	WriteLocalVerifier(t, home, id, imageDimensionsVerifierPY())
-}
-
-func imageDimensionsVerifierPY() string {
-	return `import json
-import struct
-import sys
-
-request = json.load(sys.stdin)
-verifier_id = request["verifier"]["id"]
-inputs = request.get("inputs") or {}
-target = inputs.get("target")
-want_width = int(inputs.get("width"))
-want_height = int(inputs.get("height"))
-
-def fail(code, message):
-    print(json.dumps({"passed": False, "error": {"code": code, "message": message}}))
-    sys.exit(0)
-
-with open(target, "rb") as handle:
-    data = handle.read(24)
-if len(data) < 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
-    fail("not_png", "target is not a PNG")
-width, height = struct.unpack(">II", data[16:24])
-if width != want_width or height != want_height:
-    fail("dimension_mismatch", "target dimensions do not match requested dimensions")
-print(json.dumps({
-    "passed": True,
-    "evidence": [{"id": verifier_id, "type": verifier_id, "content": {"target": target, "width": width, "height": height}}],
-    "outputs": {"target": target, "width": width, "height": height},
-}))
-`
-}
-
-// Verifier returns a verifier by id.
-func Verifier(id string) core.Verifier {
-	return core.Verifier{ID: id}
 }
 
 // JSONArg marshals a value for an --inputs-json command argument.

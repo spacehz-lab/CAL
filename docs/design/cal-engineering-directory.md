@@ -33,7 +33,6 @@ internal/
   baseline/
     rules/
       proposer.go
-      planner.go
 
   core/
     model.go
@@ -97,7 +96,7 @@ internal/
     errors.go
     acquisition.go
     acquisition_result.go
-    acquisition_verifier.go
+    acquisition_verification.go
     acquisition_promoter.go
 
   observe/
@@ -109,28 +108,32 @@ internal/
       help.go
 
   proposal/
-    catalog.go
-    materializer.go
-    probe.go
-    proposal.go
-    prompt.go
-    schema.go
-
-    llm/
-      chat.go
-      factory.go
-      options.go
-      proposer.go
-      client.go
-      responses.go
+    proposer.go
+    types.go
+    stage_types.go
+    profile.go
+    profile_cli.go
+    policy.go
+    policy_file.go
+    prompt_cli.go
+    surface.go
+    capability.go
+    binding.go
+    binding_check.go
+    binding_run.go
+    evidence.go
+    materialize.go
+    replay.go
+    select.go
+    logger.go
 
   runtime/
     catalog.go
     runner.go
     runner_inputs.go
     runner_execute.go
+    runner_verify.go
     registry.go
-    registry_install.go
 
   eval/
     eval.go
@@ -212,7 +215,7 @@ Core-owned types:
 Provider
 Capability
 Binding
-Verifier
+VerifySpec
 EvidenceRef
 Run
 Eval
@@ -220,8 +223,8 @@ Eval
 
 `core` must not import higher-level packages.
 
-`core` does not own a verifier catalog. Verifier package ids are data owned by
-local verifier packages, proposals, or tests.
+`core` does not own a verification catalog. Verify specs are data owned by
+promoted bindings, proposals, or tests.
 
 ### `internal/trace`
 
@@ -230,7 +233,7 @@ Owns Discovery Trace records and Trace-specific validation.
 Trace is process material for explanation, debugging, and evaluation. It is not
 executable capability knowledge and must not live in `core`.
 
-Trace may reference core value types such as `Execution`, `Verifier`,
+Trace may reference core value types such as `Execution`, `VerifySpec`,
 `EvidenceRef`, and `RecordError`.
 
 ### `internal/store`
@@ -244,8 +247,8 @@ Business packages should define the narrow persistence interfaces they need.
 
 ### `internal/config`
 
-Owns user-editable local configuration, including provider sources, non-secret
-LLM settings, and logging policy.
+Owns user-editable local configuration, including non-secret LLM settings and
+logging policy.
 
 It does not own provider discovery, Trace writing, promotion, or run behavior.
 
@@ -290,7 +293,7 @@ Owns discovery jobs and the Discovery loop:
 
 ```text
 Entry
-Inference
+Proposal
 Verification
 Promotion
 Trace
@@ -299,16 +302,9 @@ Probe
 
 Discovery should coordinate `observe` and `proposal`, then promote only verified bindings.
 
-`internal/proposal` defines the `Proposer` and `ProbePlanner` contracts.
-Production planner implementations live with their proposal source, such as
-`proposal/llm` or the proposal JSON materializer. Rules-only deterministic
-planning is a baseline implementation under `internal/baseline/rules`, not a
-default production fallback.
-
-`ProbePlanRequest` should carry only the candidate and the temporary work
-directory needed to materialize probe inputs. Provider execution stays in
-Discovery Verification and should not be passed into planners unless a planner
-has a concrete provider-specific planning need.
+`internal/proposal` owns the new four-stage Proposal flow. It returns
+candidate bindings and probe plans in one result so Discovery does not depend on
+separate proposer and probe-planner callbacks.
 
 ### `internal/observe`
 
@@ -324,35 +320,24 @@ Keep observation separate from discovery because different providers require dif
 
 ### `internal/proposal`
 
-Owns the proposal contract for candidate generation and probe-plan materialization.
-
-Implementation subpackages:
+Owns the four-stage Proposal contract:
 
 ```text
-proposal/llm
+Surface
+Capability
+Binding
+Evidence
 ```
 
-Keep proposal-domain adapters under `proposal`. Do not move proposal schema,
-prompt, or materialization logic into generic package names such as `llm`,
-`infer`, `model`, or `actor`.
-
-`proposal/llm` is only the `LLM proposer` implementation detail.
-
-The top-level `proposal` package owns offline proposal JSON parsing, loading,
-and materialization. Live LLM output, SOP files, and fixtures use the same
-proposal contract before Discovery executes and verifies anything.
-
-Rules-only proposal generation is intentionally outside `internal/proposal` in
-`internal/baseline/rules` so experiments and regression tests do not leak
-hard-coded behavior into production discovery.
+It should hide stage sequencing behind one `Pipeline.Propose` call and return
+candidate bindings plus probe plans as process material.
 
 ### `internal/baseline/rules`
 
 Owns deterministic rules-only proposal generation and probe planning for evaluation baselines,
 controlled fake CLI fixtures, and regression tests.
 
-It may reference test-installed verifier package ids as fixture data, but
-production discovery must import it only for hidden baseline mode.
+Production discovery must import it only for hidden baseline mode.
 
 ### `internal/runtime`
 
@@ -407,15 +392,15 @@ fixtures, scoring, replay proposals, and runner. `evals/results` contains
 compact, commit-ready summaries selected from local runs. Generated outputs
 belong under `evals/out/`, which is ignored by git.
 
-Verifier packages live under `CAL_HOME/verifiers/`. Production runtime does not
-load embedded verifier scripts from the repository.
+Verification is represented by `Binding.verify` and probe `verify` specs.
+Runtime owns execution of built-in checks; Discovery owns promotion decisions.
 
 ## Naming Decisions
 
 - `calctl` is the CLI.
 - `cald` is the local service.
 - `observe` is independent because it can use CLI, CUA, or later drivers.
-- `proposal` owns candidate proposal generation and probe-plan materialization.
+- `proposal` owns staged proposal generation and probe-plan materialization.
 - `runtime` owns promoted binding execution, verification, catalog read-models, and binding selection.
 - There is no `actor` module.
 - There is no top-level `llm`, `infer`, `model`, `backend`, or `provider` module in the target tree.
@@ -449,9 +434,9 @@ internal/discovery -> internal/observe
 internal/discovery -> internal/runtime
 internal/discovery -> internal/trace
 
-internal/proposal  -> internal/core
-internal/proposal  -> internal/runtime
-internal/proposal  -> internal/trace
+internal/proposal -> internal/core
+internal/proposal -> internal/llm
+internal/proposal -> internal/trace
 internal/observe   -> internal/core
 internal/runtime   -> internal/core
 internal/use       -> internal/core

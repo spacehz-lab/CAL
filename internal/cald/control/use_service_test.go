@@ -23,7 +23,7 @@ func TestUseSelectsPromotedBindingAndRuns(t *testing.T) {
 	if err := svc.store.PutProvider(provider); err != nil {
 		t.Fatalf("PutProvider() error = %v", err)
 	}
-	capability := useTestCapability("document.export_pdf", "Export a document to PDF.", provider.ID, core.Execution{
+	capability := useTestCapability("document.convert", "Export a document to PDF.", provider.ID, core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"-test.run=TestRunHelperProcess"}},
 	})
@@ -48,7 +48,7 @@ func TestUseSelectsPromotedBindingAndRuns(t *testing.T) {
 
 func TestUseReturnsNoMatch(t *testing.T) {
 	svc := newTestService(t)
-	capability := useTestCapability("document.export_pdf", "Export a document to PDF.", "provider_test_cli", core.Execution{
+	capability := useTestCapability("document.convert", "Export a document to PDF.", "provider_test_cli", core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"export-pdf"}},
 	})
@@ -70,7 +70,7 @@ func TestUseReturnsNoMatch(t *testing.T) {
 
 func TestUseReturnsMissingInputs(t *testing.T) {
 	svc := newTestService(t)
-	capability := useTestCapability("document.export_pdf", "Export a document to PDF.", "provider_test_cli", core.Execution{
+	capability := useTestCapability("document.convert", "Export a document to PDF.", "provider_test_cli", core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}},
 	})
@@ -114,7 +114,7 @@ printf "ok" > "$target"
 	if err := svc.store.PutProvider(provider); err != nil {
 		t.Fatalf("PutProvider() error = %v", err)
 	}
-	capability := useTestCapability("document.export_pdf", "Export a document to PDF.", provider.ID, core.Execution{
+	capability := useTestCapability("document.convert", "Export a document to PDF.", provider.ID, core.Execution{
 		Kind: core.ExecutionKindCLI,
 		Spec: map[string]any{core.ExecutionSpecArgs: []string{"export-pdf", "--source", "{{source}}", "--target", "{{target}}"}},
 	})
@@ -157,7 +157,7 @@ func useTestCapability(id, description, providerID string, execution core.Execut
 			CapabilityID: id,
 			ProviderID:   providerID,
 			Execution:    execution,
-			Verifier:     &core.Verifier{ID: "verifier_test"},
+			Verify:       testVerifySpec(),
 			Evidence:     []core.EvidenceRef{{ID: "evidence_test"}},
 			State:        core.BindingStatePromoted,
 		}},

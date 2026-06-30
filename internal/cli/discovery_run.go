@@ -10,7 +10,6 @@ import (
 
 type discoveryRunOptions struct {
 	jsonOut      bool
-	providerPath string
 	providerID   string
 	capabilityID string
 	proposalPath string
@@ -61,7 +60,6 @@ func newDiscoveryRunCommand(cfg Config) *cobra.Command {
 
 func (opts *discoveryRunOptions) bind(cmd *cobra.Command) {
 	cmd.Flags().BoolVar(&opts.jsonOut, "json", false, "render machine-readable JSON")
-	cmd.Flags().StringVar(&opts.providerPath, "provider-path", "", "provider_path request field")
 	cmd.Flags().StringVar(&opts.providerID, "provider-id", "", "provider_id request field")
 	cmd.Flags().StringVar(&opts.capabilityID, "capability-id", "", "optional capability_id debug filter")
 	cmd.Flags().StringVar(&opts.proposalPath, "proposal-path", "", "proposal_path replay file")
@@ -70,11 +68,10 @@ func (opts *discoveryRunOptions) bind(cmd *cobra.Command) {
 }
 
 func buildDiscoveryRunRequest(opts discoveryRunOptions) (control.DiscoveryRequest, error) {
-	if (opts.providerPath == "") == (opts.providerID == "") {
-		return control.DiscoveryRequest{}, newCommandError(commandErrorInvalidDiscoveryTarget, "supply exactly one of provider_id or provider_path")
+	if opts.providerID == "" {
+		return control.DiscoveryRequest{}, newCommandError(commandErrorInvalidDiscoveryTarget, "provider_id is required")
 	}
 	return control.DiscoveryRequest{
-		ProviderPath: opts.providerPath,
 		ProviderID:   opts.providerID,
 		CapabilityID: opts.capabilityID,
 		ProposalPath: opts.proposalPath,

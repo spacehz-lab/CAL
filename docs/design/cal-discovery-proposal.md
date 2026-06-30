@@ -1,79 +1,125 @@
 # CAL Discovery Proposal
 
-This document defines where candidate proposal generation may participate in Discovery, including the bounded places where `LLM proposer` calls are allowed.
+Discovery Proposal is the second step of Discovery.
+
+It observes a discovered `Provider` and produces candidate binding material plus
+the probe and evidence plan needed by Verification.
+
+Discovery keeps the external lifecycle stable:
+
+```text
+Entry
+-> Proposal
+-> Verification
+-> Promotion
+```
+
+Proposal is the only Discovery step that may use an `LLM proposer` for semantic
+interpretation. Verification and Promotion remain deterministic CAL-owned work.
 
 Live LLM adapter configuration is defined in `docs/design/cal-discovery-llm.md`.
-LLM prompt design is defined in `docs/design/cal-discovery-llm-prompt.md`.
+Stage contracts are defined in:
 
-Target CAL execution is service mode: `cald` owns Discovery state, reads and writes `Trace`, runs deterministic verification, and persists promoted `Capability` and `Binding` records. Codex or another agent may call `calctl`, but the target service owns the Discovery loop. The target command entry for one provider acquisition is `calctl discovery run`.
+```text
+docs/design/cal-proposal-surface.md
+docs/design/cal-proposal-capability.md
+docs/design/cal-proposal-binding.md
+docs/design/cal-proposal-evidence.md
+```
 
 ## Goal
 
-Keep `LLM proposer` calls rare and bounded.
+Keep Proposal bounded while still covering complex provider surfaces.
 
-Target call count:
+The target live path uses four internal Proposal stages:
 
 ```text
-Entry        0
-Inference    0 or 1
-Verification 0 by default, 1 only for probe-plan fallback
-Promotion    0
-Trace        0
+Surface
+-> Capability
+-> Binding
+-> Evidence
 ```
 
-Common case:
+These are internal Proposal stages, not public Discovery lifecycle stages.
+Deterministic parsers, replay fixtures, and future provider-specific adapters
+may skip or replace any internal stage as long as they produce the same Proposal
+contract.
+
+## Stages
+
+### Surface
+
+Surface reads provider observations and extracts a bounded list of documented
+commands, actions, modes, or UI surfaces worth considering.
 
 ```text
-0 calls when deterministic parsers can propose candidates.
-1 call when semantic inference is needed.
-2 calls only when semantic inference and probe-plan fallback are both needed.
+Provider observations
+-> surface items
 ```
 
-## Entry
+Surface is a pruning stage. It does not propose `Capability.id`, candidate
+executions, probe inputs, or verification checks.
 
-Entry must not call an `LLM proposer`.
+### Capability
+
+Capability receives the bounded surface list and plans provider-independent
+capability ids.
 
 ```text
-provider_sources
--> inspect configured path sources
--> create/update Provider
+surface items
+existing Capability ids
+preferred subject and operation policy
+optional debug capability filter
+-> capability plan
 ```
 
-Provider records are entry facts. They must not depend on `LLM proposer` output.
+Capability is the only Proposal stage that owns `capability_id` selection,
+reuse, and deduplication. Later stages must not rename capability ids.
+It should prefer configured subject and operation terms, and only create a new
+term when the observed reusable capability cannot be expressed by the preferred
+vocabulary.
 
-## Inference
+### Binding
 
-Inference is the primary candidate-proposal generation point.
-
-Local context preparation should run before the `LLM proposer` call:
+Binding receives one planned capability at a time and materializes
+provider-specific candidate binding material.
 
 ```text
-provider observation
-bounded existing Capability.id lookup
-optional debug hint
+capability plan item
+relevant surface items
+provider observations
+-> candidate execution
+-> probe inputs and fixtures
 ```
 
-If local context is insufficient to produce replayed proposal material, Inference may make one `LLM proposer` call that combines:
+After Capability planning, CAL may run `Binding -> Evidence` pipelines in
+parallel per capability id. The default implementation should cap concurrency
+instead of starting one unbounded model call per capability.
+
+### Evidence
+
+Evidence receives a candidate binding and proposes how CAL should verify it.
 
 ```text
-interpret observations
-lookup selected existing Capability.id or return none
-propose candidate bindings
+candidate execution
+probe inputs and fixtures
+-> verify spec
 ```
 
-Inputs:
+Evidence does not execute the provider and does not decide pass/fail. The model
+only proposes `verify.method` and `verify.checks`; Proposal derives
+`verify.level` locally for later deterministic Verification.
+
+## Output Contract
+
+Proposal output is process material written to `Trace`.
+
+At minimum, Proposal produces:
 
 ```text
-Provider
-observations
-selected existing Capability ids
-hint optional
-```
-
-Output:
-
-```text
-candidates[]
+Trace.candidates[]
+probe plans
+verify specs
 ```
 
 Each candidate must include:
@@ -85,158 +131,158 @@ description
 execution
 ```
 
+Each probe plan must include:
+
+```text
+candidate_index
+inputs
+fixtures optional
+verify
+```
+
 `description` is required process material. It must describe the exact reusable
 operation exposed by `execution`; it must be provider-independent and must not
 claim a broader operation than the binding can perform. Do not include provider
 names, executable names, flags, paths, versions, or marketing labels in the
 description.
 
-The proposer must not mark a candidate as verified. Its output is process material written to `Trace.candidates[]`.
+`verify` is a plan for deterministic Verification. It is not proof.
 
-Capability id selection remains lookup-first:
+## Capability Id Boundary
 
-```text
-reuse: <existing_capability_id>
-none
-```
-
-Only `none` allows proposing a new `capability_id`.
-
-The selected existing Capability ids are produced by local Capability Catalog
-Lookup before the `LLM proposer` call. They are bounded topK candidates, not the
-full capability catalog. This lookup does not change the target call count:
-Inference still uses at most one `LLM proposer` call in the common semantic path.
-
-## Verification
-
-Verification must not use an `LLM proposer` to decide success.
-
-Default path:
+Capability ids are provider-independent semantic operation ids:
 
 ```text
-candidate.execution
--> execute safe probe
--> collect evidence
--> deterministic verifier
--> pass / fail / ambiguous
+<subject>.<operation>
 ```
 
-Allowed fallback:
+They must match:
 
 ```text
-If CAL cannot construct a probe context or expected outcome deterministically,
-an `LLM proposer` may propose a probe plan.
+^[a-z0-9]+\.[a-z0-9]+$
 ```
 
-Proposal and probe-plan fallback output:
+Capability ids must not include provider names, executable names, command names,
+menu labels, flags, paths, versions, marketing names, temporary task names, or
+random suffixes.
+
+Capability ids also must not encode result discriminators such as:
 
 ```text
-proposal
-  metadata optional
-  verifier_packages[] optional
-    id
-    description
-    verify_py
-  candidates[]
-  probe_plans[]
-    candidate_index
-    inputs
-    fixtures optional
-    verifier
-    rationale optional
+format
+encoding
+checksum algorithm
+archive type
+mode
+target artifact kind
 ```
 
-CAL still executes the probe and runs deterministic verification. The proposer does not decide `passed`.
-
-Replay contract:
+Those discriminators belong in binding execution inputs and verify checks. For
+example:
 
 ```text
-proposal
-  metadata optional
-    source optional
-    prompt_version optional
-    model optional
-    schema_version optional
-  verifier_packages[] optional
-  candidates[]
-  probe_plans[]
+file.checksum
+text.encode
+text.decode
+document.convert
+archive.create
 ```
 
-`candidates[]` contains candidate binding material. `probe_plans[]` contains
-fixture inputs, runtime inputs, and one deterministic verifier per proposed
-candidate. `verifier_packages[]` may carry local single-file Python harnesses
-when the outcome can be checked with proposal-provided deterministic evidence.
-CAL may replay this JSON as an SOP fixture, or accept the same JSON from an
-`LLM proposer` adapter. The current adapter only parses this bounded proposal
-contract; it does not give the model authority to verify or promote.
-Replay and adapter output must go through the same execution, verifier, Trace,
-and Promotion path as live Discovery.
-Probe-plan path inputs must stay inside the temporary probe work directory.
-Obvious relative path inputs such as `target`, `source`, `input`, `output`,
-`*_path`, and `*_file` are anchored to that directory; escaping relative or
-absolute paths are rejected before execution.
-When a probe plan supplies a `target` artifact for verification, the candidate
-execution must produce that same input either by using `{{target}}` in
-`execution.spec.args` or by setting `execution.spec.stdout_path_input` to
-`target`.
-
-Candidate `input_constraints` may describe accepted values or meanings for
-runtime placeholders used by the candidate execution. Promotion copies these
-constraints onto the Binding after Verification passes. Capability records do
-not define provider-specific input schemas.
-
-Trace candidates created from replayed proposals record proposal provenance,
-including source, prompt version, model, schema version, and a proposal hash.
-These fields are evaluation evidence only. They are not proof that the
-candidate works.
-Live LLM adapters must not trust model-provided provenance fields. They parse the
-same bounded proposal shape, but CAL supplies source, prompt version, schema
-version, and model from the adapter call context before Trace writing.
-
-## Promotion
-
-Promotion must not call an `LLM proposer`.
+not:
 
 ```text
-passed probe + candidate
--> Capability
--> Binding
+file.sha1sum
+text.encodebase64
+document.convertpdf
 ```
 
-Promotion must not rename `candidate.capability_id`, rewrite `candidate.execution`, ignore evidence, or promote failed or ambiguous probes.
+## Diagnostics
 
-## Trace
+Proposal diagnostics are persisted under `Trace.proposal`.
 
-Trace writing must not call an `LLM proposer`.
+`Trace.proposal.stages[]` records normalized stage decisions and summaries.
+`Trace.proposal.attempts[]` records each live LLM stage call so failed live runs
+can be debugged after the process exits.
 
-Trace records the process material created by Entry, Inference, Verification, and Promotion.
-
-## Service Mode
-
-Service mode is the target execution shape:
+Each attempt records:
 
 ```text
-calctl
--> cald
--> Discovery
--> Trace
--> Provider / Capability / Binding
+stage
+capability_id optional
+candidate_index optional
+status succeeded | failed
+duration_ms
+error optional
+raw_response optional
 ```
 
-In the target service shape, `cald` owns:
+Failed attempts should preserve the raw response when the model returned one.
+This is especially important for Evidence failures, where malformed or locally
+invalid VerifySpec JSON must be inspectable from the stored trace without
+rerunning the live model.
+
+## Concurrency
+
+Surface and Capability are global stages and run serially for one provider
+acquisition.
+
+After Capability has produced a deduplicated plan, CAL may run independent
+per-capability pipelines:
 
 ```text
-Discovery state
-LLM proposer call boundaries
-Trace writing
-safe probe execution
-deterministic verification
-promotion
+capability A -> Binding -> Evidence
+capability B -> Binding -> Evidence
+capability C -> Binding -> Evidence
 ```
 
-Agents can trigger Discovery through `calctl`, but they should not own the verification or promotion rules.
+Failure in one per-capability pipeline should not fail the provider acquisition
+if another pipeline yields a verifiable candidate. The provider acquisition
+fails only when no candidate can pass Verification and Promotion.
 
-Manual acquisition requests enter CAL through `calctl`, then run inside `cald`
-through the local HTTP control API. Proposal parsing, generated verifier
-installation, probe execution, Trace writing, and Promotion are service-owned
-work.
+Binding locally filters invalid candidate executions before Evidence planning.
+It should cap candidates per capability and skip outputs whose probe material
+does not cover execution inputs. This keeps Evidence calls bounded and prevents
+LLM-produced execution/probe mismatches from reaching Verification.
+
+## Validation Gates
+
+CAL must validate Proposal material before Verification:
+
+```text
+capability_id shape and ownership
+candidate execution completeness
+probe inputs cover execution placeholders
+target artifacts are produced by execution before checks reference them
+verify checks reference only available inputs, outputs, or evidence subjects
+verify level is derived locally
+contract verification is capped at L1
+```
+
+The model may suggest `verify.method` and `verify.checks`, but must not suggest
+`verify.level`. CAL derives the final accepted verification contract locally.
+
+## Replay Compatibility
+
+Replay proposal JSON should follow the same final process contract as live
+Proposal output. New replay fixtures should use `verify.level`,
+`verify.method`, and built-in checks.
+
+## Boundary
+
+Proposal can conclude:
+
+```text
+This provider may implement these candidate bindings.
+These probe inputs can test each candidate.
+These verify checks can evaluate the probe result.
+```
+
+Proposal cannot conclude:
+
+```text
+The candidate passed.
+The binding is durable.
+The capability should be added to the core model.
+```
+
+Verification and Promotion make those decisions.

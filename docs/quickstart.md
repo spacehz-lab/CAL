@@ -52,14 +52,15 @@ installed by default and exposes conversion behavior through its local docs:
 
 ```sh
 PROVIDER_PATH="$(command -v plutil)"
+PROVIDER_ID="$(calctl providers add --provider-path "$PROVIDER_PATH" --json | jq -r .id)"
 calctl discovery run \
-  --provider-path "$PROVIDER_PATH" \
+  --provider-id "$PROVIDER_ID" \
   --json
 ```
 
 On another platform, choose a local CLI that exists on your machine and has
-useful `--help` or `man` output, then pass its absolute path with
-`--provider-path`.
+useful `--help` or `man` output, register it with `providers add`, then run
+discovery by `provider_id`.
 
 Expect `state: "succeeded"` and at least one promoted binding. The exact
 capability id and verifier id are model-proposed and may vary. CAL only

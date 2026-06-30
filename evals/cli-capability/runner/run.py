@@ -23,6 +23,32 @@ STATUS_PASSED = "passed"
 STATUS_FAILED = "failed"
 STATUS_SKIPPED = "skipped"
 
+FLOW_SCHEMA_VERSION = "cli-capability-flow-v1"
+STEP_PROVIDER_RESOLVE = "provider.resolve"
+STEP_PROVIDER_REGISTER = "provider.register"
+STEP_DISCOVERY_RUN = "discovery.run"
+STEP_STAGE_OBSERVE = "acquisition.stage1.observe"
+STEP_STAGE_PROPOSE = "acquisition.stage2.propose"
+STEP_STAGE_VERIFY = "acquisition.stage3.verify"
+STEP_STAGE_PROMOTE = "acquisition.stage4.promote"
+STEP_DIRECT_REUSE_RUN = "direct_reuse.run"
+STEP_DIRECT_REUSE_ORACLE = "direct_reuse.oracle"
+STEP_INTENT_USE_SELECT = "intent_use.select"
+STEP_INTENT_USE_RUN = "intent_use.run"
+STEP_INTENT_USE_ORACLE = "intent_use.oracle"
+
+FLOW_MATRIX_STEPS = [
+    STEP_PROVIDER_RESOLVE,
+    STEP_PROVIDER_REGISTER,
+    STEP_DISCOVERY_RUN,
+    STEP_STAGE_OBSERVE,
+    STEP_STAGE_PROPOSE,
+    STEP_STAGE_VERIFY,
+    STEP_STAGE_PROMOTE,
+    STEP_DIRECT_REUSE_ORACLE,
+    STEP_INTENT_USE_ORACLE,
+]
+
 
 def main() -> int:
     args = parse_args()
@@ -70,6 +96,7 @@ def main() -> int:
         writer.write()
         validate_result(args.mode, artifact)
         print(f"summary: {writer.summary_path}")
+        print(f"flow: {writer.flow_path}")
         print(f"html: {writer.html_path}")
         return 0
     finally:
@@ -136,26 +163,38 @@ class BenchmarkRunner:
         return result
 
     def run_provider(self, task: dict[str, Any], provider: dict[str, Any]) -> dict[str, Any]:
-        result: dict[str, Any] = {"id": provider["id"], "command": provider["command"]}
+        result: dict[str, Any] = {"id": provider["id"], "command": provider["command"], "steps": []}
         provider_path = shutil.which(provider["command"])
         if not provider_path:
             result["status"] = STATUS_SKIPPED
             result["failure"] = failure("cli_unavailable", "cli_unavailable", f"{provider['command']} was not found on PATH")
+            result["steps"].append(flow_step(STEP_PROVIDER_RESOLVE, STATUS_SKIPPED, failure=result["failure"]))
             return result
         result["provider_path"] = provider_path
+        result["steps"].append(flow_step(STEP_PROVIDER_RESOLVE, STATUS_PASSED, provider_path=provider_path))
 
         proposal = self.replay_proposal_path(task["id"], provider["id"])
         if self.mode == MODE_REPLAY and not proposal.exists():
             result["status"] = STATUS_SKIPPED
             result["failure"] = failure("proposal_unavailable", "proposal_unavailable", f"missing replay proposal {proposal}")
+            result["steps"].append(flow_step(STEP_DISCOVERY_RUN, STATUS_SKIPPED, failure=result["failure"]))
+            return result
+
+        registered = self.register_provider(provider_path)
+        result["provider_register_duration_ms"] = registered.get("duration_ms", 0)
+        if registered.get("provider"):
+            result["provider_record"] = registered["provider"]
+            result["provider_id"] = registered["provider"].get("id", "")
+        result["steps"].append(registered["step"])
+        if registered.get("failure"):
+            result["status"] = STATUS_FAILED
+            result["failure"] = registered["failure"]
             return result
 
         before = self.trace_ids()
-        cmd = ["discovery", "run", "--provider-path", provider_path, "--json"]
+        cmd = ["discovery", "run", "--provider-id", result["provider_id"], "--json"]
         if self.mode == MODE_REPLAY:
             cmd.extend(["--proposal-path", str(proposal)])
-        elif self.mode == MODE_LIVE_LLM:
-            cmd.extend(["--mode", "llm"])
         started = time.monotonic()
         completed = run_command(self.calctl, cmd, self.repo, self.env)
         result["acquisition_duration_ms"] = elapsed_ms(started)
@@ -164,14 +203,16 @@ class BenchmarkRunner:
             result["proposal_duration_ms"] = (result["discovery"] or {}).get("proposal_duration_ms", 0)
             if self.mode == MODE_LIVE_LLM:
                 result["llm_duration_ms"] = result["proposal_duration_ms"]
-        result["trace_id"] = (result.get("discovery") or {}).get("trace_id", "") or self.new_trace_id(before)
-        self.add_trace_summary(result)
         if completed.returncode != 0:
             result["status"] = STATUS_FAILED
             result["failure"] = command_failure("acquisition_failed", completed)
+            result["steps"].append(flow_step(STEP_DISCOVERY_RUN, STATUS_FAILED, duration_ms=result["acquisition_duration_ms"], trace_id=result.get("trace_id", ""), failure=result["failure"]))
             return result
+        result["trace_id"] = (result.get("discovery") or {}).get("trace_id", "") or self.new_trace_id(before)
+        result["steps"].append(flow_step(STEP_DISCOVERY_RUN, STATUS_PASSED, duration_ms=result["acquisition_duration_ms"], trace_id=result.get("trace_id", "")))
+        self.add_trace_summary(result)
 
-        result["provider_id"] = first_provider_id(result.get("discovery") or {})
+        result["provider_id"] = result.get("provider_id") or first_provider_id(result.get("discovery") or {})
         if self.mode == MODE_REPLAY:
             self.run_reuse(task, result)
             result["status"] = STATUS_PASSED if provider_oracles_passed(result) else STATUS_FAILED
@@ -180,6 +221,37 @@ class BenchmarkRunner:
         if result["status"] == STATUS_FAILED and not result.get("failure"):
             result["failure"] = provider_failure(self.mode)
         return result
+
+    def register_provider(self, provider_path: str) -> dict[str, Any]:
+        started = time.monotonic()
+        completed = run_command(
+            self.calctl,
+            ["providers", "add", "--provider-path", provider_path, "--json"],
+            self.repo,
+            self.env,
+        )
+        duration = elapsed_ms(started)
+        if completed.returncode != 0:
+            err = command_failure("provider_register_failed", completed)
+            return {
+                "duration_ms": duration,
+                "failure": err,
+                "step": flow_step(STEP_PROVIDER_REGISTER, STATUS_FAILED, duration_ms=duration, failure=err),
+            }
+        provider = parse_json(completed.stdout) or {}
+        provider_id = provider.get("id", "")
+        if not provider_id:
+            err = failure("provider_register_failed", "invalid_provider_json", "providers add did not return provider id")
+            return {
+                "duration_ms": duration,
+                "failure": err,
+                "step": flow_step(STEP_PROVIDER_REGISTER, STATUS_FAILED, duration_ms=duration, failure=err),
+            }
+        return {
+            "duration_ms": duration,
+            "provider": provider,
+            "step": flow_step(STEP_PROVIDER_REGISTER, STATUS_PASSED, duration_ms=duration, provider_id=provider_id),
+        }
 
     def add_trace_summary(self, result: dict[str, Any]) -> None:
         trace_id = result.get("trace_id")
@@ -190,6 +262,13 @@ class BenchmarkRunner:
             return
         trace = read_json(path)
         result["observation_sources"] = [obs.get("source", "") for obs in trace.get("observations", [])]
+        result["steps"].append(
+            flow_step(
+                STEP_STAGE_OBSERVE,
+                STATUS_PASSED if result["observation_sources"] else STATUS_SKIPPED,
+                sources=result["observation_sources"],
+            )
+        )
         candidates = []
         for index, candidate in enumerate(trace.get("candidates", [])):
             candidates.append(
@@ -198,29 +277,43 @@ class BenchmarkRunner:
                     "capability_id": candidate.get("capability_id", ""),
                     "description": candidate.get("description", ""),
                     "execution": candidate.get("execution", {}),
-                    "input_constraints": candidate.get("input_constraints", {}),
                     "probe": {"status": "not_run"},
+                    "verification": {},
                     "promotion": {},
                     "reuse": [],
                 }
             )
+        result["steps"].append(flow_step(STEP_STAGE_PROPOSE, STATUS_PASSED if candidates else STATUS_FAILED, candidate_count=len(candidates)))
         for probe in trace.get("probes", []):
             index = probe.get("candidate_index", -1)
             if 0 <= index < len(candidates):
-                verifier = probe.get("verifier") or {}
-                candidates[index]["verifier_id"] = verifier.get("id", "")
+                verify = probe.get("verify") or {}
+                evidence = probe.get("evidence") or []
+                candidates[index]["verification"] = {
+                    "level": verify.get("level", ""),
+                    "method": verify.get("method", ""),
+                    "checks": verify.get("checks", []),
+                    "evidence_count": len(evidence),
+                }
                 candidates[index]["probe"] = {"status": "passed", "passed": True} if probe.get("passed") else {"status": "failed", "passed": False}
                 if probe.get("error"):
                     err = probe["error"]
                     candidates[index]["probe"]["error"] = failure("probe_failed", err.get("code", ""), err.get("message", ""))
+        passed_probes = sum(1 for candidate in candidates if (candidate.get("probe") or {}).get("passed"))
+        failed_probes = sum(1 for candidate in candidates if (candidate.get("probe") or {}).get("status") == STATUS_FAILED)
+        verify_status = STATUS_PASSED if passed_probes else STATUS_FAILED if failed_probes else STATUS_SKIPPED
+        result["steps"].append(flow_step(STEP_STAGE_VERIFY, verify_status, passed=passed_probes, failed=failed_probes))
         for promotion in trace.get("promotions", []):
             index = promotion.get("candidate_index", -1)
             if 0 <= index < len(candidates):
                 candidates[index]["promotion"] = {
                     "capability_action": promotion.get("capability_action", ""),
                     "binding_action": promotion.get("binding_action", ""),
+                    "capability_id": promotion.get("capability_id", ""),
                     "binding_id": promotion.get("binding_id", ""),
                 }
+        promoted = sum(1 for candidate in candidates if (candidate.get("promotion") or {}).get("binding_id"))
+        result["steps"].append(flow_step(STEP_STAGE_PROMOTE, STATUS_PASSED if promoted else STATUS_SKIPPED, promoted_bindings=promoted))
         result["candidates"] = candidates
 
     def run_reuse(self, task: dict[str, Any], provider_result: dict[str, Any]) -> None:
@@ -233,17 +326,23 @@ class BenchmarkRunner:
             for fixture in (task.get("reuse") or {}).get("fixtures") or []:
                 reuse = self.run_reuse_fixture(task, provider_id, candidate, fixture)
                 candidate.setdefault("reuse", []).append(reuse)
+                provider_result.setdefault("steps", []).extend(reuse.get("steps") or [])
 
     def run_reuse_fixture(self, task: dict[str, Any], provider_id: str, candidate: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]:
         inputs = materialize_inputs(self.bench, self.home, task["id"], fixture)
         run_inputs = runtime_inputs(task, inputs)
         missing_inputs = missing_runtime_inputs(candidate, run_inputs)
         if missing_inputs:
+            skip = failure("reuse_skipped", "missing_runtime_inputs", ", ".join(missing_inputs))
             return {
                 "fixture_id": fixture.get("id", ""),
                 "status": STATUS_SKIPPED,
-                "skip": failure("reuse_skipped", "missing_runtime_inputs", ", ".join(missing_inputs)),
+                "skip": skip,
                 "inputs": summarize_inputs(self.home, run_inputs),
+                "steps": [
+                    flow_step(STEP_DIRECT_REUSE_RUN, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=skip),
+                    flow_step(STEP_DIRECT_REUSE_ORACLE, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=skip),
+                ],
             }
         started = time.monotonic()
         completed = run_command(
@@ -273,6 +372,10 @@ class BenchmarkRunner:
         if completed.returncode != 0:
             reuse["status"] = STATUS_FAILED
             reuse["failure"] = command_failure("reuse_failed", completed)
+            reuse["steps"] = [
+                flow_step(STEP_DIRECT_REUSE_RUN, STATUS_FAILED, duration_ms=reuse["duration_ms"], fixture_id=fixture.get("id", ""), failure=reuse["failure"]),
+                flow_step(STEP_DIRECT_REUSE_ORACLE, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=reuse["failure"]),
+            ]
             return reuse
         reuse["run"] = parse_json(completed.stdout) or {}
         oracle = self.run_oracle(task, inputs)
@@ -281,48 +384,69 @@ class BenchmarkRunner:
         if not oracle.get("passed"):
             err = oracle.get("error") or {}
             reuse["failure"] = failure("oracle_failure", err.get("code", ""), err.get("message", ""))
+        reuse["steps"] = [
+            flow_step(STEP_DIRECT_REUSE_RUN, STATUS_PASSED, duration_ms=reuse["duration_ms"], fixture_id=fixture.get("id", ""), run_id=(reuse.get("run") or {}).get("id", "")),
+            flow_step(STEP_DIRECT_REUSE_ORACLE, reuse["status"], fixture_id=fixture.get("id", ""), oracle_id=(oracle or {}).get("id", ""), failure=reuse.get("failure")),
+        ]
         return reuse
 
     def run_uses(self, task: dict[str, Any], task_result: dict[str, Any]) -> None:
         fixtures = (task.get("reuse") or {}).get("fixtures") or []
         if not fixtures:
             return
+        providers = [provider for provider in task_result.get("providers") or [] if provider_has_promoted_binding(provider)]
+        providers = providers[:1] or [{}]
         for fixture in fixtures:
             inputs = materialize_inputs(self.bench, self.home, task["id"], fixture)
-            use = self.run_use_fixture(task, fixture, inputs)
-            task_result.setdefault("use", []).append(use)
+            for provider in providers:
+                use = self.run_use_fixture(task, fixture, inputs, provider.get("provider_id", ""))
+                task_result.setdefault("use", []).append(use)
 
-    def run_use_fixture(self, task: dict[str, Any], fixture: dict[str, Any], inputs: dict[str, Any]) -> dict[str, Any]:
+    def run_use_fixture(self, task: dict[str, Any], fixture: dict[str, Any], inputs: dict[str, Any], provider_id: str = "") -> dict[str, Any]:
         intent = use_intent(task)
         call_inputs = use_inputs(task, inputs)
+        args = [
+            "use",
+            intent,
+            "--inputs-json",
+            json.dumps(call_inputs, separators=(",", ":")),
+            "--verify",
+            "--json",
+        ]
+        if provider_id:
+            args.extend(["--provider-id", provider_id])
         started = time.monotonic()
         completed = run_command(
             self.calctl,
-            [
-                "use",
-                intent,
-                "--inputs-json",
-                json.dumps(call_inputs, separators=(",", ":")),
-                "--verify",
-                "--json",
-            ],
+            args,
             self.repo,
             self.env,
         )
         use: dict[str, Any] = {
             "fixture_id": fixture.get("id", ""),
             "intent": intent,
+            "provider_id": provider_id,
             "duration_ms": elapsed_ms(started),
             "inputs": summarize_inputs(self.home, call_inputs),
         }
         if completed.returncode != 0:
             use["status"] = STATUS_FAILED
             use["failure"] = command_failure("use_failed", completed)
+            use["steps"] = [
+                flow_step(STEP_INTENT_USE_SELECT, STATUS_FAILED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
+                flow_step(STEP_INTENT_USE_RUN, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
+                flow_step(STEP_INTENT_USE_ORACLE, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
+            ]
             return use
         output = parse_json(completed.stdout)
         if not output:
             use["status"] = STATUS_FAILED
             use["failure"] = failure("use_failed", "invalid_use_json", "use did not return JSON")
+            use["steps"] = [
+                flow_step(STEP_INTENT_USE_SELECT, STATUS_FAILED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
+                flow_step(STEP_INTENT_USE_RUN, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
+                flow_step(STEP_INTENT_USE_ORACLE, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
+            ]
             return use
         use["selection"] = output.get("selection") or {}
         use["run"] = output.get("run") or {}
@@ -333,6 +457,19 @@ class BenchmarkRunner:
         if not oracle.get("passed"):
             err = oracle.get("error") or {}
             use["failure"] = failure("oracle_failure", err.get("code", ""), err.get("message", ""))
+        use["steps"] = [
+            flow_step(
+                STEP_INTENT_USE_SELECT,
+                STATUS_PASSED if use["selection"] else STATUS_FAILED,
+                fixture_id=fixture.get("id", ""),
+                capability_id=(use["selection"] or {}).get("capability_id", ""),
+                binding_id=(use["selection"] or {}).get("binding_id", ""),
+                provider_id=(use["selection"] or {}).get("provider_id", ""),
+                source=(use["selection"] or {}).get("source", ""),
+            ),
+            flow_step(STEP_INTENT_USE_RUN, STATUS_PASSED, duration_ms=use["duration_ms"], fixture_id=fixture.get("id", ""), run_id=(use["run"] or {}).get("id", "")),
+            flow_step(STEP_INTENT_USE_ORACLE, use["status"], fixture_id=fixture.get("id", ""), oracle_id=(oracle or {}).get("id", ""), failure=use.get("failure")),
+        ]
         return use
 
     def run_oracle(self, task: dict[str, Any], inputs: dict[str, Any]) -> dict[str, Any]:
@@ -376,12 +513,15 @@ class ArtifactWriter:
         self.run_dir = run_dir
         self.artifact = artifact
         self.summary_path = run_dir / "summary.json"
+        self.flow_path = run_dir / "flow.json"
         self.html_path = run_dir / "index.html"
 
     def write(self) -> None:
         clean = strip_private_fields(self.artifact)
+        flow = build_flow_artifact(clean)
         self.summary_path.parent.mkdir(parents=True, exist_ok=True)
         self.summary_path.write_text(json.dumps(clean, indent=2) + "\n", encoding="utf-8")
+        self.flow_path.write_text(json.dumps(flow, indent=2) + "\n", encoding="utf-8")
         self.html_path.write_text(render_html(clean), encoding="utf-8")
 
 
@@ -667,7 +807,92 @@ def record_failure(counts: dict[tuple[str, str], int], value: Any) -> None:
     counts[(stage, code)] = counts.get((stage, code), 0) + 1
 
 
+def flow_step(name: str, status_value: str, **fields: Any) -> dict[str, Any]:
+    item: dict[str, Any] = {"name": name, "status": status_value}
+    for key, value in fields.items():
+        if value in ("", None, [], {}):
+            continue
+        item[key] = value
+    return item
+
+
+def build_flow_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": FLOW_SCHEMA_VERSION,
+        "run": {
+            "id": artifact.get("run_id", ""),
+            "mode": artifact.get("mode", ""),
+            "status": artifact.get("status", ""),
+            "level": artifact.get("level", ""),
+            "selected_tasks": artifact.get("selected_tasks") or [],
+            "goos": artifact.get("goos", ""),
+            "goarch": artifact.get("goarch", ""),
+            "llm": artifact.get("llm") or {},
+        },
+        "flows": provider_flows(artifact.get("tasks") or []),
+        "intent_uses": intent_use_flows(artifact.get("tasks") or []),
+        "summary": artifact.get("summary") or {},
+        "scores": artifact.get("scores") or {},
+        "capability_model": artifact.get("capability_model") or {},
+        "failure_taxonomy": artifact.get("failure_taxonomy") or [],
+    }
+
+
+def provider_flows(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for task in tasks:
+        for provider in task.get("providers") or []:
+            rows.append(
+                {
+                    "task_id": task.get("id", ""),
+                    "intent": task.get("intent", ""),
+                    "provider": provider.get("id", ""),
+                    "command": provider.get("command", ""),
+                    "provider_path": provider.get("provider_path", ""),
+                    "provider_id": provider.get("provider_id", ""),
+                    "trace_id": provider.get("trace_id", ""),
+                    "status": provider_flow_status(provider),
+                    "steps": provider.get("steps") or [],
+                    "candidates": provider.get("candidates") or [],
+                }
+            )
+    return rows
+
+
+def intent_use_flows(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    for task in tasks:
+        for use in task.get("use") or []:
+            rows.append(
+                {
+                    "task_id": task.get("id", ""),
+                    "intent": use.get("intent", ""),
+                    "fixture_id": use.get("fixture_id", ""),
+                    "provider_id": use.get("provider_id", ""),
+                    "status": use.get("status", ""),
+                    "selection": use.get("selection") or {},
+                    "run": use.get("run") or {},
+                    "oracle": use.get("oracle") or {},
+                    "failure": use.get("failure") or {},
+                    "steps": use.get("steps") or [],
+                }
+            )
+    return rows
+
+
+def provider_flow_status(provider: dict[str, Any]) -> str:
+    statuses = [step.get("status") for step in provider.get("steps") or []]
+    if any(value == STATUS_FAILED for value in statuses):
+        return STATUS_FAILED
+    if statuses and all(value == STATUS_SKIPPED for value in statuses):
+        return STATUS_SKIPPED
+    if provider.get("status"):
+        return provider["status"]
+    return STATUS_PASSED if statuses else ""
+
+
 def render_html(artifact: dict[str, Any]) -> str:
+    flow = build_flow_artifact(artifact)
     return f"""<!doctype html>
 <html>
 <head>
@@ -685,6 +910,7 @@ th{{background:#f5f5f5;text-align:left}}
 code{{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}}
 .section{{margin-top:28px}}
 .pill{{display:inline-block;border-radius:999px;padding:2px 8px;background:#eee;font-size:12px}}
+.step{{min-width:88px;text-align:center}}
 .ok{{color:#126b31;font-weight:600}}
 .fail{{color:#9b1c1c;font-weight:600}}
 .muted{{color:#666}}
@@ -696,10 +922,10 @@ summary{{cursor:pointer;font-weight:600;margin:12px 0}}
 <h1>CLI Capability Benchmark</h1>
 {render_overview(artifact)}
 {render_main_result(artifact)}
+{render_flow_matrix(flow)}
+{render_acquisition_stages(flow)}
+{render_intent_use_flow(flow)}
 {render_timing(artifact)}
-{render_task_results(artifact)}
-{render_intent_use(artifact)}
-{render_acquisition_evidence(artifact)}
 {render_negative_evidence(artifact)}
 {render_raw_details(artifact)}
 </body>
@@ -757,6 +983,186 @@ def render_main_result(artifact: dict[str, Any]) -> str:
 <h2>Main Result</h2>
 <div class="grid">{''.join(cards)}</div>
 </section>"""
+
+
+def render_flow_matrix(flow: dict[str, Any]) -> str:
+    headers = "".join(f"<th>{escape(short_step_label(name))}</th>" for name in FLOW_MATRIX_STEPS)
+    rows = []
+    intent_by_task = {item.get("task_id", ""): item for item in flow.get("intent_uses") or []}
+    for item in flow.get("flows") or []:
+        steps = item.get("steps") or []
+        intent_steps = (intent_by_task.get(item.get("task_id", "")) or {}).get("steps") or []
+        cells = []
+        for name in FLOW_MATRIX_STEPS:
+            source = intent_steps if name.startswith("intent_use.") else steps
+            cells.append(f"<td class='step'>{step_badge(find_step(source, name))}</td>")
+        rows.append(
+            f"<tr><td><code>{escape(item.get('task_id', ''))}</code></td>"
+            f"<td><code>{escape(item.get('provider', ''))}</code><br>{escape(item.get('provider_path', ''))}</td>"
+            f"{''.join(cells)}<td>{status(item.get('status'))}</td></tr>"
+        )
+    if not rows:
+        rows.append(f"<tr><td colspan='{len(FLOW_MATRIX_STEPS) + 3}'><span class='muted'>none</span></td></tr>")
+    return f"""<section class="section primary">
+<h2>Closed-loop Flow Matrix</h2>
+<table>
+<tr><th>Task</th><th>Provider</th>{headers}<th>Final</th></tr>
+{''.join(rows)}
+</table>
+</section>"""
+
+
+def render_acquisition_stages(flow: dict[str, Any]) -> str:
+    sections = []
+    for item in flow.get("flows") or []:
+        sections.append(render_acquisition_flow(item))
+    if not sections:
+        sections.append("<p class='muted'>none</p>")
+    return f"""<section class="section">
+<h2>Provider Acquisition: 4 Stages</h2>
+{''.join(sections)}
+</section>"""
+
+
+def render_acquisition_flow(item: dict[str, Any]) -> str:
+    steps = item.get("steps") or []
+    candidates = item.get("candidates") or []
+    return f"""<details open>
+<summary><code>{escape(item.get('task_id', ''))}</code> / <code>{escape(item.get('provider', ''))}</code></summary>
+<table>
+<tr><th>Stage</th><th>Status</th><th>Evidence</th><th>Failure</th></tr>
+{stage_row("Stage 1 Observe", find_step(steps, STEP_STAGE_OBSERVE), acquisition_observe_text(item))}
+{stage_row("Stage 2 Propose", find_step(steps, STEP_STAGE_PROPOSE), acquisition_propose_text(candidates))}
+{stage_row("Stage 3 Verify", find_step(steps, STEP_STAGE_VERIFY), acquisition_verify_text(candidates))}
+{stage_row("Stage 4 Promote", find_step(steps, STEP_STAGE_PROMOTE), acquisition_promote_text(candidates))}
+</table>
+</details>"""
+
+
+def stage_row(label: str, step_value: dict[str, Any] | None, evidence: str) -> str:
+    return f"<tr><td>{escape(label)}</td><td>{step_badge(step_value)}</td><td>{evidence}</td><td>{failure_text((step_value or {}).get('failure'))}</td></tr>"
+
+
+def acquisition_observe_text(item: dict[str, Any]) -> str:
+    trace = item.get("trace_id", "")
+    provider_id = item.get("provider_id", "")
+    parts = []
+    if provider_id:
+        parts.append(f"provider_id: <code>{escape(provider_id)}</code>")
+    if trace:
+        parts.append(f"trace_id: <code>{escape(trace)}</code>")
+    return "<br>".join(parts) or "<span class='muted'>none</span>"
+
+
+def acquisition_propose_text(candidates: list[dict[str, Any]]) -> str:
+    if not candidates:
+        return "<span class='muted'>none</span>"
+    return "<br>".join(
+        f"candidate {candidate.get('index', 0)}: <code>{escape(candidate.get('capability_id', ''))}</code> "
+        f"({escape((candidate.get('execution') or {}).get('kind', ''))})"
+        for candidate in candidates
+    )
+
+
+def acquisition_verify_text(candidates: list[dict[str, Any]]) -> str:
+    rows = []
+    for candidate in candidates:
+        verification = candidate.get("verification") or {}
+        checks = verification.get("checks") or []
+        probe = candidate.get("probe") or {}
+        rows.append(
+            f"<code>{escape(candidate.get('capability_id', ''))}</code>: {status(probe.get('status'))}, "
+            f"{escape(verification.get('level', ''))}/{escape(verification.get('method', ''))}, "
+            f"checks={len(checks)}, evidence={verification.get('evidence_count', 0)}"
+        )
+    return "<br>".join(rows) or "<span class='muted'>none</span>"
+
+
+def acquisition_promote_text(candidates: list[dict[str, Any]]) -> str:
+    rows = []
+    for candidate in candidates:
+        promotion = candidate.get("promotion") or {}
+        if not promotion:
+            continue
+        rows.append(
+            f"<code>{escape(candidate.get('capability_id', promotion.get('capability_id', '')))}</code>: "
+            f"{escape(promotion.get('capability_action', ''))}/{escape(promotion.get('binding_action', ''))} "
+            f"<code>{escape(promotion.get('binding_id', ''))}</code>"
+        )
+    return "<br>".join(rows) or "<span class='muted'>none</span>"
+
+
+def render_intent_use_flow(flow: dict[str, Any]) -> str:
+    rows = []
+    for item in flow.get("intent_uses") or []:
+        steps = item.get("steps") or []
+        rows.append(
+            f"<tr><td><code>{escape(item.get('task_id', ''))}</code><br>{escape(item.get('fixture_id', ''))}<br><code>{escape(item.get('provider_id', ''))}</code></td>"
+            f"<td>{step_badge(find_step(steps, STEP_INTENT_USE_SELECT))}<br>{selection_text(item.get('selection') or {})}</td>"
+            f"<td>{step_badge(find_step(steps, STEP_INTENT_USE_RUN))}<br><code>{escape((item.get('run') or {}).get('id', ''))}</code></td>"
+            f"<td>{step_badge(find_step(steps, STEP_INTENT_USE_ORACLE))}<br>{escape((item.get('oracle') or {}).get('id', ''))}</td>"
+            f"<td>{failure_text(item.get('failure'))}</td></tr>"
+        )
+    if not rows:
+        rows.append("<tr><td colspan='5'><span class='muted'>none</span></td></tr>")
+    return f"""<section class="section">
+<h2>Intent Use Flow</h2>
+<table>
+<tr><th>Task / Fixture</th><th>Select</th><th>Run</th><th>Oracle</th><th>Failure</th></tr>
+{''.join(rows)}
+</table>
+</section>"""
+
+
+def selection_text(selection: dict[str, Any]) -> str:
+    if not selection:
+        return "<span class='muted'>none</span>"
+    return "<br>".join(
+        [
+            f"capability: <code>{escape(selection.get('capability_id', ''))}</code>",
+            f"binding: <code>{escape(selection.get('binding_id', ''))}</code>",
+            f"provider: <code>{escape(selection.get('provider_id', ''))}</code>",
+        ]
+    )
+
+
+def find_step(steps: list[dict[str, Any]], name: str) -> dict[str, Any] | None:
+    matches = [step for step in steps if step.get("name") == name]
+    if not matches:
+        return None
+    if any(step.get("status") == STATUS_FAILED for step in matches):
+        return next(step for step in matches if step.get("status") == STATUS_FAILED)
+    if any(step.get("status") == STATUS_PASSED for step in matches):
+        return next(step for step in matches if step.get("status") == STATUS_PASSED)
+    return matches[0]
+
+
+def step_badge(step_value: dict[str, Any] | None) -> str:
+    if not step_value:
+        return status("")
+    text = status(step_value.get("status"))
+    duration = step_value.get("duration_ms")
+    if duration is not None:
+        text += f"<br><span class='muted'>{escape(format_duration_value(duration))}</span>"
+    failure_value = step_value.get("failure") or {}
+    if failure_value:
+        text += f"<br><span class='fail'>{escape(failure_value.get('code', ''))}</span>"
+    return text
+
+
+def short_step_label(name: str) -> str:
+    labels = {
+        STEP_PROVIDER_RESOLVE: "Resolve",
+        STEP_PROVIDER_REGISTER: "Register",
+        STEP_DISCOVERY_RUN: "Discover",
+        STEP_STAGE_OBSERVE: "Observe",
+        STEP_STAGE_PROPOSE: "Propose",
+        STEP_STAGE_VERIFY: "Verify",
+        STEP_STAGE_PROMOTE: "Promote",
+        STEP_DIRECT_REUSE_ORACLE: "Direct Reuse",
+        STEP_INTENT_USE_ORACLE: "Intent Use",
+    }
+    return labels.get(name, name)
 
 
 def render_timing(artifact: dict[str, Any]) -> str:

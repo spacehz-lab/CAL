@@ -11,7 +11,7 @@ func TestStableIDsUseShortHashPrefixes(t *testing.T) {
 		t.Fatalf("ProviderID() = %q, want provider_ plus short hash", providerID)
 	}
 
-	bindingID := BindingID("document.export_pdf", providerID, "cli")
+	bindingID := BindingID("document.convert", providerID, "cli")
 	if !strings.HasPrefix(bindingID, "binding_") || len(bindingID) != len("binding_")+12 {
 		t.Fatalf("BindingID() = %q, want binding_ plus short hash", bindingID)
 	}
@@ -22,47 +22,15 @@ func TestStableIDsUseShortHashPrefixes(t *testing.T) {
 	}
 }
 
-func TestValidVerifierID(t *testing.T) {
-	valid := []string{
-		"file_exists",
-		"file_parse_pdf",
-		"base64_encode_matches_source",
-		"file_hash_sha1_matches_source",
-		"a1_b2",
-	}
-	for _, id := range valid {
-		if !ValidVerifierID(id) {
-			t.Fatalf("ValidVerifierID(%q) = false, want true", id)
-		}
-	}
-
-	invalid := []string{
-		"",
-		"FileExists",
-		"file-exists",
-		"file.exists",
-		"file exists",
-		"_file_exists",
-		"file_exists_",
-		"file__exists",
-		"1_file_exists",
-	}
-	for _, id := range invalid {
-		if ValidVerifierID(id) {
-			t.Fatalf("ValidVerifierID(%q) = true, want false", id)
-		}
-	}
-}
-
 func TestBindingIDForExecutionIncludesSpec(t *testing.T) {
-	first, err := BindingIDForExecution("document.export_pdf", "provider_cli", Execution{
+	first, err := BindingIDForExecution("document.convert", "provider_cli", Execution{
 		Kind: ExecutionKindCLI,
 		Spec: map[string]any{"args": []string{"old"}},
 	})
 	if err != nil {
 		t.Fatalf("BindingIDForExecution() error = %v", err)
 	}
-	second, err := BindingIDForExecution("document.export_pdf", "provider_cli", Execution{
+	second, err := BindingIDForExecution("document.convert", "provider_cli", Execution{
 		Kind: ExecutionKindCLI,
 		Spec: map[string]any{"args": []string{"new"}},
 	})
@@ -95,17 +63,17 @@ func TestCanonicalExecutionIsStableAcrossEquivalentSpecValues(t *testing.T) {
 }
 
 func TestValidateRunRequiresCoreFields(t *testing.T) {
-	valid := Run{ID: "run_abc", CapabilityID: "document.export_pdf", Status: RunStatusSucceeded}
+	valid := Run{ID: "run_abc", CapabilityID: "document.convert", Status: RunStatusSucceeded}
 	if err := ValidateRun(valid); err != nil {
 		t.Fatalf("ValidateRun() error = %v", err)
 	}
-	if err := ValidateRun(Run{CapabilityID: "document.export_pdf", Status: RunStatusSucceeded}); err == nil {
+	if err := ValidateRun(Run{CapabilityID: "document.convert", Status: RunStatusSucceeded}); err == nil {
 		t.Fatal("ValidateRun() error = nil, want missing id error")
 	}
 	if err := ValidateRun(Run{ID: "run_abc", Status: RunStatusSucceeded}); err == nil {
 		t.Fatal("ValidateRun() error = nil, want missing capability id error")
 	}
-	if err := ValidateRun(Run{ID: "run_abc", CapabilityID: "document.export_pdf", Status: "done"}); err == nil {
+	if err := ValidateRun(Run{ID: "run_abc", CapabilityID: "document.convert", Status: "done"}); err == nil {
 		t.Fatal("ValidateRun() error = nil, want invalid status error")
 	}
 }

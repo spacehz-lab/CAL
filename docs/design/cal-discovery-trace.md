@@ -12,14 +12,15 @@ Trace input comes from Discovery steps:
 Entry
   provider entry facts
 
-Inference
+Proposal
   observations
   candidates
+  proposal stage summaries
 
 Verification
   probes
   evidence
-  verifier results
+  verify check results
 
 Promotion
   promoted capability and binding summaries
@@ -33,8 +34,8 @@ Trace handling:
 ```text
 create Trace
 -> append Entry details
--> append Inference observations
--> append Inference candidates
+-> append Proposal observations
+-> append Proposal candidates
 -> append Verification probes
 -> append Promotion summaries
 -> update status
@@ -53,8 +54,9 @@ Discovery starts
 Entry
 -> append provider ids or entry summary
 
-Inference
+Proposal
 -> append observations[]
+-> append proposal stage diagnostics
 -> append candidates[]
 
 Verification
@@ -117,6 +119,7 @@ Trace
   hint optional
   provider_ids optional
   observations[]
+  proposal optional
   candidates[]
   probes[]
   promotions[]
@@ -144,6 +147,37 @@ observation
   created_at
 ```
 
+Proposal diagnostics:
+
+```text
+proposal
+  schema_version optional
+  prompt_version optional
+  model optional
+  stages[]
+
+proposal_stage
+  name
+  items[]
+  summary optional
+  duration_ms optional
+
+proposal_item
+  id optional
+  kind optional
+  name optional
+  decision optional
+  reason optional
+```
+
+Proposal diagnostics record parsed stage decisions that are useful for
+debugging and evaluation but are not executable candidates. For Surface,
+`decision` records the final keep/defer/skip result after local policy, and
+`summary.selected` records how many items were passed to Capability planning.
+Capability and Binding stages use the same decision vocabulary for local
+normalization and filtering before later Proposal stages.
+`reason` is optional local diagnostics for skipped or deferred items.
+
 Candidate:
 
 ```text
@@ -153,15 +187,9 @@ candidate
   description
   source optional
   provenance optional
-  input_constraints optional
   execution
-  rationale optional
   created_at
 ```
-
-`input_constraints` describes provider-specific accepted values or meanings for
-runtime placeholders used by the candidate execution. It is promoted onto the
-Binding when the candidate passes Verification.
 
 Candidate provenance:
 
@@ -184,7 +212,7 @@ Probe:
 probe
   candidate_index
   passed
-  verifier
+  verify
   evidence
   reason optional
   error optional

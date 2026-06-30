@@ -82,6 +82,32 @@ class TaskCatalogTest(unittest.TestCase):
 
 
 class RunnerHelpersTest(unittest.TestCase):
+    def test_run_provider_registers_provider_before_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            bench = root / "bench"
+            proposal = bench / "proposals" / "replay" / "task_a" / "tool_a.json"
+            proposal.parent.mkdir(parents=True)
+            proposal.write_text("{}", encoding="utf-8")
+            runner_instance = runner.BenchmarkRunner(root, bench, root / "home", "calctl", {}, runner.MODE_REPLAY)
+            calls = []
+
+            def fake_run_command(_executable, args, _repo, _env):
+                calls.append(args)
+                if args[:2] == ["providers", "add"]:
+                    return completed(0, '{"id":"provider_tool_a"}')
+                if args[:2] == ["discovery", "run"]:
+                    return completed(0, '{"trace_id":"trace_1","providers":[{"id":"provider_tool_a"}]}')
+                return completed(1, "", "unexpected command")
+
+            with mock.patch.object(runner.shutil, "which", return_value="/bin/tool-a"):
+                with mock.patch.object(runner, "run_command", side_effect=fake_run_command):
+                    result = runner_instance.run_provider({"id": "task_a", "reuse": {"fixtures": []}}, {"id": "tool_a", "command": "tool-a"})
+
+        self.assertEqual(result["provider_id"], "provider_tool_a")
+        self.assertIn(["providers", "add", "--provider-path", "/bin/tool-a", "--json"], calls)
+        self.assertIn(["discovery", "run", "--provider-id", "provider_tool_a", "--json", "--proposal-path", str(proposal)], calls)
+
     def test_materialize_inputs_expands_fixture_and_work_paths(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             bench = Path(temp) / "bench"
@@ -311,7 +337,41 @@ class RunnerHelpersTest(unittest.TestCase):
         self.assertEqual(scores["acquisition_local_overhead_total_ms"], 60_000)
         self.assertEqual(scores["replay_direct_reuse_total_ms"], None)
 
-    def test_render_html_shows_main_result_and_timing_before_raw_details(self) -> None:
+    def test_build_flow_artifact_records_provider_and_intent_steps(self) -> None:
+        artifact = {
+            "run_id": "run_1",
+            "mode": runner.MODE_REPLAY,
+            "status": "completed",
+            "tasks": [
+                {
+                    "id": "task_a",
+                    "intent": "do task",
+                    "providers": [
+                        {
+                            "id": "tool_a",
+                            "provider_id": "provider_tool_a",
+                            "steps": [runner.flow_step(runner.STEP_PROVIDER_REGISTER, runner.STATUS_PASSED, provider_id="provider_tool_a")],
+                            "candidates": [],
+                        }
+                    ],
+                    "use": [
+                        {
+                            "fixture_id": "fixture_a",
+                            "steps": [runner.flow_step(runner.STEP_INTENT_USE_ORACLE, runner.STATUS_PASSED)],
+                            "oracle": {"passed": True},
+                        }
+                    ],
+                }
+            ],
+        }
+
+        flow = runner.build_flow_artifact(artifact)
+
+        self.assertEqual(flow["schema_version"], runner.FLOW_SCHEMA_VERSION)
+        self.assertEqual(flow["flows"][0]["provider_id"], "provider_tool_a")
+        self.assertEqual(flow["intent_uses"][0]["fixture_id"], "fixture_a")
+
+    def test_render_html_shows_flow_matrix_and_acquisition_stages(self) -> None:
         html = runner.render_html(
             {
                 "scores": {"profile": runner.MODE_LIVE_LLM, "closed_loop_success_rate": 1.0, "proposal_llm_avg_ms": 60_000},
@@ -321,6 +381,8 @@ class RunnerHelpersTest(unittest.TestCase):
         )
 
         self.assertIn("<h2>Main Result</h2>", html)
+        self.assertIn("<h2>Closed-loop Flow Matrix</h2>", html)
+        self.assertIn("<h2>Provider Acquisition: 4 Stages</h2>", html)
         self.assertIn("<h2>Workflow Timing</h2>", html)
         self.assertIn("Closed-loop success", html)
         self.assertIn("100.0%", html)
@@ -408,6 +470,10 @@ class RunnerHelpersTest(unittest.TestCase):
 
 def argparse_like(**values):
     return type("Args", (), values)()
+
+
+def completed(returncode: int, stdout: str = "", stderr: str = ""):
+    return type("Completed", (), {"returncode": returncode, "stdout": stdout, "stderr": stderr})()
 
 
 if __name__ == "__main__":

@@ -119,7 +119,7 @@ func TestProcessLogPathUsesPlatformLogDir(t *testing.T) {
 
 func writeLoggingConfig(t *testing.T, home string, logging string) {
 	t.Helper()
-	content := `{"provider_sources": [{"kind": "path", "value": "PATH"}],"logging":` + logging + `}`
+	content := `{"logging":` + logging + `}`
 	if err := os.WriteFile(filepath.Join(home, "config.json"), []byte(content), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}

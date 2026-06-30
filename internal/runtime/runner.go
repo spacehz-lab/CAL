@@ -21,9 +21,10 @@ type Runner struct {
 
 // ResolveOptions configures binding resolution.
 type ResolveOptions struct {
-	BindingID  string
-	ProviderID string
-	Strategy   string
+	BindingID      string
+	ProviderID     string
+	Strategy       string
+	MinVerifyLevel core.VerifyLevel
 }
 
 // Resolution describes the selected binding and why it was selected.
@@ -39,9 +40,9 @@ func NewRunner(registry Registry) Runner {
 	return Runner{registry: registry}
 }
 
-// Verify checks one verifier through the runner registry.
-func (runner Runner) Verify(ctx context.Context, verifier core.Verifier, inputs map[string]any) ([]core.EvidenceRef, map[string]any, error) {
-	return runner.registry.Verify(ctx, verifier, inputs)
+// Verify checks one verify spec using built-in deterministic checks.
+func (runner Runner) Verify(ctx context.Context, verify core.VerifySpec, inputs map[string]any, result ExecutionResult) ([]core.EvidenceRef, map[string]any, error) {
+	return evaluateVerifySpec(ctx, verify, inputs, result)
 }
 
 // Resolve chooses a promoted binding for one capability.
@@ -55,13 +56,17 @@ func (runner Runner) Resolve(capability core.Capability, opts ResolveOptions) (R
 		runner.logResolveFailed(capability, opts, strategy, "strategy", 0, started)
 		return Resolution{}, fmt.Errorf("strategy %q is not supported", strategy)
 	}
+	minVerifyLevel := opts.MinVerifyLevel
+	if minVerifyLevel == "" {
+		minVerifyLevel = core.VerifyLevelL2
+	}
 
 	candidates := make([]core.Binding, 0, len(capability.Bindings))
 	for _, binding := range capability.Bindings {
 		if binding.State != core.BindingStatePromoted {
 			continue
 		}
-		if binding.Verifier == nil {
+		if binding.Verify == nil || core.VerifyLevelRank(binding.Verify.Level) < core.VerifyLevelRank(minVerifyLevel) {
 			continue
 		}
 		if !runner.Supports(binding.Execution.Kind) {
@@ -80,8 +85,8 @@ func (runner Runner) Resolve(capability core.Capability, opts ResolveOptions) (R
 		return Resolution{
 			Strategy:           strategy,
 			BindingsConsidered: 0,
-			Reason:             "no promoted binding with verifier and supported execution matched the request",
-		}, fmt.Errorf("no promoted binding with verifier and supported execution matched capability %q", capability.ID)
+			Reason:             "no promoted binding with verify spec and supported execution matched the request",
+		}, fmt.Errorf("no promoted binding with verify spec and supported execution matched capability %q", capability.ID)
 	}
 
 	sort.Slice(candidates, func(i, j int) bool {
@@ -91,7 +96,7 @@ func (runner Runner) Resolve(capability core.Capability, opts ResolveOptions) (R
 	return Resolution{
 		Strategy:           strategy,
 		BindingsConsidered: len(candidates),
-		Reason:             "selected promoted binding with verifier and supported execution by deterministic binding id",
+		Reason:             "selected promoted binding with verify spec and supported execution by deterministic binding id",
 		Binding:            candidates[0],
 	}, nil
 }

@@ -1,6 +1,6 @@
 # CAL Discover Control
 
-Discover Control is the control-plane module for provider finding and targeted
+Discover Control is the control-plane module for provider registration and targeted
 capability acquisition.
 
 This document defines the target command semantics. The current implementation
@@ -13,12 +13,11 @@ promotion.
 
 ## Role
 
-Discover Control answers four questions:
+Discover Control answers three questions:
 
 ```text
 Is the discovery service available?
-What provider sources are configured?
-Which CLI or app provider entries can CAL find?
+Which explicit CLI or app provider entries are registered?
 What discovery job or Trace was created?
 ```
 
@@ -35,7 +34,7 @@ is needed.
 Discovery operations that require service state must go through `cald`:
 
 ```text
-provider finding
+provider registration
 manual discovery jobs
 provider observation
 safe probe execution
@@ -48,110 +47,48 @@ provider locks
 The `calctl` to `cald` transport is the local-only HTTP control API defined in
 `docs/design/cal-control-service.md`.
 
-Provider source reads and writes go through `cald` so the service view and the
-visible discovery state stay consistent.
-
 ## Command Groups
 
-Discover Control has four groups:
+Discover Control has three groups:
 
 ```text
 status
-path
-find
+provider registration
 provider acquisition
 ```
 
 Automatic or periodic discovery is a later service extension. It should not be
 part of the first command contract.
 
-Discovery status is not a separate CLI command in the first HTTP-aligned control surface. Use `calctl daemon status --json` for service liveness and `calctl providers sources list --json` for configured provider source scope.
+Discovery status is not a separate CLI command in the first HTTP-aligned control
+surface. Use `calctl daemon status --json` for service liveness and
+`calctl providers list --json` for registered provider scope.
 
-## Provider Sources
+## Provider Registration
 
-Provider sources define where Provider Entry lookup searches for provider
-entries. The first source kind is `path`, used for filesystem roots and `PATH`.
-They are provider sources, not automatic-discovery triggers.
-
-Commands:
-
-```bash
-calctl providers sources list --json
-calctl providers sources add --kind path --value <path> --json
-calctl providers sources remove --kind path --value <path> --json
-```
-
-Path values may include:
-
-```text
-PATH
-/Applications
-/System/Applications
-$HOME/Applications
-```
-
-`PATH` is a symbolic value meaning command lookup path. Other values are
-filesystem paths that may use `$HOME` or environment variables.
-
-`path add` should validate path syntax but should not require every path to
-exist at add time. A missing path can be reported during provider finding
-without making configuration impossible across machines.
-
-Output shape:
-
-```json
-{
-  "sources": [
-    {"kind": "path", "value": "PATH"},
-    {"kind": "path", "value": "/Applications"}
-  ]
-}
-```
-
-Path changes affect future provider finding and targeted discovery. They must
-not immediately run provider finding or capability acquisition unless the user
-explicitly requests it.
-
-## Provider Finding
-
-Provider finding locates provider entries and writes Provider records. It does
-not run `LLM proposer`, probes, verification, or promotion.
+Provider registration records one explicit provider entry path. It does not run
+`LLM proposer`, probes, verification, or promotion.
 
 Commands:
 
 ```bash
-calctl providers find --kind cli --json
-calctl providers find --kind app --json
-```
-
-Optional root arguments may be added after the base shape is implemented:
-
-```bash
-calctl providers find --kind cli --root PATH --json
-calctl providers find --kind app --root /Applications --json
+calctl providers add --provider-path <provider-path> --json
+calctl providers get --provider-path <provider-path> --json
 ```
 
 Output shape:
 
 ```json
 {
+  "id": "provider_abc123",
   "kind": "cli",
-  "paths": ["PATH"],
-  "providers_created": 1,
-  "providers_updated": 2,
-  "providers": [
-    {
-      "id": "provider_abc123",
-      "kind": "cli",
-      "name": "jq",
-      "path": "/usr/bin/jq"
-    }
-  ]
+  "name": "jq",
+  "path": "/usr/bin/jq"
 }
 ```
 
-No-provider is not an infrastructure failure. A provider-finding run may return
-zero providers with a successful status.
+`providers get --provider-path` only checks stored Provider records; it does not
+scan or register the path.
 
 ## Targeted Acquisition
 
@@ -162,9 +99,8 @@ records.
 Commands:
 
 ```bash
-calctl discovery run --provider-path <provider-path> [--capability-id <capability-id>] --json
 calctl discovery run --provider-id <provider-id> [--capability-id <capability-id>] --json
-calctl discovery run --provider-path <provider-path> --proposal-path <proposal.json> --json
+calctl discovery run --provider-id <provider-id> --proposal-path <proposal.json> --json
 ```
 
 `--mode rules` exists as a hidden experimental baseline and regression-test
@@ -174,19 +110,15 @@ belongs under `internal/baseline/rules`.
 Meanings:
 
 ```text
-calctl discovery run --provider-path <provider-path>
-  Inspect one explicit provider entry path, create or update the Provider record, then run targeted Discovery Inference, Verification, and Promotion for that provider.
-
-calctl discovery run --provider-path <provider-path> --proposal-path <proposal.json>
-  Replay candidate and probe-plan output from an SOP or `LLM proposer` fixture for one provider. CAL still executes the candidate and runs deterministic verification before promotion.
-
 calctl discovery run --provider-id <provider-id>
-  Run targeted Discovery Inference, Verification, and Promotion for one known provider.
+  Run targeted Discovery Proposal, Verification, and Promotion for one known provider.
+
+calctl discovery run --provider-id <provider-id> --proposal-path <proposal.json>
+  Replay candidate and probe-plan output from an SOP or `LLM proposer` fixture for one stored provider. CAL still executes the candidate and runs deterministic verification before promotion.
 ```
 
-`--provider-path` must point to a provider entry, not an arbitrary input file or a
-directory to scan. In v0 this usually means a CLI executable path. Unsupported
-provider kinds return a structured unsupported-provider error.
+Provider path bootstrap belongs to `calctl providers add`; targeted acquisition
+requires a stored `provider_id`.
 
 `--capability-id` is an optional debug filter. Without it, the proposer may propose
 any capability from the provider observations.
@@ -194,12 +126,10 @@ any capability from the provider observations.
 Current v1 acquisition is intentionally narrow: it supports CLI providers
 observed through bounded help and usage commands, with local man output used
 only as a fallback when those command observations do not return usable text;
-live `LLM proposer` or replayed SOP/LLM-style proposal JSON for candidate,
-probe-plan, and generated verifier-harness input; capability-specific safe
-probes; stdout-to-target CLI execution when required; deterministic script
-verifier execution using local trusted or generated scripts under
-`CAL_HOME/verifiers/`. Production runtime does not load embedded default
-verifier scripts. Deterministic rules for the fake CLI pattern, macOS
+live Proposal or replayed SOP/LLM-style proposal JSON for candidate, probe, and
+verify-spec input; capability-specific safe probes; stdout-to-target CLI
+execution when required; deterministic `verify.checks` evaluation with script
+fallback only when checks cannot express the outcome. Deterministic rules for the fake CLI pattern, macOS
 `cupsfilter`, and macOS `sips` are retained only behind the hidden
 baseline/regression mode. Broader app, AX, menu, API, and marker-free `soffice`
 help parsing are later extensions.
@@ -224,25 +154,6 @@ For an already known provider target:
 }
 ```
 
-For an explicit provider entry path target:
-
-```json
-{
-  "job_id": "disc_124",
-  "state": "succeeded",
-  "target": {
-    "type": "provider_path",
-    "value": "/usr/sbin/cupsfilter",
-    "provider_id": "provider_abc123"
-  },
-  "providers_created": 1,
-  "providers_updated": 0,
-  "capabilities_promoted": 1,
-  "bindings_promoted": 1,
-  "trace_id": "trace_124"
-}
-```
-
 If no candidate passes Verification and Promotion, promotion counts should be
 zero.
 
@@ -251,23 +162,18 @@ zero.
 Allowed side effects:
 
 ```text
-providers sources add/remove
-  updates path-type provider source configuration
-
-providers find --kind cli|app
+providers add --provider-path
   writes Provider records only
 
 discovery run
-  writes Provider records, Trace records, and possibly promoted Capability or Binding records
+  writes Trace records and possibly promoted Capability or Binding records
 ```
 
 Forbidden side effects:
 
 ```text
 daemon status must not start cald
-providers sources list must not run provider finding
-providers sources add/remove must not immediately run provider finding or acquisition
-providers find must not run LLM proposal, probes, verification, or promotion
+providers add must not run LLM proposal, probes, verification, or promotion
 capabilities list must not trigger discovery
 runs create must not trigger discovery automatically
 ```
@@ -291,7 +197,7 @@ If a target is invalid:
 {
   "error": {
     "code": "invalid_discovery_target",
-    "message": "supply either a provider id or one explicit provider entry path"
+    "message": "provider_id is required"
   }
 }
 ```
@@ -316,11 +222,10 @@ error until app acquisition is implemented.
 Discover Control owns:
 
 ```text
-discovery path configuration commands
-provider finding commands
+provider registration commands
 targeted acquisition commands
 discovery status output
-stable provider-find and job-result JSON
+stable provider and job-result JSON
 ```
 
 Discover Control does not own:
@@ -330,7 +235,7 @@ capability catalog rendering
 runtime binding resolution
 capability execution
 outcome verification policy
-`LLM proposer` prompts for Inference
+`LLM proposer` prompts for Proposal
 Trace schema internals
 agent task planning
 automatic or periodic discovery in the first command contract
@@ -342,9 +247,8 @@ A skill or agent policy can use Discover Control like this:
 
 ```text
 Use `calctl daemon status --json` to inspect service availability.
-Use `calctl providers find --kind cli --json` when the task needs to locate CLI providers.
-Use `calctl discovery run --provider-path <provider-path>` when the task needs acquisition for one explicit CLI provider entry.
-Use `calctl providers sources add/remove` only when the user wants CAL to change future provider source scope.
+Use `calctl providers add --provider-path <provider-path> --json` when the task needs to register one explicit CLI provider entry.
+Use `calctl discovery run --provider-id <provider-id>` when the task needs acquisition for one stored provider.
 Do not trigger discovery as a hidden fallback from capabilities list or runs create.
 After discovery promotes new capabilities, call `calctl capabilities list --json` again before selecting a capability.
 ```

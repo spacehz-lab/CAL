@@ -14,7 +14,7 @@
   ],
   "candidates": [
     {
-      "capability_id": "text.decode_base64",
+      "capability_id": "text.decode",
       "description": "Decode Base64 source text into bytes.",
       "execution": {
         "kind": "cli",
@@ -29,8 +29,7 @@
             "{{target}}"
           ]
         }
-      },
-      "rationale": "Benchmark replay proposal for OpenSSL Base64 decoding."
+      }
     }
   ],
   "probe_plans": [
@@ -46,8 +45,22 @@
           "content": "Y2FsIGJlbmNobWFyayBiYXNlNjQgZGVjb2RlIGZpeHR1cmUK"
         }
       ],
-      "verifier": {
-        "id": "base64_decode_matches_source"
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "bytes_equal_transform",
+            "params": {
+              "source": "source",
+              "transform": "base64_decode"
+            }
+          }
+        ]
       }
     }
   ]

@@ -35,11 +35,12 @@ var tokenPattern = regexp.MustCompile(`[a-z0-9]+`)
 
 // Request describes one semantic capability use request.
 type Request struct {
-	Intent     string         `json:"intent"`
-	Inputs     map[string]any `json:"inputs"`
-	ProviderID string         `json:"provider_id,omitempty"`
-	Strategy   string         `json:"strategy,omitempty"`
-	Verify     bool           `json:"verify,omitempty"`
+	Intent         string           `json:"intent"`
+	Inputs         map[string]any   `json:"inputs"`
+	ProviderID     string           `json:"provider_id,omitempty"`
+	Strategy       string           `json:"strategy,omitempty"`
+	Verify         bool             `json:"verify,omitempty"`
+	MinVerifyLevel core.VerifyLevel `json:"min_verify_level,omitempty"`
 }
 
 // Validate checks the request shape before selection.
@@ -126,6 +127,7 @@ type ResolverOption func(*Resolver)
 // NewResolver builds a Use resolver.
 func NewResolver(req Request, opts ...ResolverOption) Resolver {
 	req.Inputs = normalizeInputs(req.Inputs)
+	req.MinVerifyLevel = normalizeMinVerifyLevel(req.MinVerifyLevel)
 	resolver := Resolver{
 		req:    req,
 		runner: runtime.NewRunner(runtime.DefaultRegistry()),
@@ -202,7 +204,7 @@ func (resolver Resolver) scoreBinding(capability core.Capability, binding core.B
 	if resolver.req.ProviderID != "" && binding.ProviderID != resolver.req.ProviderID {
 		return candidate{}, false
 	}
-	if resolver.req.Verify && binding.Verifier == nil {
+	if binding.Verify == nil || core.VerifyLevelRank(binding.Verify.Level) < core.VerifyLevelRank(resolver.req.MinVerifyLevel) {
 		return candidate{}, false
 	}
 	if !resolver.runner.Supports(binding.Execution.Kind) {
@@ -229,6 +231,13 @@ func (resolver Resolver) scoreBinding(capability core.Capability, binding core.B
 		missing:    missing,
 		score:      score,
 	}, true
+}
+
+func normalizeMinVerifyLevel(level core.VerifyLevel) core.VerifyLevel {
+	if level == "" {
+		return core.VerifyLevelL2
+	}
+	return level
 }
 
 func intentScore(capability core.Capability, intentTokens map[string]struct{}) int {
