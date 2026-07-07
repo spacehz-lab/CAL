@@ -6,13 +6,15 @@ import (
 	"strings"
 )
 
-func defaultLogDir() (string, error) {
-	if localAppData := strings.TrimSpace(os.Getenv("LocalAppData")); localAppData != "" {
-		return filepath.Join(localAppData, "cal", "logs"), nil
+const envLocalAppData = "LocalAppData"
+
+func defaultDir() (string, error) {
+	if localAppData := strings.TrimSpace(os.Getenv(envLocalAppData)); localAppData != "" {
+		return filepath.Join(localAppData, defaultName, "logs"), nil
 	}
 	dir, err := os.UserCacheDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(dir, "cal", "logs"), nil
+	return filepath.Join(dir, defaultName, "logs"), nil
 }

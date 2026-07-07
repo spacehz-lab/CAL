@@ -6,13 +6,15 @@ import (
 	"strings"
 )
 
-func defaultLogDir() (string, error) {
-	if state := strings.TrimSpace(os.Getenv("XDG_STATE_HOME")); state != "" {
-		return filepath.Join(state, "cal", "logs"), nil
+const envXDGStateHome = "XDG_STATE_HOME"
+
+func defaultDir() (string, error) {
+	if state := strings.TrimSpace(os.Getenv(envXDGStateHome)); state != "" {
+		return filepath.Join(state, defaultName, "logs"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".local", "state", "cal", "logs"), nil
+	return filepath.Join(home, ".local", "state", defaultName, "logs"), nil
 }

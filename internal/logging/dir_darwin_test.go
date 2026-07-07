@@ -5,15 +5,15 @@ import (
 	"testing"
 )
 
-func TestDefaultLogDirUsesDarwinLogsDirectory(t *testing.T) {
+func TestDefaultDirDarwin(t *testing.T) {
 	t.Setenv("HOME", "/Users/test")
 
-	dir, err := defaultLogDir()
+	got, err := defaultDir()
 	if err != nil {
-		t.Fatalf("defaultLogDir() error = %v", err)
+		t.Fatalf("defaultDir() error = %v", err)
 	}
-	want := filepath.Join("/Users/test", "Library", "Logs", "cal")
-	if dir != want {
-		t.Fatalf("defaultLogDir() = %q, want %q", dir, want)
+	want := filepath.Join("/Users/test", "Library", "Logs", defaultName)
+	if got != want {
+		t.Fatalf("defaultDir() = %q, want %q", got, want)
 	}
 }

@@ -3,106 +3,113 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func TestEnsureWritesMissingConfig(t *testing.T) {
-	home := t.TempDir()
-	configFile := New(home)
-	cfg, err := configFile.Ensure()
+func TestLoadMissingConfigReturnsDefaultsWithoutWriting(t *testing.T) {
+	file := NewFile(t.TempDir())
+
+	cfg, err := file.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Logging.Level != LoggingLevelInfo || !cfg.Logging.File.FileEnabled() {
+		t.Fatalf("Load() = %#v, want logging defaults", cfg)
+	}
+	if _, err := os.Stat(file.Path()); !os.IsNotExist(err) {
+		t.Fatalf("config file exists after Load(): %v", err)
+	}
+}
+
+func TestEnsureCreatesDefaultConfig(t *testing.T) {
+	file := NewFile(t.TempDir())
+
+	cfg, err := file.Ensure()
 	if err != nil {
 		t.Fatalf("Ensure() error = %v", err)
 	}
-	if cfg.Logging.Level != LogLevelInfo || !cfg.Logging.File.FileEnabled() {
-		t.Fatalf("logging = %#v, want default file logging", cfg.Logging)
+	if cfg.Logging.Level != LoggingLevelInfo {
+		t.Fatalf("Ensure() logging level = %q, want info", cfg.Logging.Level)
 	}
-	if _, err := os.Stat(filepath.Join(home, fileName)); err != nil {
-		t.Fatalf("default config was not written: %v", err)
+	content, err := os.ReadFile(file.Path())
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if strings.Contains(string(content), `"llm"`) {
+		t.Fatalf("default config contains llm section: %s", content)
 	}
 }
 
-func TestLoadConfig(t *testing.T) {
-	home := t.TempDir()
-	configFile := New(home)
-	configPath := filepath.Join(home, fileName)
-	if err := os.WriteFile(configPath, []byte(`{
-  "llm": {
-    "api": "chat_completions",
-    "base_url": "https://api.example.test/v1",
-    "model": "test-model",
-    "api_key_ref": "env:CAL_TEST_LLM_API_KEY"
-  },
-  "logging": {
-    "level": "warn",
-    "file": {
-      "enabled": false
-    }
-  }
-}`), 0o644); err != nil {
-		t.Fatalf("write config: %v", err)
+func TestSaveAndLoadRoundTrip(t *testing.T) {
+	file := NewFile(t.TempDir())
+	enabled := false
+	cfg := &Config{
+		LLM: &LLMConfig{
+			API:       LLMAPIChatCompletions,
+			BaseURL:   " https://api.example.test/v1 ",
+			Model:     " test-model ",
+			APIKeyRef: " env:CAL_TEST_LLM_API_KEY ",
+		},
+		Logging: LoggingConfig{
+			Level: loggingLevelWarning,
+			File: LoggingFileConfig{
+				Enabled:  &enabled,
+				MaxBytes: 2048,
+				MaxFiles: 7,
+			},
+		},
 	}
 
-	cfg, err := configFile.Load()
+	if err := file.Save(cfg); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+	loaded, err := file.Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if cfg.LLM == nil || cfg.LLM.API != LLMAPIChatCompletions || cfg.LLM.APIKeyRef != "env:CAL_TEST_LLM_API_KEY" {
-		t.Fatalf("llm = %#v, want durable non-secret settings", cfg.LLM)
+	if loaded.LLM == nil || loaded.LLM.API != LLMAPIChatCompletions || loaded.LLM.BaseURL != "https://api.example.test/v1" || loaded.LLM.Model != "test-model" || loaded.LLM.APIKeyRef != "env:CAL_TEST_LLM_API_KEY" {
+		t.Fatalf("loaded llm = %#v, want trimmed durable settings", loaded.LLM)
 	}
-	if cfg.Logging.Level != LogLevelWarn || cfg.Logging.File.FileEnabled() || cfg.Logging.File.MaxBytes == 0 || cfg.Logging.File.MaxFiles == 0 {
-		t.Fatalf("logging = %#v, want configured level with default rotation", cfg.Logging)
-	}
-}
-
-func TestResetOverwritesConfigWithDefaults(t *testing.T) {
-	home := t.TempDir()
-	configFile := New(home)
-	configPath := filepath.Join(home, fileName)
-	if err := os.WriteFile(configPath, []byte(`{"logging":{"level":"warn"}}`), 0o644); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
-
-	cfg, err := configFile.reset()
-	if err != nil {
-		t.Fatalf("reset() error = %v", err)
-	}
-	loaded, err := configFile.Load()
-	if err != nil {
-		t.Fatalf("Load() error = %v", err)
-	}
-	if loaded.Logging.Level != cfg.Logging.Level {
-		t.Fatalf("loaded logging = %#v, want %#v", loaded.Logging, cfg.Logging)
+	if loaded.Logging.Level != LoggingLevelWarn || loaded.Logging.File.FileEnabled() || loaded.Logging.File.MaxBytes != 2048 || loaded.Logging.File.MaxFiles != 7 {
+		t.Fatalf("loaded logging = %#v, want configured logging", loaded.Logging)
 	}
 }
 
 func TestLoadRejectsUnknownFields(t *testing.T) {
-	home := t.TempDir()
-	configFile := New(home)
-	configPath := filepath.Join(home, fileName)
-	if err := os.WriteFile(configPath, []byte(`{"unexpected": true}`), 0o644); err != nil {
-		t.Fatalf("write config: %v", err)
-	}
+	file := writeConfig(t, `{"unexpected": true}`)
 
-	if _, err := configFile.Load(); err == nil {
+	if _, err := file.Load(); err == nil {
 		t.Fatal("Load() error = nil, want unknown field error")
 	}
 }
 
 func TestLoadRejectsRawLLMAPIKey(t *testing.T) {
+	file := writeConfig(t, `{"llm":{"api_key":"sk-test"}}`)
+
+	if _, err := file.Load(); err == nil {
+		t.Fatal("Load() error = nil, want raw api key rejection")
+	}
+}
+
+func TestLoadKeepsAPIKeyRefUnresolved(t *testing.T) {
+	file := writeConfig(t, `{"llm":{"api_key_ref":"env:CAL_TEST_LLM_API_KEY"}}`)
+
+	cfg, err := file.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.LLM == nil || cfg.LLM.APIKeyRef != "env:CAL_TEST_LLM_API_KEY" {
+		t.Fatalf("llm = %#v, want unresolved api key ref", cfg.LLM)
+	}
+}
+
+func writeConfig(t *testing.T, content string) *File {
+	t.Helper()
 	home := t.TempDir()
-	configFile := New(home)
-	configPath := filepath.Join(home, fileName)
-	if err := os.WriteFile(configPath, []byte(`{
-  "llm": {
-    "api": "chat_completions",
-    "model": "test-model",
-    "api_key": "sk-test"
-  }
-}`), 0o644); err != nil {
+	path := filepath.Join(home, FileName)
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		t.Fatalf("write config: %v", err)
 	}
-
-	if _, err := configFile.Load(); err == nil {
-		t.Fatal("Load() error = nil, want raw api_key rejection")
-	}
+	return NewFile(home)
 }

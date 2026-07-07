@@ -13,9 +13,11 @@ tests/
   e2e/
     functional/  # deterministic closed-loop CLI tests, expected to run by default
     local_cli/   # local real-CLI end-to-end checks, environment-dependent
-    live_llm/    # live LLM end-to-end checks, API-key gated
-    cli_canary_llm/ # real CLI plus live LLM canaries, API-key gated
 ```
+
+Old pre-v1 live LLM and CLI canary suites are archived under
+`backup/tests/e2e/` with the old implementation. They are not part of the main
+module test set after the `internal/` v1 switch.
 
 ## Commands
 
@@ -31,34 +33,15 @@ Local real-CLI checks:
 CAL_LOCAL_CLI_E2E=1 go test ./tests/e2e/local_cli -count=1 -v
 ```
 
-Live LLM checks:
+Live LLM checks should be opt-in and may use runtime environment overrides:
 
 ```sh
 CAL_LIVE_LLM_E2E=1 \
 CAL_LLM_API=chat_completions \
-CAL_LLM_BASE_URL=<openai-compatible base url> \
 CAL_LLM_MODEL=<model> \
-CAL_LLM_API_KEY=<api key> \
-  make e2e-live-llm
+CAL_LLM_API_KEY=<api-key> \
+go test ./tests/e2e/live_llm -count=1 -v
 ```
-
-The default live LLM package timeout is 20 minutes. Override it with
-`LIVE_LLM_TEST_TIMEOUT=<duration>` when needed.
-
-Real CLI plus live LLM canaries:
-
-```sh
-CAL_CLI_CANARY_LLM_E2E=1 \
-CAL_LLM_API=chat_completions \
-CAL_LLM_BASE_URL=<openai-compatible base url> \
-CAL_LLM_MODEL=<model> \
-CAL_LLM_API_KEY=<api key> \
-  make e2e-cli-canary-llm
-```
-
-The canary package currently covers `shasum`, `plutil`, and `brew`. The default
-timeout is 20 minutes. Override it with
-`CLI_CANARY_LLM_TEST_TIMEOUT=<duration>` when needed.
 
 `CAL_LLM_API_KEY` must stay in the environment. Do not write it into repository
 files, traces, logs, or committed artifacts.

@@ -5,121 +5,93 @@ import (
 	"path/filepath"
 	"testing"
 
-	caltrace "github.com/spacehz-lab/cal/internal/trace"
+	"github.com/spacehz-lab/cal/internal/model"
 )
 
-func TestPutGetAndListTrace(t *testing.T) {
+func TestSaveGetAndListTraces(t *testing.T) {
 	store := newTestStore(t)
-	trace := caltrace.Trace{
-		ID:          "trace_abc123",
-		Status:      caltrace.StatusCompleted,
-		ProviderIDs: []string{"provider_abc123"},
+	first := model.Trace{ID: "trace_b", Status: model.TraceStatusCompleted}
+	second := model.Trace{ID: "trace_a", Status: model.TraceStatusRunning}
+
+	if err := store.SaveTrace(&first); err != nil {
+		t.Fatalf("SaveTrace(first) error = %v", err)
 	}
-	if err := store.PutTrace(trace); err != nil {
-		t.Fatalf("PutTrace() error = %v", err)
+	if err := store.SaveTrace(&second); err != nil {
+		t.Fatalf("SaveTrace(second) error = %v", err)
 	}
 
-	got, ok, err := store.GetTrace("trace_abc123")
+	if _, err := os.Stat(filepath.Join(store.Root(), tracesDir, "trace_a", traceFileName)); err != nil {
+		t.Fatalf("stat trace file: %v", err)
+	}
+
+	got, ok, err := store.GetTrace("trace_a")
 	if err != nil {
 		t.Fatalf("GetTrace() error = %v", err)
 	}
-	if !ok || got.ID != "trace_abc123" {
-		t.Fatalf("GetTrace() = %#v, %v, want trace_abc123", got, ok)
+	if !ok || got.ID != "trace_a" {
+		t.Fatalf("GetTrace() = %#v, %v; want trace_a, true", got, ok)
 	}
 
 	traces, err := store.ListTraces()
 	if err != nil {
 		t.Fatalf("ListTraces() error = %v", err)
 	}
-	if len(traces) != 1 || traces[0].ID != "trace_abc123" {
-		t.Fatalf("ListTraces() = %#v, want trace_abc123", traces)
-	}
-	if _, err := os.Stat(filepath.Join(store.Home(), "discovery", "trace_abc123", "trace.json")); err != nil {
-		t.Fatalf("trace file missing: %v", err)
+	if len(traces) != 2 || traces[0].ID != "trace_a" || traces[1].ID != "trace_b" {
+		t.Fatalf("ListTraces() = %#v, want sorted traces", traces)
 	}
 }
 
-func TestPrepareTraceProbeDir(t *testing.T) {
+func TestTraceMissingEmptyAndIgnoredEntries(t *testing.T) {
 	store := newTestStore(t)
-	dir, err := store.PrepareTraceProbeDir("trace_abc123", 2)
-	if err != nil {
-		t.Fatalf("PrepareTraceProbeDir() error = %v", err)
+	writeTestFile(t, filepath.Join(store.Root(), tracesDir, "note.txt"), "ignore me")
+	if err := os.MkdirAll(filepath.Join(store.Root(), tracesDir, "trace_empty"), 0o755); err != nil {
+		t.Fatalf("MkdirAll() error = %v", err)
 	}
-	want := filepath.Join(store.Home(), "discovery", "trace_abc123", "probes", "2")
-	if dir != want {
-		t.Fatalf("PrepareTraceProbeDir() = %q, want %q", dir, want)
-	}
-	if _, err := os.Stat(dir); err != nil {
-		t.Fatalf("probe dir stat error = %v", err)
-	}
-}
 
-func TestPrepareTraceProbeDirRejectsInvalidInput(t *testing.T) {
-	store := newTestStore(t)
-	if _, err := store.PrepareTraceProbeDir("../bad", 0); err == nil {
-		t.Fatal("PrepareTraceProbeDir(unsafe) error = nil, want error")
-	}
-	if _, err := store.PrepareTraceProbeDir("trace_abc123", -1); err == nil {
-		t.Fatal("PrepareTraceProbeDir(negative) error = nil, want error")
-	}
-}
-
-func TestGetTraceMissing(t *testing.T) {
-	trace, ok, err := newTestStore(t).GetTrace("trace_missing")
-	if err != nil {
-		t.Fatalf("GetTrace(missing) error = %v", err)
-	}
-	if ok || trace.ID != "" {
-		t.Fatalf("GetTrace(missing) = %#v, %v, want not found", trace, ok)
-	}
-}
-
-func TestPutTraceRejectsInvalidRecord(t *testing.T) {
-	if err := newTestStore(t).PutTrace(caltrace.Trace{ID: "trace_bad"}); err == nil {
-		t.Fatal("PutTrace(invalid) error = nil, want error")
-	}
-}
-
-func TestPutTraceRejectsUnsafeID(t *testing.T) {
-	if err := newTestStore(t).PutTrace(caltrace.Trace{ID: "../bad", Status: caltrace.StatusCompleted}); err == nil {
-		t.Fatal("PutTrace(unsafe) error = nil, want error")
-	}
-}
-
-func TestGetTraceRejectsUnsafeID(t *testing.T) {
-	if _, _, err := newTestStore(t).GetTrace("../bad"); err == nil {
-		t.Fatal("GetTrace(unsafe) error = nil, want error")
-	}
-}
-
-func TestGetTraceRejectsInvalidStoredRecord(t *testing.T) {
-	store := newTestStore(t)
-	writeStoreFile(t, filepath.Join(store.Home(), discoveryDir, "trace_bad", "trace.json"), `{"id":"trace_bad"}`)
-
-	if _, _, err := store.GetTrace("trace_bad"); err == nil {
-		t.Fatal("GetTrace(invalid stored record) error = nil, want error")
-	}
-}
-
-func TestListTracesEmptyStore(t *testing.T) {
-	traces, err := newTestStore(t).ListTraces()
+	traces, err := store.ListTraces()
 	if err != nil {
 		t.Fatalf("ListTraces() error = %v", err)
 	}
 	if len(traces) != 0 {
 		t.Fatalf("ListTraces() len = %d, want 0", len(traces))
 	}
+
+	_, ok, err := store.GetTrace("trace_missing")
+	if err != nil {
+		t.Fatalf("GetTrace() error = %v", err)
+	}
+	if ok {
+		t.Fatal("GetTrace() ok = true, want false")
+	}
 }
 
-func TestListTracesSkipsFiles(t *testing.T) {
+func TestTraceRejectsInvalidInputs(t *testing.T) {
 	store := newTestStore(t)
-	writeStoreFile(t, filepath.Join(store.Home(), discoveryDir, "ignore.json"), "{}")
 
-	traces, err := store.ListTraces()
-	if err != nil {
-		t.Fatalf("ListTraces() error = %v", err)
+	if err := store.SaveTrace(nil); err == nil {
+		t.Fatal("SaveTrace(nil) error = nil, want error")
 	}
-	if len(traces) != 0 {
-		t.Fatalf("ListTraces() = %#v, want empty", traces)
+	if err := store.SaveTrace(&model.Trace{ID: "../bad", Status: model.TraceStatusCompleted}); err == nil {
+		t.Fatal("SaveTrace() error = nil, want path-safe id error")
+	}
+	if _, _, err := store.GetTrace("../bad"); err == nil {
+		t.Fatal("GetTrace() error = nil, want path-safe id error")
+	}
+	if err := store.SaveTrace(&model.Trace{ID: "trace_bad", Status: "done"}); err == nil {
+		t.Fatal("SaveTrace() error = nil, want validation error")
+	}
+}
+
+func TestListTracesRejectsInvalidFiles(t *testing.T) {
+	store := newTestStore(t)
+	writeTestFile(t, filepath.Join(store.Root(), tracesDir, "trace_bad", traceFileName), "{")
+	if _, err := store.ListTraces(); err == nil {
+		t.Fatal("ListTraces() error = nil, want decode error")
+	}
+
+	store = newTestStore(t)
+	writeTestFile(t, filepath.Join(store.Root(), tracesDir, "trace_bad", traceFileName), `{"id":"trace_bad","status":"done"}`)
+	if _, err := store.ListTraces(); err == nil {
+		t.Fatal("ListTraces() error = nil, want validation error")
 	}
 }

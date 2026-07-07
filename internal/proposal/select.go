@@ -3,55 +3,65 @@ package proposal
 import (
 	"fmt"
 
-	"github.com/spacehz-lab/cal/internal/core"
-	caltrace "github.com/spacehz-lab/cal/internal/trace"
+	"github.com/spacehz-lab/cal/internal/model"
 )
 
-// SelectOptions bounds a Proposal result for one discovery run.
-type SelectOptions struct {
-	ProviderID  string
-	DebugFilter string
-	Limit       int
+type selectOptions struct {
+	ProviderID string
+	Limit      int
 }
 
-// Select filters, de-duplicates, limits, and re-indexes a Proposal result.
-func Select(result Result, opts SelectOptions) (Result, error) {
+// NormalizeOptions configures mechanical proposal result cleanup.
+type NormalizeOptions struct {
+	ProviderID string
+	Limit      int
+}
+
+// NormalizeResult filters, dedupes, limits, and reindexes proposal results.
+func NormalizeResult(result *Result, options NormalizeOptions) (*Result, error) {
+	return selectResult(result, selectOptions{
+		ProviderID: options.ProviderID,
+		Limit:      options.Limit,
+	})
+}
+
+func selectResult(result *Result, options selectOptions) (*Result, error) {
+	if result == nil {
+		return nil, fmt.Errorf("proposal result is required")
+	}
 	plansByCandidate := make(map[int]ProbePlan, len(result.ProbePlans))
 	for _, plan := range result.ProbePlans {
 		if plan.CandidateIndex < 0 || plan.CandidateIndex >= len(result.Candidates) {
-			return Result{}, fmt.Errorf("probe plan candidate_index %d is out of range", plan.CandidateIndex)
+			return nil, fmt.Errorf("probe plan candidate_index %d is out of range", plan.CandidateIndex)
 		}
-		if _, exists := plansByCandidate[plan.CandidateIndex]; exists {
-			return Result{}, fmt.Errorf("candidate %d has duplicate probe plans", plan.CandidateIndex)
+		if _, ok := plansByCandidate[plan.CandidateIndex]; ok {
+			return nil, fmt.Errorf("candidate %d has duplicate probe plans", plan.CandidateIndex)
 		}
 		plansByCandidate[plan.CandidateIndex] = plan
 	}
 
-	seen := make(map[string]struct{}, len(result.Candidates))
-	selected := Result{
-		Candidates:  make([]caltrace.Candidate, 0, len(result.Candidates)),
+	seen := map[string]struct{}{}
+	selected := &Result{
+		Candidates:  make([]model.Candidate, 0, len(result.Candidates)),
 		ProbePlans:  make([]ProbePlan, 0, len(result.Candidates)),
 		Diagnostics: result.Diagnostics,
 	}
 	for index, candidate := range result.Candidates {
-		if opts.ProviderID != "" && candidate.ProviderID != opts.ProviderID {
-			continue
-		}
-		if opts.DebugFilter != "" && candidate.CapabilityID != opts.DebugFilter {
+		if options.ProviderID != "" && candidate.ProviderID != options.ProviderID {
 			continue
 		}
 		plan, ok := plansByCandidate[index]
 		if !ok {
-			return Result{}, fmt.Errorf("candidate %d has no probe plan", index)
+			return nil, fmt.Errorf("candidate %d has no probe plan", index)
 		}
 		key, err := candidateIdentity(candidate)
 		if err != nil {
-			return Result{}, err
+			return nil, err
 		}
 		if _, ok := seen[key]; ok {
 			continue
 		}
-		if opts.Limit > 0 && len(selected.Candidates) >= opts.Limit {
+		if options.Limit > 0 && len(selected.Candidates) >= options.Limit {
 			break
 		}
 		seen[key] = struct{}{}
@@ -62,8 +72,8 @@ func Select(result Result, opts SelectOptions) (Result, error) {
 	return selected, nil
 }
 
-func candidateIdentity(candidate caltrace.Candidate) (string, error) {
-	canonical, err := core.CanonicalExecution(candidate.Execution)
+func candidateIdentity(candidate model.Candidate) (string, error) {
+	canonical, err := model.CanonicalExecution(candidate.Execution)
 	if err != nil {
 		return "", err
 	}

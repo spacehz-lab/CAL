@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,12 +9,22 @@ import (
 )
 
 func main() {
-	cmd := cli.NewRootCommand(cli.Config{
-		In:  os.Stdin,
-		Out: os.Stdout,
-		Err: os.Stderr,
+	app, err := cli.New(cli.Options{
+		Stdout:  os.Stdout,
+		Stderr:  os.Stderr,
+		Environ: os.Environ(),
 	})
-	if err := cmd.Execute(); err != nil {
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if err := app.Command().Execute(); err != nil {
+		var exitErr *cli.ExitError
+		if errors.As(err, &exitErr) {
+			fmt.Fprintln(os.Stderr, exitErr.Error())
+			os.Exit(exitErr.Code)
+		}
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

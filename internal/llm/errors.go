@@ -2,20 +2,21 @@ package llm
 
 import "errors"
 
-// ErrEmptyResponse reports a provider response without output text.
-var ErrEmptyResponse = errors.New("llm returned empty output")
-
-// ErrMissingAPIKey reports direct provider client construction without a key.
-var ErrMissingAPIKey = errors.New("llm provider api key is not configured")
-
-// ErrMissingAPI reports partial LLM configuration without an API type.
-var ErrMissingAPI = errors.New("llm api is not configured")
-
-// ErrMissingModel reports direct provider client construction without a model.
-var ErrMissingModel = errors.New("llm model is not configured")
-
-// ErrNoClient reports a missing LLM client.
-var ErrNoClient = errors.New("llm client is not configured")
-
-// ErrUnsupportedAPI reports an unknown LLM API type.
-var ErrUnsupportedAPI = errors.New("unsupported llm api")
+var (
+	// ErrEmptyResponse reports provider output without response text.
+	ErrEmptyResponse = errors.New("llm returned empty output")
+	// ErrMissingOptions reports nil runtime client options.
+	ErrMissingOptions = errors.New("llm options are required")
+	// ErrMissingAPI reports runtime client options without an API type.
+	ErrMissingAPI = errors.New("llm api is not configured")
+	// ErrMissingAPIKey reports runtime client options without an API key.
+	ErrMissingAPIKey = errors.New("llm provider api key is not configured")
+	// ErrMissingModel reports runtime client options without a model.
+	ErrMissingModel = errors.New("llm model is not configured")
+	// ErrNoClient reports a missing LLM client.
+	ErrNoClient = errors.New("llm client is not configured")
+	// ErrNilRequest reports a missing completion request.
+	ErrNilRequest = errors.New("llm request is required")
+	// ErrUnsupportedAPI reports an unknown API type.
+	ErrUnsupportedAPI = errors.New("unsupported llm api")
+)

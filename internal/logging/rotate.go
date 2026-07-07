@@ -16,6 +16,12 @@ type rotatingWriter struct {
 }
 
 func newRotatingWriter(path string, maxBytes int64, maxFiles int) (*rotatingWriter, error) {
+	if maxBytes <= 0 {
+		return nil, fmt.Errorf("log max_bytes must be positive")
+	}
+	if maxFiles <= 0 {
+		return nil, fmt.Errorf("log max_files must be positive")
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return nil, err
 	}
@@ -38,9 +44,6 @@ func (writer *rotatingWriter) Write(p []byte) (int, error) {
 }
 
 func (writer *rotatingWriter) rotateIfNeeded(incoming int64) error {
-	if writer.maxBytes <= 0 {
-		return nil
-	}
 	info, err := os.Stat(writer.path)
 	if errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -55,9 +58,6 @@ func (writer *rotatingWriter) rotateIfNeeded(incoming int64) error {
 }
 
 func (writer *rotatingWriter) rotate() error {
-	if writer.maxFiles <= 0 {
-		return os.Remove(writer.path)
-	}
 	if err := removeIfExists(rotatedPath(writer.path, writer.maxFiles)); err != nil {
 		return err
 	}

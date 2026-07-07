@@ -2,8 +2,8 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -11,76 +11,64 @@ import (
 	"strings"
 	"time"
 
-	"github.com/spf13/cobra"
-
-	"github.com/spacehz-lab/cal/internal/cald"
-	caldclient "github.com/spacehz-lab/cal/internal/cald/client"
-	"github.com/spacehz-lab/cal/internal/calpath"
+	"github.com/spacehz-lab/cal/internal/cli/client"
+	"github.com/spacehz-lab/cal/internal/contract"
 	"github.com/spacehz-lab/cal/internal/logging"
 )
 
-const daemonStartTimeout = 10 * time.Second
+const (
+	daemonBinaryName   = "cald"
+	daemonLogName      = "cald-daemon"
+	daemonServeCommand = "serve"
+
+	defaultDaemonStartTimeout = 10 * time.Second
+	daemonPollInterval        = 100 * time.Millisecond
+)
 
 type daemonStarter struct {
-	cfg      Config
-	caldPath string
-	timeout  time.Duration
+	home    string
+	env     []string
+	path    string
+	logPath string
+	timeout time.Duration
 }
 
-func newDaemonStartCommand(cfg Config) *cobra.Command {
-	var jsonOut bool
-	cmd := &cobra.Command{
-		Use:   "start",
-		Short: "Start the local CAL service",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			status, err := newDaemonStarter(cfg).Start(cmd.Context())
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
-			}
-			if jsonOut {
-				return writeJSON(cmd.OutOrStdout(), status)
-			}
-			_, err = fmt.Fprintln(cmd.OutOrStdout(), "cald running")
-			return err
-		},
+func (cli *CLI) newDaemonStarter() *daemonStarter {
+	return &daemonStarter{
+		home:    cli.home,
+		env:     cli.env,
+		timeout: defaultDaemonStartTimeout,
 	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	return cmd
 }
 
-func newDaemonStarter(cfg Config) daemonStarter {
-	return daemonStarter{cfg: cfg, timeout: daemonStartTimeout}
-}
-
-func (starter daemonStarter) Start(ctx context.Context) (cald.Status, error) {
-	home, err := starter.home()
+func (starter *daemonStarter) Start(ctx context.Context) (*contract.DaemonStatus, error) {
+	if starter == nil {
+		return nil, fmt.Errorf("daemon starter is required")
+	}
+	home, err := resolveHome(starter.home, starter.env)
 	if err != nil {
-		return cald.Status{}, err
+		return nil, err
 	}
 	if status, ok := starter.runningStatus(ctx, home); ok {
 		return status, nil
 	}
-	_ = os.Remove(cald.EndpointFilePath(home))
 
-	caldPath, err := starter.resolveCaldPath()
+	path, err := starter.resolvePath()
 	if err != nil {
-		return cald.Status{}, err
-	}
-	if err := os.MkdirAll(home, 0o755); err != nil {
-		return cald.Status{}, fmt.Errorf("create CAL home: %w", err)
+		return nil, err
 	}
 	logFile, err := starter.openLog()
 	if err != nil {
-		return cald.Status{}, err
+		return nil, err
 	}
 	defer logFile.Close()
 
-	cmd := exec.Command(caldPath, "serve")
-	cmd.Env = calpath.WithHomeEnv(os.Environ(), home)
+	cmd := exec.Command(path, "--"+flagHome, home, daemonServeCommand)
+	cmd.Env = envWithHome(starter.env, home)
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
-		return cald.Status{}, newCommandErrorf(commandErrorCaldStartFailed, "start cald: %v", err)
+		return nil, fmt.Errorf("start cald: %w", err)
 	}
 
 	waitCtx, cancel := context.WithTimeout(ctx, starter.startTimeout())
@@ -88,104 +76,119 @@ func (starter daemonStarter) Start(ctx context.Context) (cald.Status, error) {
 	status, err := starter.waitReady(waitCtx, home)
 	if err != nil {
 		_ = cmd.Process.Kill()
-		_, _ = cmd.Process.Wait()
-		return cald.Status{}, newCommandErrorf(commandErrorCaldStartFailed, "cald did not become ready: %v", err)
+		_ = cmd.Wait()
+		return nil, err
 	}
 	if err := cmd.Process.Release(); err != nil {
-		return cald.Status{}, fmt.Errorf("release cald process: %w", err)
+		return nil, fmt.Errorf("release cald process: %w", err)
 	}
 	return status, nil
 }
 
-func (starter daemonStarter) home() (string, error) {
-	home := strings.TrimSpace(starter.cfg.Home)
-	if home != "" {
-		return filepath.Clean(home), nil
-	}
-	return calpath.HomeDir()
+func (starter *daemonStarter) runningStatus(ctx context.Context, home string) (*contract.DaemonStatus, bool) {
+	status, err := starter.status(ctx, home)
+	return status, err == nil && status != nil && status.Running
 }
 
-func (starter daemonStarter) runningStatus(ctx context.Context, home string) (cald.Status, bool) {
-	client, err := caldclient.New(home)
-	if err != nil {
-		return cald.Status{}, false
-	}
-	status, err := client.Status(ctx)
-	return status, err == nil && status.Running
-}
-
-func (starter daemonStarter) resolveCaldPath() (string, error) {
-	if strings.TrimSpace(starter.caldPath) != "" {
-		return filepath.Clean(starter.caldPath), nil
-	}
-	if exe, err := os.Executable(); err == nil {
-		candidate := filepath.Join(filepath.Dir(exe), caldExecutableName())
-		if isFile(candidate) {
-			return candidate, nil
-		}
-	}
-	if path, err := exec.LookPath("cald"); err == nil {
-		return path, nil
-	}
-	return "", newCommandError(commandErrorCaldStartFailed, "cald executable was not found")
-}
-
-func (starter daemonStarter) openLog() (io.WriteCloser, error) {
-	path, err := logging.ProcessLogPath("cald-daemon")
-	if err != nil {
-		return nil, fmt.Errorf("resolve cald daemon log path: %w", err)
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return nil, fmt.Errorf("create log directory: %w", err)
-	}
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
-	if err != nil {
-		return nil, fmt.Errorf("open cald daemon log: %w", err)
-	}
-	return file, nil
-}
-
-func (starter daemonStarter) waitReady(ctx context.Context, home string) (cald.Status, error) {
-	ticker := time.NewTicker(50 * time.Millisecond)
+func (starter *daemonStarter) waitReady(ctx context.Context, home string) (*contract.DaemonStatus, error) {
+	ticker := time.NewTicker(daemonPollInterval)
 	defer ticker.Stop()
-	var lastErr error
+
 	for {
-		client, err := caldclient.New(home)
-		if err == nil {
-			status, err := client.Status(ctx)
-			if err == nil && status.Running {
-				return status, nil
-			}
-			lastErr = err
-		} else {
-			lastErr = err
+		if status, ok := starter.runningStatus(ctx, home); ok {
+			return status, nil
 		}
 		select {
 		case <-ctx.Done():
-			if lastErr != nil {
-				return cald.Status{}, lastErr
-			}
-			return cald.Status{}, ctx.Err()
+			return nil, fmt.Errorf("wait for cald: %w", ctx.Err())
 		case <-ticker.C:
 		}
 	}
 }
 
-func (starter daemonStarter) startTimeout() time.Duration {
+func (starter *daemonStarter) status(ctx context.Context, home string) (*contract.DaemonStatus, error) {
+	daemonClient, err := client.New(client.Options{Home: home})
+	if err != nil {
+		return nil, err
+	}
+	return daemonClient.Status(ctx)
+}
+
+func (starter *daemonStarter) resolvePath() (string, error) {
+	if path := strings.TrimSpace(starter.path); path != "" {
+		return filepath.Clean(path), nil
+	}
+	if path, ok := siblingDaemonPath(); ok {
+		return path, nil
+	}
+	path, err := exec.LookPath(daemonExecutableName())
+	if err != nil {
+		return "", errors.New("cald executable was not found")
+	}
+	return path, nil
+}
+
+func (starter *daemonStarter) openLog() (*os.File, error) {
+	path := strings.TrimSpace(starter.logPath)
+	if path == "" {
+		var err error
+		path, err = logging.Path(daemonLogName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return nil, fmt.Errorf("create log directory: %w", err)
+	}
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return nil, fmt.Errorf("open daemon log: %w", err)
+	}
+	return file, nil
+}
+
+func (starter *daemonStarter) startTimeout() time.Duration {
 	if starter.timeout > 0 {
 		return starter.timeout
 	}
-	return daemonStartTimeout
+	return defaultDaemonStartTimeout
 }
 
-func caldExecutableName() string {
-	if runtime.GOOS == "windows" {
-		return "cald.exe"
+func siblingDaemonPath() (string, bool) {
+	current, err := os.Executable()
+	if err != nil {
+		return "", false
 	}
-	return "cald"
+	path := filepath.Join(filepath.Dir(current), daemonExecutableName())
+	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		return path, true
+	}
+	return "", false
 }
 
-func isFile(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
+func daemonExecutableName() string {
+	if runtime.GOOS == "windows" {
+		return daemonBinaryName + ".exe"
+	}
+	return daemonBinaryName
+}
+
+func envWithHome(env []string, home string) []string {
+	if env == nil {
+		env = os.Environ()
+	}
+	next := make([]string, 0, len(env)+1)
+	replaced := false
+	for _, item := range env {
+		if strings.HasPrefix(item, envHome+"=") {
+			next = append(next, envHome+"="+home)
+			replaced = true
+			continue
+		}
+		next = append(next, item)
+	}
+	if !replaced {
+		next = append(next, envHome+"="+home)
+	}
+	return next
 }

@@ -5,10 +5,10 @@ import (
 	"path/filepath"
 )
 
-func defaultLogDir() (string, error) {
+func defaultDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, "Library", "Logs", "cal"), nil
+	return filepath.Join(home, "Library", "Logs", defaultName), nil
 }

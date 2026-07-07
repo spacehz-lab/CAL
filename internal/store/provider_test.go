@@ -4,31 +4,28 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/spacehz-lab/cal/internal/core"
+	"github.com/spacehz-lab/cal/internal/model"
 )
 
-func TestPutAndListProvider(t *testing.T) {
+func TestSaveGetAndListProviders(t *testing.T) {
 	store := newTestStore(t)
-	first := core.Provider{
-		ID:   "provider_b",
-		Name: "textutil",
-		Kind: core.ProviderKindCLI,
-		Path: "/usr/bin/textutil",
+	first := model.Provider{ID: "provider_b", Kind: model.ProviderKindCLI, Path: "/bin/b"}
+	second := model.Provider{ID: "provider_a", Kind: model.ProviderKindCLI, Path: "/bin/a"}
+
+	if err := store.SaveProvider(&first); err != nil {
+		t.Fatalf("SaveProvider(first) error = %v", err)
 	}
-	second := core.Provider{
-		ID:   "provider_a",
-		Name: "sips",
-		Kind: core.ProviderKindCLI,
-		Path: "/usr/bin/sips",
+	if err := store.SaveProvider(&second); err != nil {
+		t.Fatalf("SaveProvider(second) error = %v", err)
 	}
 
-	if err := store.PutProvider(first); err != nil {
-		t.Fatalf("PutProvider(first) error = %v", err)
+	got, ok, err := store.GetProvider("provider_a")
+	if err != nil {
+		t.Fatalf("GetProvider() error = %v", err)
 	}
-	if err := store.PutProvider(second); err != nil {
-		t.Fatalf("PutProvider(second) error = %v", err)
+	if !ok || got.ID != "provider_a" {
+		t.Fatalf("GetProvider() = %#v, %v; want provider_a, true", got, ok)
 	}
-	writeStoreFile(t, filepath.Join(store.Home(), providersDir, "ignore.txt"), "{}")
 
 	providers, err := store.ListProviders()
 	if err != nil {
@@ -39,51 +36,52 @@ func TestPutAndListProvider(t *testing.T) {
 	}
 }
 
-func TestGetProvider(t *testing.T) {
+func TestProviderMissingAndEmptyList(t *testing.T) {
 	store := newTestStore(t)
-	provider := core.Provider{ID: "provider_one", Kind: core.ProviderKindCLI, Path: "/tmp/one"}
-	if err := store.PutProvider(provider); err != nil {
-		t.Fatalf("PutProvider() error = %v", err)
-	}
 
-	got, ok, err := store.GetProvider("provider_one")
-	if err != nil {
-		t.Fatalf("GetProvider() error = %v", err)
-	}
-	if !ok || got.ID != provider.ID {
-		t.Fatalf("GetProvider() = %#v, %v, want provider", got, ok)
-	}
-}
-
-func TestListProvidersEmptyStore(t *testing.T) {
-	providers, err := newTestStore(t).ListProviders()
+	providers, err := store.ListProviders()
 	if err != nil {
 		t.Fatalf("ListProviders() error = %v", err)
 	}
 	if len(providers) != 0 {
 		t.Fatalf("ListProviders() len = %d, want 0", len(providers))
 	}
-}
 
-func TestPutProviderRejectsInvalidRecord(t *testing.T) {
-	if err := newTestStore(t).PutProvider(core.Provider{ID: "provider_bad"}); err == nil {
-		t.Fatal("PutProvider(invalid) error = nil, want error")
+	_, ok, err := store.GetProvider("provider_missing")
+	if err != nil {
+		t.Fatalf("GetProvider() error = %v", err)
+	}
+	if ok {
+		t.Fatal("GetProvider() ok = true, want false")
 	}
 }
 
-func TestListProvidersRejectsInvalidJSON(t *testing.T) {
+func TestProviderRejectsInvalidInputs(t *testing.T) {
 	store := newTestStore(t)
-	writeStoreFile(t, filepath.Join(store.Home(), providersDir, "bad.json"), "{")
 
+	if err := store.SaveProvider(nil); err == nil {
+		t.Fatal("SaveProvider(nil) error = nil, want error")
+	}
+	if err := store.SaveProvider(&model.Provider{ID: "../bad", Kind: model.ProviderKindCLI, Path: "/bin/bad"}); err == nil {
+		t.Fatal("SaveProvider() error = nil, want path-safe id error")
+	}
+	if _, _, err := store.GetProvider("../bad"); err == nil {
+		t.Fatal("GetProvider() error = nil, want path-safe id error")
+	}
+	if err := store.SaveProvider(&model.Provider{ID: "provider_bad", Kind: "bad", Path: "/bin/bad"}); err == nil {
+		t.Fatal("SaveProvider() error = nil, want validation error")
+	}
+}
+
+func TestListProvidersRejectsInvalidFiles(t *testing.T) {
+	store := newTestStore(t)
+	writeTestFile(t, filepath.Join(store.Root(), providersDir, "bad.json"), "{")
 	if _, err := store.ListProviders(); err == nil {
 		t.Fatal("ListProviders() error = nil, want decode error")
 	}
-}
 
-func TestListProvidersRejectsInvalidRecord(t *testing.T) {
-	store := newTestStore(t)
-	writeStoreFile(t, filepath.Join(store.Home(), providersDir, "bad.json"), `{"id":"provider_bad","kind":"cli"}`)
-
+	store = newTestStore(t)
+	writeTestFile(t, filepath.Join(store.Root(), providersDir, "bad.json"), `{"id":"provider_bad","kind":"bad","path":"/bin/bad"}`)
 	if _, err := store.ListProviders(); err == nil {
 		t.Fatal("ListProviders() error = nil, want validation error")
 	}

@@ -1,158 +1,92 @@
 package cli
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
-
 	"github.com/spf13/cobra"
 
-	"github.com/spacehz-lab/cal/internal/cald/control"
-	"github.com/spacehz-lab/cal/internal/core"
+	"github.com/spacehz-lab/cal/internal/contract"
 )
 
-func newRunsCommand(cfg Config) *cobra.Command {
+const (
+	flagBindingID  = "binding-id"
+	flagInputsJSON = "inputs-json"
+	flagStrategy   = "strategy"
+	flagVerify     = "verify"
+	flagMinVerify  = "min-verify-level"
+)
+
+func (cli *CLI) newRunsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "runs",
-		Short: "Create and inspect capability runs",
+		Short: "Execute promoted capability bindings",
 	}
-	cmd.AddCommand(newRunsCreateCommand(cfg))
-	cmd.AddCommand(newRunsGetCommand(cfg))
+	cmd.AddCommand(cli.newRunsCreateCommand())
 	return cmd
 }
 
-func newRunsCreateCommand(cfg Config) *cobra.Command {
-	var jsonOut bool
-	var inputsJSON string
-	var inputsFile string
-	var capabilityID string
+func (cli *CLI) newRunsCreateCommand() *cobra.Command {
 	var bindingID string
+	var capabilityID string
+	var inputsJSON string
+	var jsonOut bool
+	var minVerifyLevel string
 	var providerID string
 	var strategy string
-	var verifyRun bool
-	var minVerifyLevel string
+	var stream bool
+	var verify bool
 	cmd := &cobra.Command{
 		Use:   "create",
-		Short: "Execute a promoted capability",
+		Short: "Create one capability run",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			inputs, err := readRunInputs(inputsJSON, inputsFile)
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, newCommandError(commandErrorInvalidRunInput, err.Error()))
+			if err := required(capabilityID, flagCapabilityID); err != nil {
+				return commandError(cmd, jsonOut, invalidInput(err.Error()))
 			}
-			client, err := newCaldClient(cfg)
+			inputs, err := parseInputsJSON(inputsJSON)
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, invalidInput(err.Error()))
 			}
-			run, err := client.Run(cmd.Context(), control.RunRequest{
+			minLevel, err := parseMinVerifyLevel(minVerifyLevel)
+			if err != nil {
+				return commandError(cmd, jsonOut, invalidInput(err.Error()))
+			}
+			ctx, err := cli.commandContext()
+			if err != nil {
+				return commandError(cmd, jsonOut, err)
+			}
+			req := &contract.RunRequest{
 				CapabilityID:   capabilityID,
 				BindingID:      bindingID,
 				Inputs:         inputs,
 				ProviderID:     providerID,
-				Strategy:       strategy,
-				Verify:         verifyRun,
-				MinVerifyLevel: core.VerifyLevel(minVerifyLevel),
-			})
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				Strategy:       contract.RunStrategy(strategy),
+				Verify:         verify,
+				MinVerifyLevel: minLevel,
 			}
-			failed := run.Status == "failed"
-			failureCode := ""
-			if run.Error != nil {
-				failureCode = run.Error.Code
-			}
-			if jsonOut {
-				if err := writeJSON(cmd.OutOrStdout(), run); err != nil {
-					return err
+			if stream {
+				renderer := newStreamRenderer(cmd, jsonOut)
+				response, err := ctx.client.RunStream(cmd.Context(), req, renderer.Handle)
+				if err != nil {
+					return commandError(cmd, jsonOut && !renderer.TerminalSeen(), err)
 				}
-				return runExitError(failed, failureCode)
+				if jsonOut {
+					return nil
+				}
+				return render(cmd, RenderOptions{Mode: RenderText}, response, "run created")
 			}
-			if _, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", run.Status, run.BindingID); err != nil {
-				return err
+			response, err := ctx.client.Run(cmd.Context(), req)
+			if err != nil {
+				return commandError(cmd, jsonOut, err)
 			}
-			return runExitError(failed, failureCode)
+			return render(cmd, RenderOptions{Mode: renderMode(jsonOut)}, response, "run created")
 		},
 	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	cmd.Flags().StringVar(&capabilityID, "capability-id", "", "capability_id request field")
-	cmd.Flags().StringVar(&bindingID, "binding-id", "", "binding_id request field")
-	cmd.Flags().StringVar(&inputsJSON, "inputs-json", "", "inputs request object as JSON")
-	cmd.Flags().StringVar(&inputsFile, "inputs-file", "", "path to a JSON file containing the inputs request object")
-	cmd.Flags().StringVar(&providerID, "provider-id", "", "provider_id request field")
-	cmd.Flags().StringVar(&strategy, "strategy", "default", "binding resolution strategy")
-	cmd.Flags().BoolVar(&verifyRun, "verify", false, "verify the outcome after execution")
-	cmd.Flags().StringVar(&minVerifyLevel, "min-verify-level", "", "minimum verification level: L1, L2, or L3")
+	cmd.Flags().StringVar(&capabilityID, flagCapabilityID, "", "capability id")
+	cmd.Flags().StringVar(&bindingID, flagBindingID, "", "binding id")
+	cmd.Flags().StringVar(&providerID, flagProviderID, "", "provider id filter")
+	cmd.Flags().StringVar(&inputsJSON, flagInputsJSON, "", "JSON object inputs")
+	cmd.Flags().StringVar(&minVerifyLevel, flagMinVerify, "", "minimum verify level")
+	cmd.Flags().StringVar(&strategy, flagStrategy, string(contract.RunStrategyDefault), "binding selection strategy")
+	cmd.Flags().BoolVar(&stream, flagStream, false, "stream progress events")
+	cmd.Flags().BoolVar(&verify, flagVerify, false, "verify run output")
+	cmd.Flags().BoolVar(&jsonOut, flagJSON, false, "render machine-readable JSON")
 	return cmd
-}
-
-func newRunsGetCommand(cfg Config) *cobra.Command {
-	var jsonOut bool
-	var runID string
-	cmd := &cobra.Command{
-		Use:   "get",
-		Short: "Get one stored run",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			if runID == "" {
-				return writeCommandError(cmd, jsonOut, newCommandError(commandErrorInvalidRunInput, "run_id is required"))
-			}
-			client, err := newCaldClient(cfg)
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
-			}
-			run, err := client.GetRun(cmd.Context(), runID)
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
-			}
-			if jsonOut {
-				return writeJSON(cmd.OutOrStdout(), run)
-			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\n", run.ID, run.Status)
-			return err
-		},
-	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	cmd.Flags().StringVar(&runID, "run-id", "", "run_id path parameter")
-	return cmd
-}
-
-func readRunInputs(withJSON, withFile string) (map[string]any, error) {
-	if withJSON == "" && withFile == "" {
-		return nil, fmt.Errorf("supply exactly one of --inputs-json or --inputs-file")
-	}
-	if withJSON != "" && withFile != "" {
-		return nil, fmt.Errorf("supply exactly one of --inputs-json or --inputs-file")
-	}
-	payload := []byte(withJSON)
-	if withFile != "" {
-		content, err := os.ReadFile(withFile)
-		if err != nil {
-			return nil, fmt.Errorf("read input file: %w", err)
-		}
-		payload = content
-	}
-
-	var inputs map[string]any
-	if err := json.Unmarshal(payload, &inputs); err != nil {
-		return nil, fmt.Errorf("decode input JSON: %w", err)
-	}
-	if inputs == nil {
-		return nil, fmt.Errorf("input JSON must be an object")
-	}
-	return inputs, nil
-}
-
-func readOptionalRunInputs(withJSON, withFile string) (map[string]any, error) {
-	if withJSON == "" && withFile == "" {
-		return map[string]any{}, nil
-	}
-	return readRunInputs(withJSON, withFile)
-}
-
-func runExitError(failed bool, code string) error {
-	if !failed {
-		return nil
-	}
-	if code == "" {
-		return fmt.Errorf("run failed")
-	}
-	return fmt.Errorf("run failed: %s", code)
 }

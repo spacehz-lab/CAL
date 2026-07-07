@@ -1,52 +1,30 @@
 package cli
 
 import (
-	"encoding/json"
-	"os"
-	"path/filepath"
-	"strings"
+	"net/http"
 	"testing"
 
-	"github.com/spacehz-lab/cal/internal/core"
-	caluse "github.com/spacehz-lab/cal/internal/use"
+	"github.com/spacehz-lab/cal/internal/contract"
+	"github.com/spacehz-lab/cal/internal/model"
 )
 
-func TestUseCommandCallsCald(t *testing.T) {
-	home := t.TempDir()
-	startCLITestCald(t, home)
-	providerPath := writeRunScript(t, false)
-	seedRunnableCapability(t, home, providerPath, core.ExecutionKindCLI)
-	source := filepath.Join(t.TempDir(), "source.txt")
-	target := filepath.Join(t.TempDir(), "target.pdf")
-	if err := os.WriteFile(source, []byte("hello"), 0o644); err != nil {
-		t.Fatalf("write source: %v", err)
-	}
+func TestUsePostsIntentAndInputs(t *testing.T) {
+	cmd, stdout, _ := newTestCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/uses" {
+			t.Fatalf("request = %s %s, want POST /v1/uses", r.Method, r.URL.Path)
+		}
+		req := decodeRequest[contract.UseRequest](t, r)
+		if req.Intent != "convert document" || req.Inputs["target"] != "out.pdf" || req.MinVerifyLevel != model.VerifyLevelL1 {
+			t.Fatalf("request = %#v, want use request with inputs", req)
+		}
+		writeResponse(t, w, contract.UseResponse{ID: "use_1", Status: model.RunStatusSucceeded})
+	})
 
-	output, err := executeRoot(home, "use", "--intent", "export this document as pdf", "--inputs-json", `{"source":`+strconvQuote(source)+`,"target":`+strconvQuote(target)+`}`, "--verify", "--json")
-	if err != nil {
-		t.Fatalf("use command error = %v\n%s", err, output)
+	if err := execute(t, cmd, "use", "convert document", "--inputs-json", `{"target":"out.pdf"}`, "--min-verify-level", "L1", "--json"); err != nil {
+		t.Fatalf("Execute() error = %v", err)
 	}
-	var result caluse.Result
-	if err := json.Unmarshal([]byte(output), &result); err != nil {
-		t.Fatalf("decode use result: %v\n%s", err, output)
-	}
-	if result.Status != core.RunStatusSucceeded || result.Selection == nil || result.Run == nil || !result.Run.Verified {
-		t.Fatalf("use result = %#v, want verified successful use", result)
-	}
-	if result.Selection.CapabilityID != "document.convert" || result.Selection.BindingID != "binding_cli" || result.Run.BindingID != "binding_cli" {
-		t.Fatalf("use selection/run = %#v / %#v, want binding_cli", result.Selection, result.Run)
-	}
-	if _, err := os.Stat(target); err != nil {
-		t.Fatalf("target missing: %v", err)
-	}
-}
-
-func TestUseCommandReportsCaldUnavailable(t *testing.T) {
-	output, err := executeRoot(t.TempDir(), "use", "export pdf", "--json")
-	if err == nil {
-		t.Fatalf("use command succeeded, want cald_unavailable\n%s", output)
-	}
-	if !strings.Contains(output, `"code": "cald_unavailable"`) {
-		t.Fatalf("output = %q, want cald_unavailable", output)
+	response := decodeOutput[contract.UseResponse](t, stdout)
+	if response.ID != "use_1" {
+		t.Fatalf("response = %#v, want use_1", response)
 	}
 }

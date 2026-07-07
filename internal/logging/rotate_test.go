@@ -28,6 +28,16 @@ func TestRotatingWriterRotatesAndDeletesOldFiles(t *testing.T) {
 	}
 }
 
+func TestRotatingWriterRejectsInvalidLimits(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "calctl.log")
+	if _, err := newRotatingWriter(path, 0, 1); err == nil {
+		t.Fatal("newRotatingWriter() error = nil, want max bytes error")
+	}
+	if _, err := newRotatingWriter(path, 1, 0); err == nil {
+		t.Fatal("newRotatingWriter() error = nil, want max files error")
+	}
+}
+
 func assertFileContains(t *testing.T, path string, want string) {
 	t.Helper()
 	content, err := os.ReadFile(path)

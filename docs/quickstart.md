@@ -1,18 +1,22 @@
 # CAL Quickstart
 
-This guide runs one local loop: observe a CLI provider, promote a verified
-binding, call it by intent, and inspect eval output.
+This guide runs one local loop: register a provider, acquire a verified binding,
+reuse it by intent, and inspect local evidence.
 
 ## Install
 
 ```sh
 make install
+export PATH="$(go env GOPATH)/bin:$PATH"
 ```
 
-If your shell cannot find `calctl`, add Go's install directory to `PATH`:
+The examples use `jq` to extract ids from JSON output.
+
+For local development without installing:
 
 ```sh
-export PATH="$(go env GOPATH)/bin:$PATH"
+make build
+export PATH="$PWD/build/bin:$PATH"
 ```
 
 ## Start CAL
@@ -24,16 +28,19 @@ export CAL_HOME="$PWD/.cal-demo"
 rm -rf "$CAL_HOME"
 ```
 
-Start the local service through `calctl`:
+Start the daemon in the background:
 
 ```sh
 calctl daemon start --json
 calctl daemon status --json
 ```
 
+Use `cald serve` directly when you want a foreground process for debugging or a
+process manager.
+
 ## Configure LLM
 
-Configure an OpenAI-compatible provider:
+Live acquisition and LLM-assisted `use` require an OpenAI-compatible endpoint:
 
 ```sh
 export CAL_LLM_API=chat_completions
@@ -45,26 +52,48 @@ export CAL_LLM_API_KEY="<api-key>"
 Do not write API keys into repository files, `CAL_HOME/config.json`, traces,
 proposal fixtures, or logs.
 
-## Run Acquisition
+## Register A Provider
 
 Use a real local CLI. On macOS, `plutil` is a useful first target because it is
-installed by default and exposes conversion behavior through its local docs:
+installed by default and exposes conversion behavior through local docs:
 
 ```sh
 PROVIDER_PATH="$(command -v plutil)"
 PROVIDER_ID="$(calctl providers add --provider-path "$PROVIDER_PATH" --json | jq -r .id)"
-calctl discovery run \
-  --provider-id "$PROVIDER_ID" \
-  --json
+calctl providers list --json
 ```
 
-On another platform, choose a local CLI that exists on your machine and has
-useful `--help` or `man` output, register it with `providers add`, then run
-discovery by `provider_id`.
+On another platform, choose a local CLI with useful `--help` or `man` output.
 
-Expect `state: "succeeded"` and at least one promoted binding. The exact
-capability id and verifier id are model-proposed and may vary. CAL only
-promotes bindings whose generated probe passes locally.
+## Run Acquisition
+
+Run targeted acquisition for the registered provider:
+
+```sh
+calctl acquisition run \
+  --provider-id "$PROVIDER_ID" \
+  --hint "convert plist to json" \
+  --stream --json
+```
+
+The acquisition flow is:
+
+```text
+entry -> observe -> proposal -> probe -> promote -> tracelog
+```
+
+`proposal` may use live LLM output, but promotion requires local probe evidence.
+The exact capability id is model-proposed and may vary.
+
+For deterministic replay tests or demos, use:
+
+```sh
+calctl acquisition run \
+  --provider-id "$PROVIDER_ID" \
+  --mode replay \
+  --proposal-path /path/to/proposal.json \
+  --json
+```
 
 ## Use The Capability
 
@@ -89,37 +118,30 @@ Route a user intent through promoted bindings:
 ```sh
 calctl use \
   "convert /tmp/cal-sample.plist to json" \
-  --json
+  --stream --json
 ```
 
-When LLM configuration is available, `use` can extract explicit inputs from the
-intent and CAL will create a temporary output path if the selected binding needs
-one. You can also pass structured inputs explicitly:
+When LLM configuration is available, `use` can select a promoted binding and
+derive missing inputs from the intent. You can also pass structured inputs:
 
 ```sh
 calctl use \
-  --intent "convert plist to json" \
-  --inputs-json '{"source":"/tmp/cal-sample.plist","format":"json"}' \
+  "convert plist to json" \
+  --inputs-json '{"source":"/tmp/cal-sample.plist","target":"/tmp/cal-sample.json"}' \
+  --verify \
   --json
 ```
 
-Expected shape:
+If you already know the capability id, run it directly:
 
-```json
-{
-  "status": "succeeded",
-  "selection": {
-    "capability_id": "<model-proposed-capability-id>"
-  },
-  "run": {
-    "status": "succeeded",
-    "verified": false
-  }
-}
+```sh
+calctl runs create \
+  --capability-id "<capability-id>" \
+  --provider-id "$PROVIDER_ID" \
+  --inputs-json '{"source":"/tmp/cal-sample.plist","target":"/tmp/cal-sample.json"}' \
+  --verify \
+  --json
 ```
-
-Add `--verify` when you want CAL to run the promoted verifier again and attach
-fresh evidence to the run.
 
 ## Inspect Evidence
 
@@ -128,8 +150,7 @@ calctl capabilities list --json
 calctl eval --json
 ```
 
-`eval` should show at least one provider, capability, promoted binding, trace,
-and run.
+`eval` summarizes local provider, capability, binding, trace, and run records.
 
 ## Stop CAL
 
@@ -139,9 +160,11 @@ calctl daemon stop --json
 
 ## Troubleshooting
 
-- `cald executable was not found`: run `make install` and ensure
-  `$(go env GOPATH)/bin` is on `PATH`.
-- `candidate_proposal_failed`: check the LLM environment variables and try a
-  CLI with richer help or manual output.
-- `no_match`: acquisition did not promote a compatible binding; inspect
-  `calctl capabilities list --json` and `calctl eval --json`.
+- `cald unavailable`: run `calctl daemon start --json` with the same
+  `CAL_HOME`, then retry `calctl daemon status --json`.
+- `invalid_request`: check that required flags such as `--provider-id` or
+  `--proposal-path` are present for the selected mode.
+- `proposal_failed`: check the LLM environment variables, try `--stream --json`
+  for proposal-stage diagnostics, or use a provider with richer help output.
+- `binding_not_found` or `no_match`: acquisition did not promote a compatible
+  binding; inspect `calctl capabilities list --json` and `calctl eval --json`.

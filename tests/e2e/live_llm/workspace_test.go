@@ -4,11 +4,18 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
-	"github.com/spacehz-lab/cal/internal/core"
-	e2etest "github.com/spacehz-lab/cal/internal/testsupport/e2e"
-	caltrace "github.com/spacehz-lab/cal/internal/trace"
+	"github.com/spacehz-lab/cal/internal/model"
+)
+
+const (
+	envLiveLLME2E      = "CAL_LIVE_LLM_E2E"
+	envLiveLLMKeepHome = "CAL_LIVE_LLM_KEEP_HOME"
+	envLLMAPI          = "CAL_LLM_API"
+	envLLMModel        = "CAL_LLM_MODEL"
+	envLLMAPIKey       = "CAL_LLM_API_KEY"
 )
 
 type liveLLMWorkspaceDir struct {
@@ -32,13 +39,34 @@ func liveLLMWorkspace(t *testing.T) liveLLMWorkspaceDir {
 		t.Fatalf("create live llm work dir: %v", err)
 	}
 	t.Cleanup(func() {
-		if t.Failed() || os.Getenv("CAL_LIVE_LLM_KEEP_HOME") == "1" {
+		if t.Failed() || os.Getenv(envLiveLLMKeepHome) == "1" {
 			logLiveLLMWorkspace(t, workspace)
 			return
 		}
 		_ = os.RemoveAll(root)
 	})
 	return workspace
+}
+
+func liveLLMEnv(t *testing.T, home string) []string {
+	t.Helper()
+	if !liveLLMEnabled() {
+		t.Skip("set CAL_LIVE_LLM_E2E=1 and CAL_LLM_* to run live LLM e2e")
+	}
+	required := []string{envLLMAPI, envLLMModel, envLLMAPIKey}
+	for _, name := range required {
+		if strings.TrimSpace(os.Getenv(name)) == "" {
+			t.Skipf("set %s to run live LLM e2e", name)
+		}
+	}
+	if os.Getenv(envLLMAPI) != "chat_completions" {
+		t.Skip("live LLM e2e requires CAL_LLM_API=chat_completions")
+	}
+	return withHomeEnv(os.Environ(), home)
+}
+
+func liveLLMEnabled() bool {
+	return os.Getenv(envLiveLLME2E) == "1"
 }
 
 func logLiveLLMWorkspace(t *testing.T, workspace liveLLMWorkspaceDir) {
@@ -50,25 +78,25 @@ func logLiveLLMWorkspace(t *testing.T, workspace liveLLMWorkspaceDir) {
 
 func logLiveLLMTraces(t *testing.T, home string) {
 	t.Helper()
-	entries, err := os.ReadDir(filepath.Join(home, "discovery"))
+	entries, err := os.ReadDir(filepath.Join(home, "traces"))
 	if err != nil {
-		t.Logf("live LLM discovery traces unavailable: %v", err)
+		t.Logf("live LLM traces unavailable: %v", err)
 		return
 	}
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
-		path := filepath.Join(home, "discovery", entry.Name(), "trace.json")
-		trace := e2etest.ReadJSONFile[caltrace.Trace](t, path)
-		t.Logf("live LLM trace: id=%s status=%s path=%s error=%s", trace.ID, trace.Status, path, traceErrorMessage(trace))
+		path := filepath.Join(home, "traces", entry.Name(), "trace.json")
+		trace := readJSONFile[model.Trace](t, path)
+		t.Logf("live LLM trace: id=%s status=%s path=%s error=%s", trace.ID, trace.Status, path, recordErrorMessage(trace.Error))
 		if trace.Proposal == nil {
 			continue
 		}
 		for _, stage := range trace.Proposal.Stages {
 			t.Logf("live LLM proposal stage: trace=%s stage=%s summary=%s", trace.ID, stage.Name, jsonString(stage.Summary))
 			for _, item := range stage.Items {
-				if item.Decision != caltrace.ProposalDecisionKeep || item.Reason != "" {
+				if item.Decision != model.ProposalDecisionKeep || item.Reason != "" {
 					t.Logf("live LLM proposal item: trace=%s stage=%s id=%s name=%q decision=%s reason=%s", trace.ID, stage.Name, item.ID, item.Name, item.Decision, item.Reason)
 				}
 			}
@@ -88,11 +116,7 @@ func logLiveLLMTraces(t *testing.T, home string) {
 	}
 }
 
-func traceErrorMessage(trace caltrace.Trace) string {
-	return recordErrorMessage(trace.Error)
-}
-
-func recordErrorMessage(err *core.RecordError) string {
+func recordErrorMessage(err *model.RecordError) string {
 	if err == nil {
 		return ""
 	}

@@ -1,37 +1,31 @@
 package cli
 
 import (
-	"strings"
+	"net/http"
 	"testing"
 
-	"github.com/spacehz-lab/cal/internal/core"
-	calstore "github.com/spacehz-lab/cal/internal/store"
+	"github.com/spacehz-lab/cal/internal/contract"
 )
 
-func TestEvalCommandTextAndJSON(t *testing.T) {
-	home := t.TempDir()
-	startCLITestCald(t, home)
-	store, err := calstore.Open(home)
-	if err != nil {
-		t.Fatalf("Open() error = %v", err)
-	}
-	if err := store.PutProvider(core.Provider{ID: "provider_cli", Kind: core.ProviderKindCLI, Path: "/tmp/fake"}); err != nil {
-		t.Fatalf("PutProvider() error = %v", err)
-	}
+func TestEvalPassesFilters(t *testing.T) {
+	cmd, stdout, _ := newTestCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/eval" {
+			t.Fatalf("request = %s %s, want GET /v1/eval", r.Method, r.URL.Path)
+		}
+		if got := r.URL.Query().Get("capability_id"); got != "document.convert" {
+			t.Fatalf("capability_id = %q, want document.convert", got)
+		}
+		if got := r.URL.Query().Get("provider_id"); got != "provider_cli" {
+			t.Fatalf("provider_id = %q, want provider_cli", got)
+		}
+		writeResponse(t, w, contract.EvalResponse{Capability: contract.CapabilityMetrics{Capabilities: 1}})
+	})
 
-	output, err := executeRoot(home, "eval")
-	if err != nil {
-		t.Fatalf("eval text error = %v\n%s", err, output)
+	if err := execute(t, cmd, "eval", "--capability-id", "document.convert", "--provider-id", "provider_cli", "--json"); err != nil {
+		t.Fatalf("Execute() error = %v", err)
 	}
-	if !strings.Contains(output, "providers=1") {
-		t.Fatalf("eval text output = %q, want provider count", output)
-	}
-
-	output, err = executeRoot(home, "eval", "--json")
-	if err != nil {
-		t.Fatalf("eval json error = %v\n%s", err, output)
-	}
-	if !strings.Contains(output, `"providers": 1`) {
-		t.Fatalf("eval json output = %q, want provider count", output)
+	response := decodeOutput[contract.EvalResponse](t, stdout)
+	if response.Capability.Capabilities != 1 {
+		t.Fatalf("response = %#v, want one capability", response)
 	}
 }

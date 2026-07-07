@@ -1,8 +1,6 @@
 BINDIR ?= build/bin
-LIVE_LLM_TEST_TIMEOUT ?= 20m
-CLI_CANARY_LLM_TEST_TIMEOUT ?= 20m
 
-.PHONY: build install test e2e e2e-live-llm e2e-cli-canary-llm clean
+.PHONY: build install test e2e clean
 
 build:
 	mkdir -p $(BINDIR)
@@ -17,12 +15,6 @@ test:
 
 e2e:
 	go test ./tests/e2e/functional -count=1
-
-e2e-live-llm:
-	go test ./tests/e2e/live_llm -count=1 -v -timeout $(LIVE_LLM_TEST_TIMEOUT)
-
-e2e-cli-canary-llm:
-	go test ./tests/e2e/cli_canary_llm -count=1 -v -timeout $(CLI_CANARY_LLM_TEST_TIMEOUT)
 
 clean:
 	rm -rf build/bin

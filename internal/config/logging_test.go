@@ -2,52 +2,63 @@ package config
 
 import "testing"
 
-func TestDefaultLoggingEnablesInfoFileLogging(t *testing.T) {
-	cfg := DefaultLogging()
-	if cfg.Level != LogLevelInfo {
-		t.Fatalf("level = %q, want info", cfg.Level)
+func TestDefaultLoggingConfig(t *testing.T) {
+	cfg := defaultLogging()
+	if cfg.Level != LoggingLevelInfo {
+		t.Fatalf("Level = %q, want info", cfg.Level)
 	}
 	if !cfg.File.FileEnabled() {
-		t.Fatal("file enabled = false, want true")
+		t.Fatal("FileEnabled() = false, want true")
 	}
-	if cfg.File.MaxBytes != defaultLogMaxBytes || cfg.File.MaxFiles != defaultLogMaxFiles {
-		t.Fatalf("file = %#v, want default rotation", cfg.File)
-	}
-}
-
-func TestLoggingDefaultsMissingFields(t *testing.T) {
-	cfg := Config{}
-	if err := cfg.applyDefaults(); err != nil {
-		t.Fatalf("applyDefaults() error = %v", err)
-	}
-	if cfg.Logging.Level != LogLevelInfo || !cfg.Logging.File.FileEnabled() || cfg.Logging.File.MaxBytes == 0 || cfg.Logging.File.MaxFiles == 0 {
-		t.Fatalf("logging = %#v, want defaults", cfg.Logging)
+	if cfg.File.MaxBytes != DefaultLogMaxBytes || cfg.File.MaxFiles != DefaultLogMaxFiles {
+		t.Fatalf("File = %#v, want default rotation", cfg.File)
 	}
 }
 
-func TestNormalizeLogLevel(t *testing.T) {
+func TestLoggingConfigAppliesDefaults(t *testing.T) {
+	cfg := (&Config{}).WithDefaults()
+	if cfg.Logging.Level != LoggingLevelInfo || !cfg.Logging.File.FileEnabled() || cfg.Logging.File.MaxBytes != DefaultLogMaxBytes || cfg.Logging.File.MaxFiles != DefaultLogMaxFiles {
+		t.Fatalf("Logging = %#v, want defaults", cfg.Logging)
+	}
+}
+
+func TestNormalizeLoggingLevel(t *testing.T) {
 	tests := []struct {
-		value string
-		want  string
+		value LoggingLevel
+		want  LoggingLevel
 	}{
-		{value: "debug", want: LogLevelDebug},
-		{value: " info ", want: LogLevelInfo},
-		{value: "warning", want: LogLevelWarn},
-		{value: "error", want: LogLevelError},
+		{value: LoggingLevelDebug, want: LoggingLevelDebug},
+		{value: " info ", want: LoggingLevelInfo},
+		{value: loggingLevelWarning, want: LoggingLevelWarn},
+		{value: LoggingLevelError, want: LoggingLevelError},
 	}
 	for _, test := range tests {
-		got, err := NormalizeLogLevel(test.value)
+		got, err := NormalizeLoggingLevel(test.value)
 		if err != nil {
-			t.Fatalf("NormalizeLogLevel(%q) error = %v", test.value, err)
+			t.Fatalf("NormalizeLoggingLevel(%q) error = %v", test.value, err)
 		}
 		if got != test.want {
-			t.Fatalf("NormalizeLogLevel(%q) = %q, want %q", test.value, got, test.want)
+			t.Fatalf("NormalizeLoggingLevel(%q) = %q, want %q", test.value, got, test.want)
 		}
 	}
 }
 
-func TestNormalizeLogLevelRejectsUnknown(t *testing.T) {
-	if _, err := NormalizeLogLevel("trace"); err == nil {
-		t.Fatal("NormalizeLogLevel() error = nil, want unknown level rejection")
+func TestLoggingConfigRejectsInvalidLevel(t *testing.T) {
+	cfg := LoggingConfig{Level: "trace"}.withDefaults()
+	if err := cfg.Validate(); err == nil {
+		t.Fatal("Validate() error = nil, want invalid level error")
+	}
+}
+
+func TestLoggingConfigRejectsNegativeRotation(t *testing.T) {
+	tests := []LoggingConfig{
+		{File: LoggingFileConfig{MaxBytes: -1}},
+		{File: LoggingFileConfig{MaxFiles: -1}},
+	}
+	for _, cfg := range tests {
+		cfg = cfg.withDefaults()
+		if err := cfg.Validate(); err == nil {
+			t.Fatal("Validate() error = nil, want rotation error")
+		}
 	}
 }

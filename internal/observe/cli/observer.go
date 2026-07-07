@@ -3,33 +3,44 @@ package cli
 import (
 	"context"
 
-	"github.com/spacehz-lab/cal/internal/core"
+	"github.com/spacehz-lab/cal/internal/model"
 	"github.com/spacehz-lab/cal/internal/observe"
 )
 
-// Observer collects CLI provider observations.
+// Observer collects CLI usage observations.
 type Observer struct{}
 
-// Observe captures CLI help output for a CLI provider.
-func (Observer) Observe(ctx context.Context, provider core.Provider) (observe.Result, error) {
-	if provider.Kind != core.ProviderKindCLI {
-		return observe.Result{ProviderID: provider.ID}, nil
+// NewObserver creates a CLI usage observer.
+func NewObserver() *Observer {
+	return &Observer{}
+}
+
+// Observe captures CLI usage output for one CLI provider.
+func (observer *Observer) Observe(ctx context.Context, req *observe.Request) (*observe.Result, error) {
+	if req == nil || req.Provider == nil {
+		return &observe.Result{}, nil
 	}
-	outputs, err := DocumentationOutputs(ctx, provider.Path)
+	provider := req.Provider
+	if provider.Kind != model.ProviderKindCLI {
+		return &observe.Result{ProviderID: provider.ID}, nil
+	}
+
+	outputs, err := UsageOutputs(ctx, provider.Path)
 	if err != nil {
-		return observe.Result{ProviderID: provider.ID}, err
+		return &observe.Result{ProviderID: provider.ID}, err
 	}
-	observations := make([]observe.Observation, 0, len(outputs))
+	observations := make([]model.Observation, 0, len(outputs))
 	for _, output := range outputs {
-		observations = append(observations, observe.Observation{
-			Type:   "cli_output",
-			Source: output.Source,
+		observations = append(observations, model.Observation{
+			ProviderID: provider.ID,
+			Type:       observe.ObservationTypeCLIOutput,
+			Source:     output.Source,
 			Content: map[string]any{
-				"text": output.Text,
+				observe.ObservationContentText: output.Text,
 			},
 		})
 	}
-	return observe.Result{
+	return &observe.Result{
 		ProviderID:   provider.ID,
 		Observations: observations,
 	}, nil

@@ -44,16 +44,8 @@ Environment-dependent checks are opt-in:
 CAL_LOCAL_CLI_E2E=1 go test ./tests/e2e/local_cli -count=1 -v
 ```
 
-```sh
-CAL_LIVE_LLM_E2E=1 \
-CAL_LLM_API=chat_completions \
-CAL_LLM_BASE_URL=<openai-compatible base url> \
-CAL_LLM_MODEL=<model> \
-CAL_LLM_API_KEY=<api key> \
-  go test ./tests/e2e/live_llm -count=1 -v
-```
-
-Keep live API keys in the environment only.
+Keep live API keys in the environment only. Do not write them into repository
+files, traces, logs, or committed artifacts.
 
 ## Evaluation Runners
 

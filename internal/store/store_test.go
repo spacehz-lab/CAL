@@ -6,9 +6,9 @@ import (
 	"testing"
 )
 
-func TestOpenRejectsBlankHome(t *testing.T) {
-	if _, err := Open(" "); err == nil {
-		t.Fatal("Open(blank) error = nil, want error")
+func TestNewRequiresRoot(t *testing.T) {
+	if _, err := New(" "); err == nil {
+		t.Fatal("New() error = nil, want missing root error")
 	}
 }
 
@@ -18,10 +18,12 @@ func TestEnsureCreatesStoreDirectories(t *testing.T) {
 		t.Fatalf("Ensure() error = %v", err)
 	}
 
-	for _, dir := range []string{providersDir, capabilitiesDir, discoveryDir, runsDir} {
-		if info, err := os.Stat(filepath.Join(store.Home(), dir)); err != nil {
-			t.Fatalf("%s dir missing: %v", dir, err)
-		} else if !info.IsDir() {
+	for _, dir := range []string{providersDir, capabilitiesDir, tracesDir, runsDir} {
+		info, err := os.Stat(filepath.Join(store.Root(), dir))
+		if err != nil {
+			t.Fatalf("stat %s: %v", dir, err)
+		}
+		if !info.IsDir() {
 			t.Fatalf("%s is not a directory", dir)
 		}
 	}
@@ -29,21 +31,19 @@ func TestEnsureCreatesStoreDirectories(t *testing.T) {
 
 func newTestStore(t *testing.T) *Store {
 	t.Helper()
-
-	store, err := Open(t.TempDir())
+	store, err := New(t.TempDir())
 	if err != nil {
-		t.Fatalf("Open() error = %v", err)
+		t.Fatalf("New() error = %v", err)
 	}
 	return store
 }
 
-func writeStoreFile(t *testing.T, path string, content string) {
+func writeTestFile(t *testing.T, path string, data string) {
 	t.Helper()
-
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		t.Fatalf("MkdirAll(%s) error = %v", filepath.Dir(path), err)
+		t.Fatalf("MkdirAll() error = %v", err)
 	}
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		t.Fatalf("WriteFile(%s) error = %v", path, err)
+	if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
 	}
 }

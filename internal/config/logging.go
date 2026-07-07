@@ -5,75 +5,83 @@ import (
 	"strings"
 )
 
-const (
-	LogLevelDebug = "debug"
-	LogLevelInfo  = "info"
-	LogLevelWarn  = "warn"
-	LogLevelError = "error"
+// LoggingLevel identifies a durable logging level.
+type LoggingLevel string
 
-	defaultLogMaxBytes int64 = 10 * 1024 * 1024
-	defaultLogMaxFiles       = 5
+const (
+	LoggingLevelDebug LoggingLevel = "debug"
+	LoggingLevelInfo  LoggingLevel = "info"
+	LoggingLevelWarn  LoggingLevel = "warn"
+	LoggingLevelError LoggingLevel = "error"
+
+	loggingLevelWarning = "warning"
+
+	DefaultLogMaxBytes int64 = 10 * 1024 * 1024
+	DefaultLogMaxFiles       = 5
 )
 
-// Logging contains durable local diagnostic logging settings.
-type Logging struct {
-	Level string      `json:"level,omitempty"`
-	File  LoggingFile `json:"file,omitempty"`
+// LoggingConfig contains durable local diagnostic logging settings.
+type LoggingConfig struct {
+	Level LoggingLevel      `json:"level,omitempty"`
+	File  LoggingFileConfig `json:"file,omitempty"`
 }
 
-// LoggingFile controls local rolling log files.
-type LoggingFile struct {
+// LoggingFileConfig controls local rolling log files.
+type LoggingFileConfig struct {
 	Enabled  *bool `json:"enabled,omitempty"`
 	MaxBytes int64 `json:"max_bytes,omitempty"`
 	MaxFiles int   `json:"max_files,omitempty"`
 }
 
-// DefaultLogging returns product defaults for local diagnostic logging.
-func DefaultLogging() Logging {
-	enabled := true
-	return Logging{
-		Level: LogLevelInfo,
-		File: LoggingFile{
-			Enabled:  &enabled,
-			MaxBytes: defaultLogMaxBytes,
-			MaxFiles: defaultLogMaxFiles,
-		},
-	}
-}
-
-// FileEnabled reports whether file logging is enabled after defaults.
-func (cfg LoggingFile) FileEnabled() bool {
-	return cfg.Enabled == nil || *cfg.Enabled
-}
-
-func (cfg *Config) applyDefaults() error {
-	logging, err := cfg.Logging.withDefaults()
-	if err != nil {
+// Validate checks logging configuration.
+func (cfg *LoggingConfig) Validate() error {
+	if _, err := NormalizeLoggingLevel(cfg.Level); err != nil {
 		return err
 	}
-	cfg.Logging = logging
+	if cfg.File.MaxBytes <= 0 {
+		return fmt.Errorf("logging file max_bytes must be positive")
+	}
+	if cfg.File.MaxFiles <= 0 {
+		return fmt.Errorf("logging file max_files must be positive")
+	}
 	return nil
 }
 
-func (cfg Logging) withDefaults() (Logging, error) {
-	defaults := DefaultLogging()
-	if strings.TrimSpace(cfg.Level) == "" {
-		cfg.Level = defaults.Level
-	}
-	level, err := NormalizeLogLevel(cfg.Level)
-	if err != nil {
-		return Logging{}, err
-	}
-	cfg.Level = level
-	file, err := cfg.File.withDefaults(defaults.File)
-	if err != nil {
-		return Logging{}, err
-	}
-	cfg.File = file
-	return cfg, nil
+// FileEnabled reports whether file logging is enabled after defaults.
+func (cfg *LoggingFileConfig) FileEnabled() bool {
+	return cfg.Enabled == nil || *cfg.Enabled
 }
 
-func (cfg LoggingFile) withDefaults(defaults LoggingFile) (LoggingFile, error) {
+// NormalizeLoggingLevel validates and normalizes a configured log level.
+func NormalizeLoggingLevel(level LoggingLevel) (LoggingLevel, error) {
+	switch strings.ToLower(strings.TrimSpace(string(level))) {
+	case string(LoggingLevelDebug):
+		return LoggingLevelDebug, nil
+	case "", string(LoggingLevelInfo):
+		return LoggingLevelInfo, nil
+	case string(LoggingLevelWarn), loggingLevelWarning:
+		return LoggingLevelWarn, nil
+	case string(LoggingLevelError):
+		return LoggingLevelError, nil
+	default:
+		return "", fmt.Errorf("unsupported logging level %q", level)
+	}
+}
+
+func (cfg LoggingConfig) withDefaults() LoggingConfig {
+	defaults := defaultLogging()
+	if strings.TrimSpace(string(cfg.Level)) == "" {
+		cfg.Level = defaults.Level
+	}
+	level, err := NormalizeLoggingLevel(cfg.Level)
+	if err == nil {
+		cfg.Level = level
+	}
+	cfg.File = cfg.File.withDefaults(defaults.File)
+	return cfg
+}
+
+func (cfg LoggingFileConfig) withDefaults(defaults LoggingFileConfig) LoggingFileConfig {
 	if cfg.Enabled == nil {
 		cfg.Enabled = defaults.Enabled
 	}
@@ -83,27 +91,17 @@ func (cfg LoggingFile) withDefaults(defaults LoggingFile) (LoggingFile, error) {
 	if cfg.MaxFiles == 0 {
 		cfg.MaxFiles = defaults.MaxFiles
 	}
-	if cfg.MaxBytes < 0 {
-		return LoggingFile{}, fmt.Errorf("logging file max_bytes must be positive")
-	}
-	if cfg.MaxFiles < 0 {
-		return LoggingFile{}, fmt.Errorf("logging file max_files must be positive")
-	}
-	return cfg, nil
+	return cfg
 }
 
-// NormalizeLogLevel validates and normalizes a configured log level.
-func NormalizeLogLevel(value string) (string, error) {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case LogLevelDebug:
-		return LogLevelDebug, nil
-	case LogLevelInfo:
-		return LogLevelInfo, nil
-	case LogLevelWarn, "warning":
-		return LogLevelWarn, nil
-	case LogLevelError:
-		return LogLevelError, nil
-	default:
-		return "", fmt.Errorf("unsupported logging level %q", value)
+func defaultLogging() LoggingConfig {
+	enabled := true
+	return LoggingConfig{
+		Level: LoggingLevelInfo,
+		File: LoggingFileConfig{
+			Enabled:  &enabled,
+			MaxBytes: DefaultLogMaxBytes,
+			MaxFiles: DefaultLogMaxFiles,
+		},
 	}
 }

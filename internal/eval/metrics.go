@@ -1,77 +1,79 @@
 package eval
 
-// Metrics is the JSON output for evaluation summaries.
-type Metrics struct {
-	Summary     SummaryMetrics     `json:"summary"`
-	Acquisition AcquisitionMetrics `json:"acquisition,omitempty"`
-	Reuse       ReuseMetrics       `json:"reuse,omitempty"`
+// CountByStatus counts records by lifecycle status.
+type CountByStatus struct {
+	Total  int            `json:"total"`
+	ByName map[string]int `json:"by_name,omitempty"`
 }
 
-// SummaryMetrics counts durable CAL records.
-type SummaryMetrics struct {
-	Providers        int `json:"providers"`
-	Capabilities     int `json:"capabilities"`
-	Bindings         int `json:"bindings"`
-	PromotedBindings int `json:"promoted_bindings"`
-	Traces           int `json:"traces"`
-	Runs             int `json:"runs"`
-}
+// CountByCode counts record errors by code.
+type CountByCode map[string]int
 
-// AcquisitionMetrics summarizes discovery and promotion evidence.
+// AcquisitionMetrics summarizes acquisition trace records.
 type AcquisitionMetrics struct {
-	AttemptCount           int                            `json:"attempt_count,omitempty"`
-	CompletedCount         int                            `json:"completed_count,omitempty"`
-	FailedCount            int                            `json:"failed_count,omitempty"`
-	PromotionCount         int                            `json:"promotion_count,omitempty"`
-	CapabilityCreatedCount int                            `json:"capability_created_count,omitempty"`
-	CapabilityReusedCount  int                            `json:"capability_reused_count,omitempty"`
-	BindingCreatedCount    int                            `json:"binding_created_count,omitempty"`
-	BindingUpdatedCount    int                            `json:"binding_updated_count,omitempty"`
-	CandidateCount         int                            `json:"candidate_count,omitempty"`
-	ProbeCount             int                            `json:"probe_count,omitempty"`
-	ProbePassCount         int                            `json:"probe_pass_count,omitempty"`
-	ProbeFailCount         int                            `json:"probe_fail_count,omitempty"`
-	BindingPromotionRate   float64                        `json:"binding_promotion_rate,omitempty"`
-	ProbeSuccessRate       float64                        `json:"probe_success_rate,omitempty"`
-	ByCapability           []CapabilityAcquisitionMetrics `json:"by_capability,omitempty"`
-	BySource               []SourceAcquisitionMetrics     `json:"by_source,omitempty"`
+	Traces     CountByStatus    `json:"traces"`
+	Candidates int              `json:"candidates"`
+	Probes     ProbeMetrics     `json:"probes"`
+	Promotions PromotionMetrics `json:"promotions"`
+	Errors     CountByCode      `json:"errors,omitempty"`
 }
 
-// CapabilityAcquisitionMetrics summarizes acquisition by requested capability.
-type CapabilityAcquisitionMetrics struct {
-	CapabilityID  string `json:"capability_id"`
-	Attempts      int    `json:"attempts,omitempty"`
-	Completed     int    `json:"completed,omitempty"`
-	Failed        int    `json:"failed,omitempty"`
-	Promotions    int    `json:"promotions,omitempty"`
-	Candidates    int    `json:"candidates,omitempty"`
-	Probes        int    `json:"probes,omitempty"`
-	ProbePasses   int    `json:"probe_passes,omitempty"`
-	ProbeFailures int    `json:"probe_failures,omitempty"`
+// ProbeMetrics summarizes probe outcomes.
+type ProbeMetrics struct {
+	Total  int `json:"total"`
+	Passed int `json:"passed"`
+	Failed int `json:"failed"`
 }
 
-// SourceAcquisitionMetrics summarizes acquisition by candidate source.
-type SourceAcquisitionMetrics struct {
-	Source        string `json:"source"`
-	Attempts      int    `json:"attempts,omitempty"`
-	Completed     int    `json:"completed,omitempty"`
-	Failed        int    `json:"failed,omitempty"`
-	Promotions    int    `json:"promotions,omitempty"`
-	Candidates    int    `json:"candidates,omitempty"`
-	Probes        int    `json:"probes,omitempty"`
-	ProbePasses   int    `json:"probe_passes,omitempty"`
-	ProbeFailures int    `json:"probe_failures,omitempty"`
+// PromotionMetrics summarizes promoted records from traces.
+type PromotionMetrics struct {
+	Total        int `json:"total"`
+	Capabilities int `json:"capabilities"`
+	Bindings     int `json:"bindings"`
 }
 
-// ReuseMetrics summarizes capability run outcomes.
+// ReuseMetrics summarizes promoted capability runs.
 type ReuseMetrics struct {
-	RunCount            int     `json:"run_count,omitempty"`
-	RunSuccessCount     int     `json:"run_success_count,omitempty"`
-	RunFailureCount     int     `json:"run_failure_count,omitempty"`
-	VerifiedRunCount    int     `json:"verified_run_count,omitempty"`
-	VerifierFailCount   int     `json:"verifier_fail_count,omitempty"`
-	RunSuccessRate      float64 `json:"run_success_rate,omitempty"`
-	VerifiedSuccessRate float64 `json:"verified_success_rate,omitempty"`
-	VerifierFailureRate float64 `json:"verifier_failure_rate,omitempty"`
-	AvgRunDurationMS    int64   `json:"avg_run_duration_ms,omitempty"`
+	Runs         CountByStatus       `json:"runs"`
+	Verified     int                 `json:"verified"`
+	ByProvider   map[string]RunSlice `json:"by_provider,omitempty"`
+	ByCapability map[string]RunSlice `json:"by_capability,omitempty"`
+	Errors       CountByCode         `json:"errors,omitempty"`
+}
+
+// RunSlice summarizes a subset of runs.
+type RunSlice struct {
+	Runs     CountByStatus `json:"runs"`
+	Verified int           `json:"verified"`
+}
+
+// CapabilityMetrics summarizes reusable capability coverage.
+type CapabilityMetrics struct {
+	Capabilities                int `json:"capabilities"`
+	Bindings                    int `json:"bindings"`
+	PromotedBindings            int `json:"promoted_bindings"`
+	BindingsWithVerify          int `json:"bindings_with_verify"`
+	CapabilitiesWithoutBindings int `json:"capabilities_without_bindings"`
+}
+
+func (counts *CountByStatus) add(status string) {
+	if counts.ByName == nil {
+		counts.ByName = map[string]int{}
+	}
+	counts.Total++
+	counts.ByName[status]++
+}
+
+func (counts *CountByCode) add(code string) {
+	if code == "" {
+		return
+	}
+	if *counts == nil {
+		*counts = CountByCode{}
+	}
+	(*counts)[code]++
+}
+
+func newCountByStatus() CountByStatus {
+	return CountByStatus{ByName: map[string]int{}}
 }

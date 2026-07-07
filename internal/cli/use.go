@@ -1,81 +1,68 @@
 package cli
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/spf13/cobra"
 
-	"github.com/spacehz-lab/cal/internal/core"
-	caluse "github.com/spacehz-lab/cal/internal/use"
+	"github.com/spacehz-lab/cal/internal/contract"
 )
 
-func newUseCommand(cfg Config) *cobra.Command {
-	var jsonOut bool
-	var intent string
+func (cli *CLI) newUseCommand() *cobra.Command {
 	var inputsJSON string
-	var inputsFile string
+	var jsonOut bool
+	var minVerifyLevel string
 	var providerID string
 	var strategy string
-	var verifyRun bool
-	var minVerifyLevel string
+	var stream bool
+	var verify bool
 	cmd := &cobra.Command{
-		Use:   "use [intent]",
-		Short: "Route an intent to a promoted capability",
+		Use:   "use <intent>",
+		Short: "Execute an intent through reusable capabilities",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if intent != "" && len(args) > 0 {
-				return writeCommandError(cmd, jsonOut, newCommandError(commandErrorInvalidUseInput, "supply intent either as an argument or --intent, not both"))
-			}
-			if intent == "" {
-				intent = strings.Join(args, " ")
-			}
-			inputs, err := readOptionalRunInputs(inputsJSON, inputsFile)
+			inputs, err := parseInputsJSON(inputsJSON)
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, newCommandError(commandErrorInvalidUseInput, err.Error()))
+				return commandError(cmd, jsonOut, invalidInput(err.Error()))
 			}
-			client, err := newCaldClient(cfg)
+			minLevel, err := parseMinVerifyLevel(minVerifyLevel)
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, invalidInput(err.Error()))
 			}
-			result, err := client.Use(cmd.Context(), caluse.Request{
-				Intent:         intent,
+			ctx, err := cli.commandContext()
+			if err != nil {
+				return commandError(cmd, jsonOut, err)
+			}
+			req := &contract.UseRequest{
+				Intent:         args[0],
 				Inputs:         inputs,
 				ProviderID:     providerID,
-				Strategy:       strategy,
-				Verify:         verifyRun,
-				MinVerifyLevel: core.VerifyLevel(minVerifyLevel),
-			})
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				Strategy:       contract.RunStrategy(strategy),
+				Verify:         verify,
+				MinVerifyLevel: minLevel,
 			}
-			failed := result.Status == "failed"
-			failureCode := ""
-			if result.Error != nil {
-				failureCode = result.Error.Code
-			}
-			if jsonOut {
-				if err := writeJSON(cmd.OutOrStdout(), result); err != nil {
-					return err
+			if stream {
+				renderer := newStreamRenderer(cmd, jsonOut)
+				response, err := ctx.client.UseStream(cmd.Context(), req, renderer.Handle)
+				if err != nil {
+					return commandError(cmd, jsonOut && !renderer.TerminalSeen(), err)
 				}
-				return runExitError(failed, failureCode)
+				if jsonOut {
+					return nil
+				}
+				return render(cmd, RenderOptions{Mode: RenderText}, response, "use completed")
 			}
-			if result.Selection == nil || result.Run == nil {
-				_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\n", result.Status)
-				return runExitError(failed, failureCode)
+			response, err := ctx.client.Use(cmd.Context(), req)
+			if err != nil {
+				return commandError(cmd, jsonOut, err)
 			}
-			if _, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\t%s\n", result.Status, result.Selection.CapabilityID, result.Selection.BindingID, result.Run.ID); err != nil {
-				return err
-			}
-			return runExitError(failed, failureCode)
+			return render(cmd, RenderOptions{Mode: renderMode(jsonOut)}, response, "use completed")
 		},
 	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	cmd.Flags().StringVar(&intent, "intent", "", "intent request field")
-	cmd.Flags().StringVar(&inputsJSON, "inputs-json", "", "inputs request object as JSON")
-	cmd.Flags().StringVar(&inputsFile, "inputs-file", "", "path to a JSON file containing the inputs request object")
-	cmd.Flags().StringVar(&providerID, "provider-id", "", "provider_id request field")
-	cmd.Flags().StringVar(&strategy, "strategy", "default", "binding resolution strategy")
-	cmd.Flags().BoolVar(&verifyRun, "verify", false, "verify the outcome after execution")
-	cmd.Flags().StringVar(&minVerifyLevel, "min-verify-level", "", "minimum verification level: L1, L2, or L3")
+	cmd.Flags().StringVar(&providerID, flagProviderID, "", "provider id filter")
+	cmd.Flags().StringVar(&inputsJSON, flagInputsJSON, "", "JSON object inputs")
+	cmd.Flags().StringVar(&minVerifyLevel, flagMinVerify, "", "minimum verify level")
+	cmd.Flags().StringVar(&strategy, flagStrategy, string(contract.RunStrategyDefault), "binding selection strategy")
+	cmd.Flags().BoolVar(&stream, flagStream, false, "stream progress events")
+	cmd.Flags().BoolVar(&verify, flagVerify, false, "verify run output")
+	cmd.Flags().BoolVar(&jsonOut, flagJSON, false, "render machine-readable JSON")
 	return cmd
 }

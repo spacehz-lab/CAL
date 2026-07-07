@@ -6,68 +6,75 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/spacehz-lab/cal/internal/cald/control"
+	"github.com/spacehz-lab/cal/internal/cli/client"
+	"github.com/spacehz-lab/cal/internal/contract"
 )
-
-type commandErrorCode string
 
 const (
-	commandErrorCaldStartFailed          commandErrorCode = "cald_start_failed"
-	commandErrorCaldUnavailable          commandErrorCode = "cald_unavailable"
-	commandErrorInvalidCapabilityInput   commandErrorCode = "invalid_capability_input"
-	commandErrorInvalidProviderInput     commandErrorCode = "invalid_provider_input"
-	commandErrorInvalidRunInput          commandErrorCode = "invalid_run_input"
-	commandErrorInvalidUseInput          commandErrorCode = "invalid_use_input"
-	commandErrorInvalidTraceInput        commandErrorCode = "invalid_trace_input"
-	commandErrorCapabilityNotFound       commandErrorCode = "capability_not_found"
-	commandErrorBindingNotFound          commandErrorCode = "binding_not_found"
-	commandErrorInvalidDiscoveryTarget   commandErrorCode = "invalid_discovery_target"
-	commandErrorInvalidDiscoveryMode     commandErrorCode = "invalid_discovery_mode"
-	commandErrorInvalidDiscoveryProposal commandErrorCode = "invalid_discovery_proposal"
-	commandErrorInvalidLLMConfig         commandErrorCode = "invalid_llm_config"
-	commandErrorTargetProviderNotFound   commandErrorCode = "target_provider_not_found"
-	commandErrorAmbiguousTargetProvider  commandErrorCode = "ambiguous_target_provider"
+	exitGeneral     = 1
+	exitUsage       = 2
+	exitUnavailable = 3
 )
 
-type commandError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
+// ExitError carries the process exit code selected by the CLI layer.
+type ExitError struct {
+	Code int
+	Err  error
 }
 
-func newCommandError(code commandErrorCode, message string) commandError {
-	return commandError{Code: string(code), Message: message}
-}
-
-func newCommandErrorf(code commandErrorCode, format string, args ...any) commandError {
-	return newCommandError(code, fmt.Sprintf(format, args...))
-}
-
-func (err commandError) Error() string {
-	return err.Message
-}
-
-type errorOutput struct {
-	Error commandError `json:"error"`
-}
-
-func commandErrorFrom(err error) (commandError, bool) {
-	var commandErr commandError
-	if errors.As(err, &commandErr) {
-		return commandErr, true
+func (err *ExitError) Error() string {
+	if err == nil || err.Err == nil {
+		return ""
 	}
-	var apiErr control.APIError
-	if errors.As(err, &apiErr) {
-		return commandError{Code: apiErr.Code, Message: apiErr.Message}, true
-	}
-	return commandError{}, false
+	return err.Err.Error()
 }
 
-func writeCommandError(cmd *cobra.Command, jsonOut bool, err error) error {
-	if commandErr, ok := commandErrorFrom(err); ok {
-		if jsonOut {
-			return writeJSONError(cmd.OutOrStdout(), commandErr)
+func (err *ExitError) Unwrap() error {
+	if err == nil {
+		return nil
+	}
+	return err.Err
+}
+
+func commandError(cmd *cobra.Command, jsonOut bool, err error) error {
+	if err == nil {
+		return nil
+	}
+	exitErr := &ExitError{Code: exitCode(err), Err: err}
+	if jsonOut {
+		if writeErr := writeJSON(cmd.OutOrStdout(), contract.ErrorResponse{Error: publicError(err)}); writeErr != nil {
+			return writeErr
 		}
-		return commandErr
 	}
-	return err
+	return exitErr
+}
+
+func exitCode(err error) int {
+	var clientErr *client.Error
+	if errors.As(err, &clientErr) {
+		switch clientErr.Code {
+		case contract.ErrorInvalidRequest:
+			return exitUsage
+		case contract.ErrorCaldUnavailable:
+			return exitUnavailable
+		default:
+			return exitGeneral
+		}
+	}
+	return exitGeneral
+}
+
+func publicError(err error) contract.Error {
+	var clientErr *client.Error
+	if errors.As(err, &clientErr) {
+		return contract.Error{Code: clientErr.Code, Message: clientErr.Message}
+	}
+	return contract.Error{Code: contract.ErrorInternal, Message: err.Error()}
+}
+
+func invalidInput(format string, args ...any) error {
+	return &client.Error{
+		Code:    contract.ErrorInvalidRequest,
+		Message: fmt.Sprintf(format, args...),
+	}
 }

@@ -1,22 +1,23 @@
 package store
 
-import (
-	"github.com/spacehz-lab/cal/internal/core"
-)
+import "github.com/spacehz-lab/cal/internal/model"
 
 // ListCapabilities reads all stored capability records.
-func (s *Store) ListCapabilities() ([]core.Capability, error) {
-	return listJSONRecords(s.home, capabilitiesDir, "capabilities", "capability", core.ValidateCapability, func(a, b core.Capability) bool {
+func (store *Store) ListCapabilities() ([]model.Capability, error) {
+	return listJSONRecords(store.root, capabilitiesDir, model.ValidateCapability, func(a, b model.Capability) bool {
 		return a.ID < b.ID
 	})
 }
 
 // GetCapability reads one capability by id.
-func (s *Store) GetCapability(id string) (core.Capability, bool, error) {
-	return getJSONRecord(s, capabilitiesDir, id, core.ValidateCapability)
+func (store *Store) GetCapability(id string) (model.Capability, bool, error) {
+	return getJSONRecord(store, capabilitiesDir, id, model.ValidateCapability)
 }
 
-// PutCapability writes one capability record.
-func (s *Store) PutCapability(capability core.Capability) error {
-	return putJSONRecord(s, capabilitiesDir, capability.ID, capability, core.ValidateCapability)
+// SaveCapability writes one capability record.
+func (store *Store) SaveCapability(capability *model.Capability) error {
+	if capability == nil {
+		return errNilRecord("capability")
+	}
+	return saveJSONRecord(store, capabilitiesDir, capability.ID, *capability, model.ValidateCapability)
 }

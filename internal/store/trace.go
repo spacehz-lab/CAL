@@ -6,55 +6,27 @@ import (
 	"path/filepath"
 	"sort"
 
-	caltrace "github.com/spacehz-lab/cal/internal/trace"
+	"github.com/spacehz-lab/cal/internal/model"
+	"github.com/spacehz-lab/cal/pkg/jsonfile"
 )
 
-// PutTrace writes one discovery trace record.
-func (s *Store) PutTrace(record caltrace.Trace) error {
-	if err := caltrace.Validate(record); err != nil {
-		return err
-	}
-	if err := validateRecordID(record.ID); err != nil {
-		return err
-	}
-	return writeJSONAtomic(s.tracePath(record.ID), record)
-}
-
-// GetTrace reads one discovery trace by id.
-func (s *Store) GetTrace(id string) (caltrace.Trace, bool, error) {
-	if err := validateRecordID(id); err != nil {
-		return caltrace.Trace{}, false, err
-	}
-
-	var trace caltrace.Trace
-	if err := readJSON(s.tracePath(id), &trace); isNotExist(err) {
-		return caltrace.Trace{}, false, nil
-	} else if err != nil {
-		return caltrace.Trace{}, false, err
-	}
-	if err := caltrace.Validate(trace); err != nil {
-		return caltrace.Trace{}, false, err
-	}
-	return trace, true, nil
-}
-
-// ListTraces reads all discovery trace records.
-func (s *Store) ListTraces() ([]caltrace.Trace, error) {
-	dir := filepath.Join(s.home, discoveryDir)
+// ListTraces reads all stored trace records.
+func (store *Store) ListTraces() ([]model.Trace, error) {
+	dir := filepath.Join(store.root, tracesDir)
 	entries, err := os.ReadDir(dir)
 	if isNotExist(err) {
-		return []caltrace.Trace{}, nil
+		return []model.Trace{}, nil
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list traces: %w", err)
 	}
 
-	traces := make([]caltrace.Trace, 0, len(entries))
+	traces := make([]model.Trace, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
-		trace, ok, err := s.GetTrace(entry.Name())
+		trace, ok, err := store.GetTrace(entry.Name())
 		if err != nil {
 			return nil, err
 		}
@@ -68,21 +40,38 @@ func (s *Store) ListTraces() ([]caltrace.Trace, error) {
 	return traces, nil
 }
 
-func (s *Store) tracePath(id string) string {
-	return filepath.Join(s.home, discoveryDir, id, "trace.json")
+// GetTrace reads one trace by id.
+func (store *Store) GetTrace(id string) (model.Trace, bool, error) {
+	if err := validateRecordID(id); err != nil {
+		return model.Trace{}, false, err
+	}
+
+	var trace model.Trace
+	if err := readJSON(store.tracePath(id), &trace); isNotExist(err) {
+		return model.Trace{}, false, nil
+	} else if err != nil {
+		return model.Trace{}, false, err
+	}
+	if err := model.ValidateTrace(trace); err != nil {
+		return model.Trace{}, false, err
+	}
+	return trace, true, nil
 }
 
-// PrepareTraceProbeDir creates and returns a work directory for one trace probe.
-func (s *Store) PrepareTraceProbeDir(traceID string, candidateIndex int) (string, error) {
-	if err := validateRecordID(traceID); err != nil {
-		return "", err
+// SaveTrace writes one trace record.
+func (store *Store) SaveTrace(trace *model.Trace) error {
+	if trace == nil {
+		return errNilRecord("trace")
 	}
-	if candidateIndex < 0 {
-		return "", fmt.Errorf("candidate index must be non-negative")
+	if err := model.ValidateTrace(*trace); err != nil {
+		return err
 	}
-	dir := filepath.Join(s.home, discoveryDir, traceID, "probes", fmt.Sprintf("%d", candidateIndex))
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return "", fmt.Errorf("create trace probe directory: %w", err)
+	if err := validateRecordID(trace.ID); err != nil {
+		return err
 	}
-	return dir, nil
+	return jsonfile.WriteAtomic(store.tracePath(trace.ID), trace)
+}
+
+func (store *Store) tracePath(id string) string {
+	return filepath.Join(store.root, tracesDir, id, traceFileName)
 }

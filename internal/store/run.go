@@ -1,22 +1,23 @@
 package store
 
-import (
-	"github.com/spacehz-lab/cal/internal/core"
-)
+import "github.com/spacehz-lab/cal/internal/model"
 
-// PutRun writes one run record.
-func (s *Store) PutRun(run core.Run) error {
-	return putJSONRecord(s, runsDir, run.ID, run, core.ValidateRun)
+// ListRuns reads all stored run records.
+func (store *Store) ListRuns() ([]model.Run, error) {
+	return listJSONRecords(store.root, runsDir, model.ValidateRun, func(a, b model.Run) bool {
+		return a.ID < b.ID
+	})
 }
 
 // GetRun reads one run by id.
-func (s *Store) GetRun(id string) (core.Run, bool, error) {
-	return getJSONRecord(s, runsDir, id, core.ValidateRun)
+func (store *Store) GetRun(id string) (model.Run, bool, error) {
+	return getJSONRecord(store, runsDir, id, model.ValidateRun)
 }
 
-// ListRuns reads all run records.
-func (s *Store) ListRuns() ([]core.Run, error) {
-	return listJSONRecords(s.home, runsDir, "runs", "run", core.ValidateRun, func(a, b core.Run) bool {
-		return a.ID < b.ID
-	})
+// SaveRun writes one run record.
+func (store *Store) SaveRun(run *model.Run) error {
+	if run == nil {
+		return errNilRecord("run")
+	}
+	return saveJSONRecord(store, runsDir, run.ID, *run, model.ValidateRun)
 }

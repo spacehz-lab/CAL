@@ -1,32 +1,35 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
+
+	"github.com/spacehz-lab/cal/internal/contract"
 )
 
-func newEvalCommand(cfg Config) *cobra.Command {
+func (cli *CLI) newEvalCommand() *cobra.Command {
+	var capabilityID string
 	var jsonOut bool
+	var providerID string
 	cmd := &cobra.Command{
 		Use:   "eval",
-		Short: "Summarize discovery and reuse evidence",
+		Short: "Show acquisition and reuse metrics",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := newCaldClient(cfg)
+			ctx, err := cli.commandContext()
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, err)
 			}
-			metrics, err := client.Eval(cmd.Context())
+			response, err := ctx.client.Eval(cmd.Context(), &contract.EvalRequest{
+				CapabilityID: capabilityID,
+				ProviderID:   providerID,
+			})
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, err)
 			}
-			if jsonOut {
-				return writeJSON(cmd.OutOrStdout(), metrics)
-			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "providers=%d capabilities=%d bindings=%d promoted_bindings=%d traces=%d runs=%d\n", metrics.Summary.Providers, metrics.Summary.Capabilities, metrics.Summary.Bindings, metrics.Summary.PromotedBindings, metrics.Summary.Traces, metrics.Summary.Runs)
-			return err
+			return render(cmd, RenderOptions{Mode: renderMode(jsonOut)}, response, "eval completed")
 		},
 	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
+	cmd.Flags().StringVar(&capabilityID, flagCapabilityID, "", "capability id filter")
+	cmd.Flags().StringVar(&providerID, flagProviderID, "", "provider id filter")
+	cmd.Flags().BoolVar(&jsonOut, flagJSON, false, "render machine-readable JSON")
 	return cmd
 }

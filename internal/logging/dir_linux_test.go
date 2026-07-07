@@ -5,29 +5,29 @@ import (
 	"testing"
 )
 
-func TestDefaultLogDirUsesXDGStateDirectory(t *testing.T) {
-	t.Setenv("XDG_STATE_HOME", "/state")
+func TestDefaultDirLinuxUsesXDGStateHome(t *testing.T) {
+	t.Setenv(envXDGStateHome, "/state")
 
-	dir, err := defaultLogDir()
+	got, err := defaultDir()
 	if err != nil {
-		t.Fatalf("defaultLogDir() error = %v", err)
+		t.Fatalf("defaultDir() error = %v", err)
 	}
-	want := filepath.Join("/state", "cal", "logs")
-	if dir != want {
-		t.Fatalf("defaultLogDir() = %q, want %q", dir, want)
+	want := filepath.Join("/state", defaultName, "logs")
+	if got != want {
+		t.Fatalf("defaultDir() = %q, want %q", got, want)
 	}
 }
 
-func TestDefaultLogDirFallsBackToLocalState(t *testing.T) {
-	t.Setenv("XDG_STATE_HOME", "")
+func TestDefaultDirLinuxFallsBackToUserState(t *testing.T) {
+	t.Setenv(envXDGStateHome, "")
 	t.Setenv("HOME", "/home/test")
 
-	dir, err := defaultLogDir()
+	got, err := defaultDir()
 	if err != nil {
-		t.Fatalf("defaultLogDir() error = %v", err)
+		t.Fatalf("defaultDir() error = %v", err)
 	}
-	want := filepath.Join("/home/test", ".local", "state", "cal", "logs")
-	if dir != want {
-		t.Fatalf("defaultLogDir() = %q, want %q", dir, want)
+	want := filepath.Join("/home/test", ".local", "state", defaultName, "logs")
+	if got != want {
+		t.Fatalf("defaultDir() = %q, want %q", got, want)
 	}
 }

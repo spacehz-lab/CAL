@@ -5,15 +5,15 @@ import (
 	"testing"
 )
 
-func TestDefaultLogDirUsesLocalAppData(t *testing.T) {
-	t.Setenv("LocalAppData", `C:\Users\test\AppData\Local`)
+func TestDefaultDirWindowsUsesLocalAppData(t *testing.T) {
+	t.Setenv(envLocalAppData, `C:\Users\test\AppData\Local`)
 
-	dir, err := defaultLogDir()
+	got, err := defaultDir()
 	if err != nil {
-		t.Fatalf("defaultLogDir() error = %v", err)
+		t.Fatalf("defaultDir() error = %v", err)
 	}
-	want := filepath.Join(`C:\Users\test\AppData\Local`, "cal", "logs")
-	if dir != want {
-		t.Fatalf("defaultLogDir() = %q, want %q", dir, want)
+	want := filepath.Join(`C:\Users\test\AppData\Local`, defaultName, "logs")
+	if got != want {
+		t.Fatalf("defaultDir() = %q, want %q", got, want)
 	}
 }

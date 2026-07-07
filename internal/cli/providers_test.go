@@ -1,38 +1,47 @@
 package cli
 
 import (
-	"strings"
+	"net/http"
 	"testing"
+
+	"github.com/spacehz-lab/cal/internal/contract"
+	"github.com/spacehz-lab/cal/internal/model"
 )
 
-func TestProvidersHelpHidesSources(t *testing.T) {
-	output, err := executeRoot(t.TempDir(), "providers", "--help")
-	if err != nil {
-		t.Fatalf("providers help error = %v\n%s", err, output)
+func TestProvidersAddPostsProviderPath(t *testing.T) {
+	cmd, stdout, _ := newTestCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/providers" {
+			t.Fatalf("request = %s %s, want POST /v1/providers", r.Method, r.URL.Path)
+		}
+		req := decodeRequest[contract.AddProviderRequest](t, r)
+		if req.ProviderPath != "/bin/echo" {
+			t.Fatalf("provider path = %q, want /bin/echo", req.ProviderPath)
+		}
+		writeResponse(t, w, contract.ProviderListResponse{Providers: []model.Provider{{ID: "provider_cli", Path: "/bin/echo"}}})
+	})
+
+	if err := execute(t, cmd, "providers", "add", "--provider-path", "/bin/echo", "--json"); err != nil {
+		t.Fatalf("Execute() error = %v", err)
 	}
-	if strings.Contains(output, "sources") {
-		t.Fatalf("providers help = %q, want sources hidden", output)
+	response := decodeOutput[contract.ProviderListResponse](t, stdout)
+	if len(response.Providers) != 1 || response.Providers[0].ID != "provider_cli" {
+		t.Fatalf("response = %#v, want provider_cli", response)
 	}
 }
 
-func TestProvidersAddAndGetByPath(t *testing.T) {
-	home := t.TempDir()
-	startCLITestCald(t, home)
-	providerPath := writeAcquisitionScript(t)
+func TestProvidersListCallsClient(t *testing.T) {
+	cmd, stdout, _ := newTestCLI(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/providers" {
+			t.Fatalf("request = %s %s, want GET /v1/providers", r.Method, r.URL.Path)
+		}
+		writeResponse(t, w, contract.ProviderListResponse{Providers: []model.Provider{{ID: "provider_cli"}}})
+	})
 
-	output, err := executeRoot(home, "providers", "add", "--provider-path", providerPath, "--json")
-	if err != nil {
-		t.Fatalf("providers add error = %v\n%s", err, output)
+	if err := execute(t, cmd, "providers", "list", "--json"); err != nil {
+		t.Fatalf("Execute() error = %v", err)
 	}
-	if !strings.Contains(output, `"path": `) || !strings.Contains(output, providerPath) {
-		t.Fatalf("providers add output = %q, want provider path", output)
-	}
-
-	output, err = executeRoot(home, "providers", "get", "--provider-path", providerPath, "--json")
-	if err != nil {
-		t.Fatalf("providers get by path error = %v\n%s", err, output)
-	}
-	if !strings.Contains(output, `"path": `) || !strings.Contains(output, providerPath) {
-		t.Fatalf("providers get by path output = %q, want provider path", output)
+	response := decodeOutput[contract.ProviderListResponse](t, stdout)
+	if len(response.Providers) != 1 {
+		t.Fatalf("providers len = %d, want 1", len(response.Providers))
 	}
 }

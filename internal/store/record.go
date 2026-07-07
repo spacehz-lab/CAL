@@ -6,37 +6,40 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/spacehz-lab/cal/pkg/jsonfile"
 )
 
-func (s *Store) recordPath(kind, id string) (string, error) {
+func (store *Store) recordPath(dirName, id string) (string, error) {
 	if err := validateRecordID(id); err != nil {
 		return "", err
 	}
-	return filepath.Join(s.home, kind, id+".json"), nil
+	return filepath.Join(store.root, dirName, id+jsonExt), nil
 }
 
-func listJSONRecords[T any](home, dirName, listName, recordName string, validate func(T) error, less func(T, T) bool) ([]T, error) {
-	dir := filepath.Join(home, dirName)
+func listJSONRecords[T any](root, dirName string, validate func(T) error, less func(T, T) bool) ([]T, error) {
+	dir := filepath.Join(root, dirName)
 	entries, err := os.ReadDir(dir)
 	if isNotExist(err) {
 		return []T{}, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("list %s: %w", listName, err)
+		return nil, fmt.Errorf("list %s: %w", dir, err)
 	}
 
 	records := make([]T, 0, len(entries))
 	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != jsonExt {
 			continue
 		}
 
 		var record T
-		if err := readJSON(filepath.Join(dir, entry.Name()), &record); err != nil {
+		path := filepath.Join(dir, entry.Name())
+		if err := readJSON(path, &record); err != nil {
 			return nil, err
 		}
 		if err := validate(record); err != nil {
-			return nil, fmt.Errorf("%s %s: %w", recordName, entry.Name(), err)
+			return nil, fmt.Errorf("validate %s: %w", path, err)
 		}
 		records = append(records, record)
 	}
@@ -46,8 +49,8 @@ func listJSONRecords[T any](home, dirName, listName, recordName string, validate
 	return records, nil
 }
 
-func getJSONRecord[T any](s *Store, dirName, id string, validate func(T) error) (T, bool, error) {
-	path, err := s.recordPath(dirName, id)
+func getJSONRecord[T any](store *Store, dirName, id string, validate func(T) error) (T, bool, error) {
+	path, err := store.recordPath(dirName, id)
 	if err != nil {
 		var zero T
 		return zero, false, err
@@ -65,16 +68,15 @@ func getJSONRecord[T any](s *Store, dirName, id string, validate func(T) error) 
 	return record, true, nil
 }
 
-func putJSONRecord[T any](s *Store, dirName, id string, record T, validate func(T) error) error {
+func saveJSONRecord[T any](store *Store, dirName, id string, record T, validate func(T) error) error {
 	if err := validate(record); err != nil {
 		return err
 	}
-
-	path, err := s.recordPath(dirName, id)
+	path, err := store.recordPath(dirName, id)
 	if err != nil {
 		return err
 	}
-	return writeJSONAtomic(path, record)
+	return jsonfile.WriteAtomic(path, record)
 }
 
 func validateRecordID(id string) error {
@@ -85,4 +87,8 @@ func validateRecordID(id string) error {
 		return fmt.Errorf("record id %q is not path safe", id)
 	}
 	return nil
+}
+
+func errNilRecord(name string) error {
+	return fmt.Errorf("%s record is nil", name)
 }

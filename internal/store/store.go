@@ -10,32 +10,34 @@ import (
 const (
 	providersDir    = "providers"
 	capabilitiesDir = "capabilities"
-	discoveryDir    = "discovery"
+	tracesDir       = "traces"
 	runsDir         = "runs"
+	traceFileName   = "trace.json"
+	jsonExt         = ".json"
 )
 
 // Store owns JSON persistence under one CAL home directory.
 type Store struct {
-	home string
+	root string
 }
 
-// Open creates a store rooted at home.
-func Open(home string) (*Store, error) {
-	if strings.TrimSpace(home) == "" {
-		return nil, fmt.Errorf("store home is required")
+// New creates a store rooted at root.
+func New(root string) (*Store, error) {
+	if strings.TrimSpace(root) == "" {
+		return nil, fmt.Errorf("store root is required")
 	}
-	return &Store{home: filepath.Clean(home)}, nil
+	return &Store{root: filepath.Clean(root)}, nil
 }
 
-// Home returns the store root path.
-func (s *Store) Home() string {
-	return s.home
+// Root returns the store root path.
+func (store *Store) Root() string {
+	return store.root
 }
 
-// Ensure creates the top-level CAL home directories.
-func (s *Store) Ensure() error {
-	for _, dir := range []string{providersDir, capabilitiesDir, discoveryDir, runsDir} {
-		if err := os.MkdirAll(filepath.Join(s.home, dir), 0o755); err != nil {
+// Ensure creates the top-level store directories.
+func (store *Store) Ensure() error {
+	for _, dir := range []string{providersDir, capabilitiesDir, tracesDir, runsDir} {
+		if err := os.MkdirAll(filepath.Join(store.root, dir), 0o755); err != nil {
 			return fmt.Errorf("create %s: %w", dir, err)
 		}
 	}

@@ -1,120 +1,68 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/spf13/cobra"
 
-	"github.com/spacehz-lab/cal/internal/core"
+	"github.com/spacehz-lab/cal/internal/contract"
 )
 
-type providersOutput struct {
-	Providers []core.Provider `json:"providers"`
-}
+const (
+	flagProviderPath = "provider-path"
+)
 
-func newProvidersCommand(cfg Config) *cobra.Command {
+func (cli *CLI) newProvidersCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "providers",
-		Short: "Inspect provider records",
+		Short: "Manage registered providers",
 	}
-	cmd.AddCommand(newProvidersAddCommand(cfg))
-	cmd.AddCommand(newProvidersListCommand(cfg))
-	cmd.AddCommand(newProvidersGetCommand(cfg))
+	cmd.AddCommand(cli.newProvidersAddCommand())
+	cmd.AddCommand(cli.newProvidersListCommand())
 	return cmd
 }
 
-func newProvidersAddCommand(cfg Config) *cobra.Command {
-	var jsonOut bool
+func (cli *CLI) newProvidersAddCommand() *cobra.Command {
 	var providerPath string
+	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "add",
-		Short: "Register one provider path",
+		Short: "Register a provider path",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if providerPath == "" {
-				return writeCommandError(cmd, jsonOut, newCommandError(commandErrorInvalidProviderInput, "provider_path is required"))
+			if err := required(providerPath, flagProviderPath); err != nil {
+				return commandError(cmd, jsonOut, invalidInput(err.Error()))
 			}
-			client, err := newCaldClient(cfg)
+			ctx, err := cli.commandContext()
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, err)
 			}
-			provider, err := client.AddProvider(cmd.Context(), providerPath)
+			response, err := ctx.client.AddProvider(cmd.Context(), &contract.AddProviderRequest{ProviderPath: providerPath})
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, err)
 			}
-			if jsonOut {
-				return writeJSON(cmd.OutOrStdout(), provider)
-			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", provider.ID, provider.Kind, provider.Name)
-			return err
+			return render(cmd, RenderOptions{Mode: renderMode(jsonOut)}, response, "provider registered")
 		},
 	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	cmd.Flags().StringVar(&providerPath, "provider-path", "", "provider_path request field")
+	cmd.Flags().StringVar(&providerPath, flagProviderPath, "", "provider executable path")
+	cmd.Flags().BoolVar(&jsonOut, flagJSON, false, "render machine-readable JSON")
 	return cmd
 }
 
-func newProvidersListCommand(cfg Config) *cobra.Command {
+func (cli *CLI) newProvidersListCommand() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List stored providers",
+		Short: "List registered providers",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := newCaldClient(cfg)
+			ctx, err := cli.commandContext()
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, err)
 			}
-			providers, err := client.ListProviders(cmd.Context())
+			response, err := ctx.client.ListProviders(cmd.Context())
 			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
+				return commandError(cmd, jsonOut, err)
 			}
-			if jsonOut {
-				return writeJSON(cmd.OutOrStdout(), providersOutput{Providers: providers})
-			}
-			for _, provider := range providers {
-				if _, err := fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", provider.ID, provider.Kind, provider.Name); err != nil {
-					return err
-				}
-			}
-			return nil
+			return render(cmd, RenderOptions{Mode: renderMode(jsonOut)}, response, "providers listed")
 		},
 	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	return cmd
-}
-
-func newProvidersGetCommand(cfg Config) *cobra.Command {
-	var jsonOut bool
-	var providerID string
-	var providerPath string
-	cmd := &cobra.Command{
-		Use:   "get",
-		Short: "Get one stored provider",
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			if (providerID == "") == (providerPath == "") {
-				return writeCommandError(cmd, jsonOut, newCommandError(commandErrorInvalidProviderInput, "supply exactly one of provider_id or provider_path"))
-			}
-			client, err := newCaldClient(cfg)
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
-			}
-			var provider core.Provider
-			if providerPath != "" {
-				provider, err = client.GetProviderByPath(cmd.Context(), providerPath)
-			} else {
-				provider, err = client.GetProvider(cmd.Context(), providerID)
-			}
-			if err != nil {
-				return writeCommandError(cmd, jsonOut, err)
-			}
-			if jsonOut {
-				return writeJSON(cmd.OutOrStdout(), provider)
-			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\t%s\t%s\n", provider.ID, provider.Kind, provider.Name)
-			return err
-		},
-	}
-	cmd.Flags().BoolVar(&jsonOut, "json", false, "render machine-readable JSON")
-	cmd.Flags().StringVar(&providerID, "provider-id", "", "provider_id path parameter")
-	cmd.Flags().StringVar(&providerPath, "provider-path", "", "provider_path query parameter")
+	cmd.Flags().BoolVar(&jsonOut, flagJSON, false, "render machine-readable JSON")
 	return cmd
 }
