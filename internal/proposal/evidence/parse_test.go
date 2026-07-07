@@ -30,6 +30,30 @@ func TestParseSkipsUnknownFileInput(t *testing.T) {
 	}
 }
 
+func TestParseRejectsExecuteWithoutChecks(t *testing.T) {
+	raw := `{"verify":{"method":"execute","checks":[]}}`
+
+	_, _, err := Parse(raw, &Request{})
+	if err == nil {
+		t.Fatal("Parse() error = nil, want error")
+	}
+}
+
+func TestParseAllowsContractWithoutChecks(t *testing.T) {
+	raw := `{"verify":{"method":"contract","checks":[]}}`
+
+	verify, stage, err := Parse(raw, &Request{})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if verify.Method != model.VerifyMethodContract || verify.Level != model.VerifyLevelL1 || len(verify.Checks) != 0 {
+		t.Fatalf("verify = %#v, want L1 contract without checks", verify)
+	}
+	if stage.Summary[model.ProposalSummarySelected] != 0 {
+		t.Fatalf("stage = %#v, want no selected checks", stage)
+	}
+}
+
 func TestParseSkipsCheckWithMissingPredicateParam(t *testing.T) {
 	raw := `{"verify":{"checks":[
 		{"subject":{"type":"file","input":"target"},"predicate":"format","params":{}},

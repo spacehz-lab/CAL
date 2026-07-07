@@ -19,7 +19,7 @@ func Parse(raw string, req *Request) (model.VerifySpec, model.ProposalStage, err
 		return model.VerifySpec{}, model.ProposalStage{}, fmt.Errorf("decode evidence stage: %w", err)
 	}
 	verify, stage := normalize(out.Verify, req)
-	if len(verify.Checks) == 0 {
+	if verify.Method == model.VerifyMethodExecute && verify.Level != model.VerifyLevelL0 && len(verify.Checks) == 0 {
 		return verify, stage, fmt.Errorf("evidence stage returned no checks")
 	}
 	return verify, stage, nil
