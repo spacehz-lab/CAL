@@ -27,6 +27,8 @@ Can CAL acquire verified provider-specific bindings from real CLI surfaces?
 The suite covers common CLIs that large models likely know, third-party
 production CLIs, and multiple business domains. Missing optional third-party
 CLIs are reported as unavailable provider cases, not CAL acquisition failures.
+This suite does not compare against non-CAL baselines; it only measures whether
+CAL can produce verified promoted bindings.
 
 Representative target set:
 
@@ -73,6 +75,8 @@ one tool?
 
 The suite intentionally includes providers that expose multiple capabilities and
 capabilities that can be realized by multiple providers.
+It presents non-CAL methods only as lacking durable capability structure. It does
+not use baseline correctness or cost as the primary claim.
 
 Representative target set:
 
@@ -156,14 +160,21 @@ Reuse Suite
 
 ## Baseline Comparison
 
-The suites compare CAL against three baselines:
+Baselines are not a separate suite. They are a method dimension attached to
+Reuse Suite results:
 
 | Baseline | Purpose | Reuse expectation |
 | --- | --- | --- |
 | Direct CLI oracle | Shows task feasibility and latency with a hand-authored correct command. | No reusable binding. |
-| LLM one-shot CLI | Tests model memory and one-off command synthesis from provider help plus case input. | Repeats LLM work per case. |
-| Provider tool baseline | Treats the CLI as a generic tool and lets the model choose arguments each time. | Repeats tool selection and argument synthesis per case. |
+| LLM one-shot CLI | Planned: tests model memory and one-off command synthesis from provider help plus case input. | Repeats LLM work per case. |
+| Provider tool baseline | Planned: treats the CLI as a generic tool and lets the model choose arguments each time. | Repeats tool selection and argument synthesis per case. |
 | CAL replay/live | Acquires once, promotes verified bindings, then reuses them through `use` and `run`. | Reuse should amortize acquisition cost. |
+
+Acquisition Suite should not render baseline comparison. Capability Model Suite
+should render CAL structure and note that one-shot methods do not create durable
+Provider -> Capability -> Binding records. Reuse Suite should render the main
+method table. Current suite data declares only implemented baselines; planned
+baselines must not be added to `suites/*.jsonl` until their runner exists.
 
 The main comparison is repeated-case amortization, not single-case latency:
 

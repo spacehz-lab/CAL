@@ -84,7 +84,8 @@ Aggregate benchmark output should report:
 - replay direct reuse latency
 - LLM call count and token count when available
 - suite-level acquisition, capability-model, and reuse summaries
-- baseline success, latency, LLM-call, token, and amortized cost comparison
+- reuse-suite baseline success, latency, LLM-call, token, and amortized cost
+  comparison
 
 The runner also emits a derived `scores` object for display and run-to-run
 comparison. Scores are computed only from `summary` and must not affect
@@ -151,6 +152,9 @@ Required metrics:
 - acquisition latency and proposal LLM latency;
 - failure stage and reason.
 
+Acquisition Suite does not score non-CAL baselines. A direct CLI command can
+prove the case is feasible elsewhere, but it is not an acquisition comparison.
+
 ### Capability Model
 
 Capability-model cases score whether CAL builds structure above providers:
@@ -169,6 +173,10 @@ Required metrics:
 - multi-capability provider count;
 - multi-binding capability count;
 - verification level distribution by capability.
+
+Capability Model Suite reports structural evidence. Non-CAL one-shot or
+provider-tool methods have no durable Capability or Binding records, so their
+role is a structural absence reference, not a pass/fail or latency comparison.
 
 ### Reuse
 
@@ -196,26 +204,38 @@ Required metrics:
 
 ## Baseline Scoring
 
-Baseline results should use the same case ids and fixtures.
+Baseline results should use the same case ids and fixtures as Reuse Suite cases.
 
 - Direct CLI oracle succeeds when the hand-authored invocation produces the
   expected deterministic oracle result.
-- LLM one-shot CLI command succeeds when the generated command produces the
+- Planned LLM one-shot CLI command succeeds when the generated command produces the
   expected deterministic oracle result without CAL promotion or reuse.
-- Provider tool baseline succeeds when the model can select a provider command
+- Planned provider tool baseline succeeds when the model can select a provider command
   and arguments for the current case and the independent oracle passes, without
   creating a durable binding.
 - CAL succeeds only when acquisition, deterministic verification, promotion,
   later Use selection, runtime execution, and independent benchmark oracle
   scoring all succeed. Replay mode additionally requires direct binding reuse.
 
-Reported benchmark summaries should compare baselines on case success, latency,
-LLM calls/tokens, and whether successful behavior becomes reusable. Baselines
-that do not promote bindings should have no verified reuse count.
+Reported benchmark summaries should compare baselines on held-out reuse success,
+latency, LLM calls/tokens, and whether successful behavior becomes reusable.
+Baselines that do not promote bindings should have no verified reuse count.
+Suite manifests may declare only implemented baseline runners; unimplemented
+planned baselines should remain documented design targets, not runnable case
+configuration.
 
 Repeated-case cost should be reported separately from first-case latency. CAL is
 allowed to pay acquisition cost once; the paper comparison should show average
 cost per oracle-verified success after multiple held-out reuse cases.
+
+The paper-level framing is:
+
+```text
+Acquisition Suite: CAL can learn verified CLI bindings.
+Capability Model Suite: learned bindings form a durable capability structure.
+Reuse Suite: the durable structure beats repeated one-shot command synthesis on
+held-out reuse cost, stability, and reusable records.
+```
 
 ## Failure Reporting
 

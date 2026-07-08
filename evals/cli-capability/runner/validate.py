@@ -8,6 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SUITES = {"acquisition", "capability_model", "reuse"}
+IMPLEMENTED_BASELINES = {"direct_cli"}
 
 
 def main() -> int:
@@ -32,6 +33,7 @@ def main() -> int:
             raise SystemExit(f"duplicate suite case id: {suite}:{case_id}")
         seen_cases.add(key)
         require(case, "intent")
+        check_baselines(case_id, suite, case.get("baselines") or [])
         for provider in require(case, "provider_candidates"):
             if provider not in provider_ids:
                 raise SystemExit(f"{case_id}: unknown provider candidate {provider}")
@@ -56,6 +58,14 @@ def main() -> int:
     read_jsonl(ROOT / "baselines" / "oracle" / "commands.jsonl")
     print(f"validated {len(cases)} cases and {len(provider_ids)} providers")
     return 0
+
+
+def check_baselines(case_id: str, suite: str, baselines: list[str]) -> None:
+    if baselines and suite != "reuse":
+        raise SystemExit(f"{case_id}: baselines are only allowed in reuse suite")
+    for baseline in baselines:
+        if baseline not in IMPLEMENTED_BASELINES:
+            raise SystemExit(f"{case_id}: baseline {baseline!r} is not implemented")
 
 
 def check_fixture_group(case_id: str, group: dict) -> None:

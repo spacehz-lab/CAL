@@ -27,10 +27,12 @@ def load_module(name: str):
 
 catalog = load_module("catalog")
 constants = load_module("constants")
+acquisition = load_module("acquisition")
 reuse = load_module("reuse")
 summary = load_module("summary")
 report = load_module("report")
 run = load_module("run")
+validate = load_module("validate")
 
 
 class SuiteCatalogTest(unittest.TestCase):
@@ -93,8 +95,24 @@ class ReuseHelpersTest(unittest.TestCase):
         self.assertTrue(reuse.provider_oracles_passed(provider))
 
 
+class AcquisitionStatusTest(unittest.TestCase):
+    def test_finalize_provider_status_only_requires_oracle_for_reuse_suite(self) -> None:
+        provider = {"candidates": [{"promotion": {"binding_id": "binding_a"}, "reuse": []}]}
+
+        acquisition.finalize_provider_status(provider, constants.MODE_REPLAY, require_reuse_oracle=False)
+
+        self.assertEqual(provider["status"], constants.STATUS_PASSED)
+
+        reuse_provider = {"candidates": [{"promotion": {"binding_id": "binding_a"}, "reuse": []}]}
+
+        acquisition.finalize_provider_status(reuse_provider, constants.MODE_REPLAY, require_reuse_oracle=True)
+
+        self.assertEqual(reuse_provider["status"], constants.STATUS_FAILED)
+        self.assertEqual(reuse_provider["failure"]["code"], "oracle_not_passed")
+
+
 class SummaryTest(unittest.TestCase):
-    def test_summarize_groups_by_suite_and_baseline(self) -> None:
+    def test_summarize_baselines_only_reads_reuse_suite(self) -> None:
         suites = {
             "acquisition": {
                 "cases": [
@@ -118,7 +136,15 @@ class SummaryTest(unittest.TestCase):
                 ]
             },
             "capability_model": {"cases": []},
-            "reuse": {"cases": []},
+            "reuse": {
+                "cases": [
+                    {
+                        "providers": [],
+                        "use": [],
+                        "baselines": {"direct_cli": [{"duration_ms": 11, "oracle": {"passed": True}}]},
+                    }
+                ]
+            },
         }
 
         result = summary.summarize(suites, constants.MODE_REPLAY)
@@ -127,11 +153,31 @@ class SummaryTest(unittest.TestCase):
         self.assertEqual(result["suites"]["acquisition"]["use_oracle_pass_count"], 1)
         self.assertEqual(result["total"]["promoted_bindings"], 1)
         self.assertEqual(result["baselines"]["direct_cli"]["passed"], 1)
+        self.assertEqual(result["baselines"]["direct_cli"]["duration_ms"], 11)
         self.assertEqual(result["baselines"]["direct_cli"]["success_rate"], 1)
 
-    def test_capability_model_counts_multi_provider_and_multi_capability(self) -> None:
+    def test_scores_use_reuse_suite_for_closed_loop_rates(self) -> None:
+        summary_value = {
+            "total": {"oracle_pass_count": 10, "held_out_reuses": 10, "use_oracle_pass_count": 10, "held_out_uses": 10},
+            "suites": {
+                "reuse": {"oracle_pass_count": 1, "held_out_reuses": 2, "use_oracle_pass_count": 1, "held_out_uses": 4},
+            },
+        }
+
+        scores = summary.score(summary_value, constants.MODE_REPLAY)
+
+        self.assertEqual(scores["direct_reuse_success_rate"], 0.5)
+        self.assertEqual(scores["intent_use_success_rate"], 0.25)
+        self.assertEqual(scores["closed_loop_success_rate"], 0.25)
+
+    def test_capability_model_only_reads_capability_model_suite(self) -> None:
         suites = {
             "acquisition": {
+                "cases": [
+                    case_result("case_ignored", "provider_ignored", "cap_ignored", "binding_ignored"),
+                ]
+            },
+            "capability_model": {
                 "cases": [
                     case_result("case_a", "provider_a", "cap_a", "binding_a"),
                     case_result("case_b", "provider_a", "cap_b", "binding_b"),
@@ -144,6 +190,15 @@ class SummaryTest(unittest.TestCase):
 
         self.assertEqual(model["multi_capability_providers"], 1)
         self.assertEqual(model["multi_binding_capabilities"], 1)
+        self.assertNotIn("provider_ignored", model["providers"])
+
+    def test_validate_restricts_baselines_to_reuse_suite_and_implemented_set(self) -> None:
+        with self.assertRaises(SystemExit):
+            validate.check_baselines("case_a", "acquisition", ["direct_cli"])
+        with self.assertRaises(SystemExit):
+            validate.check_baselines("case_a", "reuse", ["llm_oneshot"])
+
+        validate.check_baselines("case_a", "reuse", ["direct_cli"])
 
 
 class ReportTest(unittest.TestCase):
@@ -166,7 +221,7 @@ class ReportTest(unittest.TestCase):
                 "run": {"id": "run_1", "mode": constants.MODE_REPLAY, "selected_suites": ["acquisition"], "selected_cases": ["acquisition:case_a"]},
                 "status": "completed",
                 "suites": {"acquisition": {"cases": []}, "capability_model": {"cases": []}, "reuse": {"cases": []}},
-                "summary": {"total": {"held_out_uses": 1, "use_oracle_pass_count": 1}},
+                "summary": {"total": {}, "suites": {"reuse": {"held_out_uses": 1, "use_oracle_pass_count": 1}}},
                 "scores": {"closed_loop_success_rate": 1.0},
             }
         )
@@ -174,7 +229,7 @@ class ReportTest(unittest.TestCase):
         self.assertIn("<h2>Acquisition Suite</h2>", html)
         self.assertIn("<h2>Capability Model Suite</h2>", html)
         self.assertIn("<h2>Reuse Suite</h2>", html)
-        self.assertIn("<h2>Baseline / Cost Amortization</h2>", html)
+        self.assertIn("<h2>Reuse Baseline / Cost Amortization</h2>", html)
         self.assertIn("100.0%", html)
 
 
@@ -187,13 +242,22 @@ class RunTest(unittest.TestCase):
 
         self.assertEqual(artifact["run"]["llm"], {"api": "chat_completions", "model": "test-model", "base_url_configured": True})
 
-    def test_validate_result_uses_total_summary(self) -> None:
-        artifact = {"summary": {"total": {"oracle_pass_count": 1, "use_oracle_pass_count": 1, "oracle_fail_count": 0, "use_oracle_fail_count": 0, "failed": 0}}}
+    def test_validate_result_uses_reuse_suite_summary(self) -> None:
+        artifact = {
+            "run": {"selected_suites": ["reuse"]},
+            "summary": {
+                "total": {"oracle_pass_count": 0, "use_oracle_pass_count": 0},
+                "suites": {"reuse": {"oracle_pass_count": 1, "use_oracle_pass_count": 1, "oracle_fail_count": 0, "use_oracle_fail_count": 0, "failed": 0}},
+            },
+        }
 
         run.validate_result(constants.MODE_REPLAY, artifact)
 
         with self.assertRaises(SystemExit):
-            run.validate_result(constants.MODE_LIVE_LLM, {"summary": {"total": {"use_oracle_pass_count": 0}}})
+            run.validate_result(constants.MODE_LIVE_LLM, {"run": {"selected_suites": ["reuse"]}, "summary": {"suites": {"reuse": {"use_oracle_pass_count": 0}}}})
+
+    def test_validate_result_allows_non_reuse_suite_without_reuse_oracle(self) -> None:
+        run.validate_result(constants.MODE_REPLAY, {"run": {"selected_suites": ["acquisition"]}, "summary": {"suites": {"reuse": {}}}})
 
 
 def write_catalog_fixture(bench: Path) -> None:

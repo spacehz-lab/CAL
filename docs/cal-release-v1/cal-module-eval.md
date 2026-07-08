@@ -40,9 +40,9 @@ evals/cli-capability
 `CAL_HOME`; it does not decide whether an arXiv benchmark case succeeded.
 
 The arXiv/release benchmark belongs under `evals/cli-capability/`. That layer may
-start `cald`, call `calctl`, run providers, invoke oracles, compare baselines,
-sanitize artifacts, and render HTML. Those are experiment orchestration concerns,
-not application metric concerns.
+start `cald`, call `calctl`, run providers, invoke oracles, compare reuse-suite
+baselines, sanitize artifacts, and render HTML. Those are experiment
+orchestration concerns, not application metric concerns.
 
 ## Boundary
 
@@ -180,9 +180,10 @@ diagnosis, benchmark judgments, and policy labels until there is a concrete
 consumer that needs them.
 
 Benchmark scores such as closed-loop success rate, oracle reuse success rate,
-cost amortization, capability-model coverage, and baseline comparison belong to
-`evals/cli-capability` summaries. They should not be added to `internal/eval`
-unless the product API gains a concrete non-benchmark consumer for them.
+cost amortization, capability-model coverage, and reuse-suite baseline
+comparison belong to `evals/cli-capability` summaries. They should not be added
+to `internal/eval` unless the product API gains a concrete non-benchmark
+consumer for them.
 
 ### AcquisitionMetrics
 

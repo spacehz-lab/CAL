@@ -202,16 +202,16 @@ class AcquisitionRunner:
         return self.bench / "proposals" / "replay" / case_id / f"{provider_id}.json"
 
 
-def finalize_provider_status(provider: dict[str, Any], mode: str) -> None:
-    if mode == MODE_REPLAY:
+def finalize_provider_status(provider: dict[str, Any], mode: str, require_reuse_oracle: bool) -> None:
+    if mode == MODE_REPLAY and require_reuse_oracle:
         provider["status"] = STATUS_PASSED if provider_oracles_passed(provider) else STATUS_FAILED
     else:
         provider["status"] = STATUS_PASSED if provider_has_promoted_binding(provider) else STATUS_FAILED
     if provider["status"] == STATUS_FAILED and not provider.get("failure"):
-        provider["failure"] = provider_failure(mode)
+        provider["failure"] = provider_failure(mode, require_reuse_oracle)
 
 
-def provider_failure(mode: str) -> dict[str, str]:
-    if mode == MODE_REPLAY:
+def provider_failure(mode: str, require_reuse_oracle: bool) -> dict[str, str]:
+    if mode == MODE_REPLAY and require_reuse_oracle:
         return failure("oracle_failure", "oracle_not_passed", "no held-out oracle passed")
     return failure("acquisition_failed", "no_promoted_binding", "no promoted binding")

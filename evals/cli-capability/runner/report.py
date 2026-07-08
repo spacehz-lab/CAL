@@ -154,16 +154,18 @@ def render_overview(artifact: dict[str, Any]) -> str:
 
 
 def render_main_result(artifact: dict[str, Any]) -> str:
-    summary = (artifact.get("summary") or {}).get("total") or {}
+    summary_root = artifact.get("summary") or {}
+    total = summary_root.get("total") or {}
+    reuse = (summary_root.get("suites") or {}).get("reuse") or {}
     scores = artifact.get("scores") or {}
     cards = [
         overview_card("Closed-loop success", format_metric("closed_loop_success_rate", scores.get("closed_loop_success_rate"))),
-        overview_card("Intent use", fraction(summary.get("use_oracle_pass_count"), summary.get("held_out_uses"))),
-        overview_card("Direct reuse", fraction(summary.get("oracle_pass_count"), summary.get("held_out_reuses"))),
-        overview_card("Promoted bindings", summary.get("promoted_bindings", 0)),
+        overview_card("Intent use", fraction(reuse.get("use_oracle_pass_count"), reuse.get("held_out_uses"))),
+        overview_card("Direct reuse", fraction(reuse.get("oracle_pass_count"), reuse.get("held_out_reuses"))),
+        overview_card("Promoted bindings", total.get("promoted_bindings", 0)),
         overview_card("Provider yield", format_metric("provider_yield_rate", scores.get("provider_yield_rate"))),
-        overview_card("Negative evidence", summary.get("candidate_negative_evidence", 0)),
-        overview_card("Failed closed loop", summary.get("failed", 0)),
+        overview_card("Negative evidence", total.get("candidate_negative_evidence", 0)),
+        overview_card("Failed closed loop", reuse.get("failed", 0)),
     ]
     return f"""<section class="section primary">
 <h2>Main Result</h2>
@@ -235,7 +237,7 @@ def render_baselines(artifact: dict[str, Any]) -> str:
     if not rows:
         rows.append("<tr><td colspan='5'><span class='muted'>none</span></td></tr>")
     return f"""<section class="section">
-<h2>Baseline / Cost Amortization</h2>
+<h2>Reuse Baseline / Cost Amortization</h2>
 <table><tr><th>Baseline</th><th>Attempted</th><th>Passed</th><th>Success</th><th>Avg latency</th></tr>{''.join(rows)}</table>
 </section>"""
 

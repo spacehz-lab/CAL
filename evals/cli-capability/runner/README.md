@@ -39,6 +39,13 @@ Primary artifacts:
 - `artifact.json`: compact release artifact with trace references.
 - `index.html`: human-readable report.
 
+Suite display rules:
+
+- Acquisition Suite shows CAL acquisition evidence only.
+- Capability Model Suite shows durable Provider -> Capability -> Binding
+  structure and coverage.
+- Reuse Suite shows the main non-CAL comparison and cost amortization table.
+
 ## Replay
 
 Replay uses fixed proposals from `proposals/replay/<case-id>/<provider>.json`:

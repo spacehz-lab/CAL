@@ -12,7 +12,7 @@ from typing import Any
 from acquisition import AcquisitionRunner, finalize_provider_status
 from baseline import BaselineRunner
 from catalog import SuiteCatalog
-from constants import MODE_LIVE_LLM, MODE_REPLAY, SUITES
+from constants import MODE_LIVE_LLM, MODE_REPLAY, SUITE_REUSE, SUITES
 from oracle import OracleRunner
 from report import ArtifactWriter
 from reuse import ReuseRunner, use_intent
@@ -52,7 +52,8 @@ def main() -> int:
         for case in selected_cases:
             print(f"cli-capability: starting suite={case['suite']} case={case['id']} mode={args.mode}", flush=True)
             result = benchmark.run_case(case)
-            result["baselines"] = baselines.run_case(case)
+            if case["suite"] == SUITE_REUSE:
+                result["baselines"] = baselines.run_case(case)
             artifact["suites"][case["suite"]]["cases"].append(result)
             update_artifact_metrics(artifact, args.mode)
             writer.write()
@@ -98,11 +99,12 @@ class BenchmarkRunner:
         }
         for provider in case["providers"]:
             provider_result = self.acquisition.run_provider(case, provider)
-            if self.mode == MODE_REPLAY:
+            if self.mode == MODE_REPLAY and case["suite"] == SUITE_REUSE:
                 self.reuse.run_direct_reuse(case, provider_result)
-            finalize_provider_status(provider_result, self.mode)
+            finalize_provider_status(provider_result, self.mode, case["suite"] == SUITE_REUSE)
             result["providers"].append(provider_result)
-        self.reuse.run_intent_uses(case, result)
+        if case["suite"] == SUITE_REUSE:
+            self.reuse.run_intent_uses(case, result)
         return result
 
 
@@ -148,17 +150,20 @@ def new_artifact(run_id: str, args: argparse.Namespace, cases: list[dict[str, An
 
 
 def validate_result(mode: str, artifact: dict[str, Any]) -> None:
-    total = ((artifact.get("summary") or {}).get("total") or {})
-    if total.get("use_oracle_pass_count", 0) < 1:
+    reuse = (((artifact.get("summary") or {}).get("suites") or {}).get(SUITE_REUSE) or {})
+    reuse_selected = SUITE_REUSE in ((artifact.get("run") or {}).get("selected_suites") or [])
+    if not reuse_selected:
+        return
+    if reuse.get("use_oracle_pass_count", 0) < 1:
         raise SystemExit("benchmark produced no oracle-passing held-out use")
     if mode == MODE_REPLAY:
-        if total.get("oracle_pass_count", 0) < 1:
+        if reuse.get("oracle_pass_count", 0) < 1:
             raise SystemExit("benchmark produced no oracle-passing direct reuse")
-        if total.get("oracle_fail_count", 0) > 0:
+        if reuse.get("oracle_fail_count", 0) > 0:
             raise SystemExit("benchmark produced oracle failures")
-        if total.get("use_oracle_fail_count", 0) > 0:
+        if reuse.get("use_oracle_fail_count", 0) > 0:
             raise SystemExit("benchmark produced use oracle failures")
-        if total.get("failed", 0) > 0:
+        if reuse.get("failed", 0) > 0:
             raise SystemExit("replay benchmark produced failures")
 
 

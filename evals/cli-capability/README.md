@@ -41,11 +41,13 @@ suites/reuse.jsonl
 The suites map directly to the arXiv v0 experiment questions:
 
 - Acquisition: can CAL acquire verified provider-specific bindings from real CLI
-  surfaces?
+  surfaces? This suite does not compare against non-CAL baselines.
 - Capability Model: does CAL form a capability layer instead of a one-provider
-  wrapper?
+  wrapper? This suite shows structural difference: CAL has durable
+  Provider -> Capability -> Binding records while non-CAL baselines do not.
 - Reuse: can promoted bindings solve held-out cases through `calctl use` and
-  `calctl runs create` without another acquisition step?
+  `calctl runs create` without another acquisition step? This suite is the main
+  comparison against non-CAL baselines.
 
 Each suite case should reference shared provider records, fixtures, replay
 proposals, oracles, and baseline definitions. `suites/*.jsonl` is the only
@@ -114,11 +116,14 @@ This benchmark should report four evidence layers:
 The HTML report should render those layers as three suite sections:
 
 - Acquisition Suite: acquisition matrix, proposal stage detail, probe/promote
-  evidence, and acquisition failure taxonomy.
+  evidence, and acquisition failure taxonomy. It should not display baseline
+  comparison as a pass/fail claim.
 - Capability Model Suite: provider coverage, capability coverage, and
-  provider-to-capability-to-binding tables.
+  provider-to-capability-to-binding tables. Baselines appear only as a
+  no-durable-structure reference, not as a correctness or cost comparison.
 - Reuse Suite: held-out reuse matrix, Use resolver detail, CAL verify vs
-  independent oracle, and baseline cost amortization.
+  independent oracle, and baseline cost amortization. This is the only suite
+  where non-CAL methods are scored as primary comparisons.
 
 For v0, Use selection is scored as a bounded resolver:
 
@@ -182,21 +187,33 @@ Benchmark results should be machine-readable and include:
 
 ## Baselines
 
-The minimum v0 baselines are:
+Baselines are a horizontal method dimension, not a fourth suite. The current
+checked-in runner implements:
 
 - direct CLI oracle: a hand-authored correct invocation for each case, used as a
-  correctness and latency upper-bound reference;
+  correctness and latency upper-bound reference.
+
+The planned v0 baseline set also includes:
+
 - LLM one-shot CLI command: the model receives provider documentation and case
-  input, then emits a command without CAL promotion or reuse;
+  input, then emits a command without CAL promotion or reuse.
 - provider tool baseline: the model treats the provider CLI as a generic tool and
-  selects arguments for every case without durable promotion;
+  selects arguments for every case without durable promotion.
 - CAL replay/live: the CAL acquisition loop with deterministic verification,
   promotion, later intent-level Use, and replay-only direct runtime reuse.
 
 The oracle baseline is not a fair agent baseline. It exists to show case
 feasibility and provide a performance reference.
 
-The main comparison is repeated-case amortization:
+Baselines are used as follows:
+
+- Acquisition Suite: no baseline comparison; report CAL acquisition quality.
+- Capability Model Suite: show that non-CAL methods have no durable capability
+  structure; do not use baseline pass/fail as the main claim.
+- Reuse Suite: compare CAL with direct CLI now, and with LLM one-shot and
+  provider-tool methods once those runners are implemented.
+
+The main comparison is repeated-case amortization in the Reuse Suite:
 
 ```text
 method / repeated cases / LLM calls / tokens / total latency / oracle successes
@@ -237,9 +254,10 @@ Each run writes:
   records;
 - `flow.json`: the primary step-by-step evidence artifact, organized around
   provider resolution, registration, acquisition stages, direct reuse,
-  intent-level Use, oracle scoring, and baseline comparison;
+  intent-level Use, oracle scoring, and reuse-suite baseline comparison;
 - `index.html`: a human-readable flow report with a closed-loop matrix and
-  acquisition, capability-model, reuse, and cost-amortization sections;
+  acquisition evidence, capability-model structure, reuse comparison, and
+  cost-amortization sections;
 - `artifact.json`: optional sanitized trace/run/capability excerpts used by a
   release report;
 - `cald.log`: local service log for debugging.

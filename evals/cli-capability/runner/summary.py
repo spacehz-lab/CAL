@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from constants import BASELINE_DIRECT_CLI, MODE_REPLAY, STATUS_SKIPPED, SUITES
-from reuse import provider_has_promoted_binding
+from constants import BASELINE_DIRECT_CLI, MODE_REPLAY, STATUS_SKIPPED, SUITE_CAPABILITY_MODEL, SUITE_REUSE, SUITES
 from util import average, ratio
 
 
@@ -147,15 +146,15 @@ def finalize_summary(summary: dict[str, Any]) -> dict[str, Any]:
 
 def summarize_baselines(suites: dict[str, Any]) -> dict[str, Any]:
     direct = {"attempted": 0, "passed": 0, "failed": 0, "duration_ms": 0}
-    for suite_data in suites.values():
-        for case in suite_data.get("cases") or []:
-            for result in ((case.get("baselines") or {}).get(BASELINE_DIRECT_CLI) or []):
-                direct["attempted"] += 1
-                direct["duration_ms"] += result.get("duration_ms", 0)
-                if (result.get("oracle") or {}).get("passed"):
-                    direct["passed"] += 1
-                else:
-                    direct["failed"] += 1
+    reuse_suite = suites.get(SUITE_REUSE) or {}
+    for case in reuse_suite.get("cases") or []:
+        for result in ((case.get("baselines") or {}).get(BASELINE_DIRECT_CLI) or []):
+            direct["attempted"] += 1
+            direct["duration_ms"] += result.get("duration_ms", 0)
+            if (result.get("oracle") or {}).get("passed"):
+                direct["passed"] += 1
+            else:
+                direct["failed"] += 1
     direct["success_rate"] = ratio(direct["passed"], direct["attempted"])
     direct["avg_duration_ms"] = average(direct["duration_ms"], direct["attempted"])
     return {BASELINE_DIRECT_CLI: direct}
@@ -163,8 +162,9 @@ def summarize_baselines(suites: dict[str, Any]) -> dict[str, Any]:
 
 def score(summary: dict[str, Any], mode: str) -> dict[str, Any]:
     total = summary.get("total") or {}
-    direct_reuse_rate = ratio(total.get("oracle_pass_count", 0), total.get("held_out_reuses", 0))
-    use_rate = ratio(total.get("use_oracle_pass_count", 0), total.get("held_out_uses", 0))
+    reuse = (summary.get("suites") or {}).get(SUITE_REUSE) or {}
+    direct_reuse_rate = ratio(reuse.get("oracle_pass_count", 0), reuse.get("held_out_reuses", 0))
+    use_rate = ratio(reuse.get("use_oracle_pass_count", 0), reuse.get("held_out_uses", 0))
     closed_loop_rate = min(direct_reuse_rate, use_rate) if mode == MODE_REPLAY else use_rate
     return {
         "profile": mode,
@@ -193,18 +193,18 @@ def score(summary: dict[str, Any], mode: str) -> dict[str, Any]:
 def capability_model(suites: dict[str, Any]) -> dict[str, Any]:
     providers: dict[str, set[str]] = {}
     capabilities: dict[str, set[str]] = {}
-    for suite_data in suites.values():
-        for case in suite_data.get("cases") or []:
-            for provider in case.get("providers") or []:
-                provider_key = provider.get("id", "")
-                for candidate in provider.get("candidates") or []:
-                    if not (candidate.get("promotion") or {}).get("binding_id"):
-                        continue
-                    cap = candidate.get("capability_id", "")
-                    if not cap:
-                        continue
-                    providers.setdefault(provider_key, set()).add(cap)
-                    capabilities.setdefault(cap, set()).add(provider_key)
+    suite_data = suites.get(SUITE_CAPABILITY_MODEL) or {}
+    for case in suite_data.get("cases") or []:
+        for provider in case.get("providers") or []:
+            provider_key = provider.get("id", "")
+            for candidate in provider.get("candidates") or []:
+                if not (candidate.get("promotion") or {}).get("binding_id"):
+                    continue
+                cap = candidate.get("capability_id", "")
+                if not cap:
+                    continue
+                providers.setdefault(provider_key, set()).add(cap)
+                capabilities.setdefault(cap, set()).add(provider_key)
     return {
         "providers": {key: sorted(value) for key, value in sorted(providers.items())},
         "capabilities": {key: sorted(value) for key, value in sorted(capabilities.items())},
