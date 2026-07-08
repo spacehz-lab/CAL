@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseDefaultsLevelAndMethod(t *testing.T) {
-	raw := `{"verify":{"checks":[{"subject":{"type":"stdout"},"predicate":"non_empty"}]}}`
+	raw := `{"verify":{"checks":[{"subject":{"type":"exit_code"},"predicate":"equals","params":{"value":0}}]}}`
 
 	verify, stage, err := Parse(raw, &Request{})
 	if err != nil {
@@ -18,6 +18,45 @@ func TestParseDefaultsLevelAndMethod(t *testing.T) {
 	}
 	if stage.Summary[model.ProposalSummaryKeep] != 1 {
 		t.Fatalf("keep summary = %d, want 1", stage.Summary[model.ProposalSummaryKeep])
+	}
+}
+
+func TestParseDerivesArtifactLevelFromChecks(t *testing.T) {
+	raw := `{"verify":{"checks":[
+		{"subject":{"type":"file","input":"target"},"predicate":"exists"},
+		{"subject":{"type":"file","input":"target"},"predicate":"format","params":{"format":"json"}}
+	]}}`
+
+	verify, _, err := Parse(raw, &Request{Material: Material{Inputs: map[string]any{"target": "{{workdir}}/out.json"}}})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if verify.Level != model.VerifyLevelL2 {
+		t.Fatalf("verify level = %s, want L2", verify.Level)
+	}
+}
+
+func TestParseDerivesSemanticLevelFromChecks(t *testing.T) {
+	raw := `{"verify":{"checks":[{"subject":{"type":"stdout"},"predicate":"hash_line_matches","params":{"source":"source","algorithm":"sha1"}}]}}`
+
+	verify, _, err := Parse(raw, &Request{})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if verify.Level != model.VerifyLevelL3 {
+		t.Fatalf("verify level = %s, want L3", verify.Level)
+	}
+}
+
+func TestParseOverridesModelSuppliedLevel(t *testing.T) {
+	raw := `{"verify":{"level":"L3","method":"execute","checks":[{"subject":{"type":"exit_code"},"predicate":"equals","params":{"value":0}}]}}`
+
+	verify, _, err := Parse(raw, &Request{})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if verify.Level != model.VerifyLevelL1 {
+		t.Fatalf("verify level = %s, want local L1 derivation", verify.Level)
 	}
 }
 

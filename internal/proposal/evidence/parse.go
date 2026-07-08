@@ -19,7 +19,7 @@ func Parse(raw string, req *Request) (model.VerifySpec, model.ProposalStage, err
 		return model.VerifySpec{}, model.ProposalStage{}, fmt.Errorf("decode evidence stage: %w", err)
 	}
 	verify, stage := normalize(out.Verify, req)
-	if verify.Method == model.VerifyMethodExecute && verify.Level != model.VerifyLevelL0 && len(verify.Checks) == 0 {
+	if verify.Method == model.VerifyMethodExecute && len(verify.Checks) == 0 {
 		return verify, stage, fmt.Errorf("evidence stage returned no checks")
 	}
 	return verify, stage, nil
@@ -28,9 +28,6 @@ func Parse(raw string, req *Request) (model.VerifySpec, model.ProposalStage, err
 func normalize(verify model.VerifySpec, req *Request) (model.VerifySpec, model.ProposalStage) {
 	if req == nil {
 		req = &Request{}
-	}
-	if verify.Level == "" {
-		verify.Level = model.VerifyLevelL1
 	}
 	if verify.Method == "" {
 		verify.Method = model.VerifyMethodExecute
@@ -63,6 +60,7 @@ func normalize(verify model.VerifySpec, req *Request) (model.VerifySpec, model.P
 		stage.Summary[summaryKey(trace.Decision)]++
 	}
 	verify.Checks = selected
+	verify.Level = deriveLevel(verify)
 	stage.Summary[model.ProposalSummarySelected] = len(selected)
 	return verify, stage
 }

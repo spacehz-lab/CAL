@@ -40,6 +40,30 @@ func TestParseRejectsCandidateWithoutProbeMaterial(t *testing.T) {
 	}
 }
 
+func TestParseRejectsStdoutPathInputWithoutProbeInput(t *testing.T) {
+	raw := `{"candidates":[{"execution":{"kind":"cli","spec":{"args":["{{source}}"],"stdout_path_input":"target"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt"}}]}`
+
+	_, _, _, err := Parse(raw, &Request{Provider: &model.Provider{ID: "provider_test"}, Capability: Plan{CapabilityID: "file.checksum"}})
+	if err == nil {
+		t.Fatal("Parse() error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "stdout_path_input missing probe input") {
+		t.Fatalf("Parse() error = %v, want stdout path input error", err)
+	}
+}
+
+func TestParseRejectsStdoutPathInputPointingToSource(t *testing.T) {
+	raw := `{"candidates":[{"execution":{"kind":"cli","spec":{"args":["write-note","--out","{{target}}"],"stdout_path_input":"source"}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.txt"}}]}`
+
+	_, _, _, err := Parse(raw, &Request{Provider: &model.Provider{ID: "provider_test"}, Capability: Plan{CapabilityID: "text.write"}})
+	if err == nil {
+		t.Fatal("Parse() error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "stdout_path_input pointing to an input source") {
+		t.Fatalf("Parse() error = %v, want invalid stdout path input error", err)
+	}
+}
+
 func TestParseNormalizesPlaceholderProviderID(t *testing.T) {
 	raw := `{"candidates":[{"provider_id":"optional","execution":{"kind":"cli","spec":{"args":["tool"]}}}],"probe_material":[{"candidate_index":0,"inputs":{}}]}`
 

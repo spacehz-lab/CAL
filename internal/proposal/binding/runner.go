@@ -15,6 +15,7 @@ type Request struct {
 	Observations  []model.Observation
 	Surfaces      []SurfaceItem
 	Capability    Plan
+	Hint          string
 	MaxCandidates int
 }
 

@@ -840,9 +840,20 @@ It owns:
 - candidate-level filtering;
 - use of selected surface `Usage` as the strongest provider-specific
   invocation hint when available;
+- use of `Request.Hint` only to choose concrete runtime-controlled values that
+  are already supported by selected surfaces, such as format, algorithm, mode,
+  or variant values;
+- mapping of documented positional input/output operands to runtime-controlled
+  placeholders such as `{{source}}` and `{{target}}`;
+- stdout capture shape through `stdout_path_input` when the candidate chooses
+  to write stdout to a runtime-controlled path;
 - normalization of omitted or placeholder provider ids back to the active
   provider;
-- rejection of candidates that do not have matching probe material.
+- rejection of candidates that do not have matching probe material;
+- rejection of candidates whose `stdout_path_input` does not have a matching
+  probe input;
+- rejection of candidates whose `stdout_path_input` points to an input source
+  such as `source`, `input`, or `stdin`.
 
 It does not own:
 
@@ -861,6 +872,43 @@ Binding receives only the surfaces referenced by
 unrelated surfaces and makes the Stage 2 -> Stage 3 relationship explicit:
 Capability owns the semantic plan and source references; Binding materializes
 those selected provider-specific surfaces into executable candidates.
+
+Binding is not a filter stage. If selected surfaces contain a name, usage, mode,
+option, command, or observed invocation detail, Binding should return at least
+one best-effort candidate. It should not reject a selected surface because the
+capability id or description is broader, generic, or named differently than the
+concrete provider invocation.
+
+For a non-empty selected surface payload, Binding must not return an empty
+candidate array. Empty `candidates` and `probe_material` are reserved for an
+empty selected surface payload.
+
+Within one proposal result, CAL keeps a single default winner for each
+`provider_id + capability_id`. Binding may return multiple raw candidates, but
+the proposal selection step keeps the first valid candidate for a capability and
+drops later variants. Future support for multiple promoted variants should be
+modeled explicitly with variant metadata instead of promoting anonymous
+alternatives.
+
+Observations are supporting reference material for selected surfaces only; they
+should not be used to discover unrelated surfaces, replace selected surfaces, or
+re-evaluate the capability. They may still be used to recover invocation details
+for the selected surface, including operand meaning, default behavior, and
+stdout/file output behavior.
+
+`Request.Hint` is supporting narrowing context for runtime values only. For
+example, if selected surfaces already expose a format or algorithm operand,
+Binding may use the hinted value as probe material instead of choosing an
+arbitrary default. The hint must not be used to invent unsupported arguments,
+replace selected surfaces, or re-evaluate the capability.
+
+Binding does not reject a selected surface because `CapabilityPlan.Description`
+is broader than the concrete provider invocation. The candidate keeps the plan's
+capability id and may describe the narrower observed execution. Empty candidates
+are reserved for empty selected surfaces. Binding must not return empty
+candidates merely because the invocation uses positional operands, optional
+operands, defaults, stdout output, or a narrower execution than the capability
+description.
 
 Suggested stage-local shape:
 
@@ -909,6 +957,17 @@ Evidence injects `verify_predicate_rules` into the prompt and uses the same
 rules to filter LLM checks locally. Prompt text should describe the generic rule
 contract, not enumerate every predicate's params. Adding a new evidence
 predicate should update the evidence rule table first.
+
+Evidence derives `VerifySpec.Level` locally after filtering checks. Contract
+verification is L1. Execute verification with only process checks is L1,
+artifact-shape checks such as `non_empty`, `format`, or `regex` are L2, and
+semantic checks such as `contains`, `contains_any`, `bytes_equal_transform`, or
+`hash_line_matches` are L3.
+
+Evidence checks for structured formats must avoid brittle serialization details.
+For JSON key/value content, Evidence should prefer a regex with optional
+whitespace or `contains_any` with compact and spaced forms instead of a single
+whitespace-sensitive `contains` string.
 
 ## Policy
 

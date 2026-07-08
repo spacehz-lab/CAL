@@ -16,6 +16,11 @@ type output struct {
 
 const (
 	skipReasonMissingProbeMaterial = "missing probe material"
+	skipReasonMissingStdoutInput   = "missing stdout path input"
+	skipReasonInvalidStdoutInput   = "invalid stdout path input"
+	inputNameSource                = "source"
+	inputNameInput                 = "input"
+	inputNameStdin                 = "stdin"
 	placeholderProviderIDOptional  = "optional"
 	placeholderProviderIDSame      = "same as request provider"
 )
@@ -30,6 +35,12 @@ func Parse(raw string, req *Request) ([]model.Candidate, []ProbeMaterial, model.
 	if len(candidates) == 0 {
 		if len(out.Candidates) > 0 && stageHasSkipReason(stage, skipReasonMissingProbeMaterial) {
 			return nil, nil, stage, fmt.Errorf("binding stage returned candidates without matching probe material")
+		}
+		if len(out.Candidates) > 0 && stageHasSkipReason(stage, skipReasonMissingStdoutInput) {
+			return nil, nil, stage, fmt.Errorf("binding stage returned candidates with stdout_path_input missing probe input")
+		}
+		if len(out.Candidates) > 0 && stageHasSkipReason(stage, skipReasonInvalidStdoutInput) {
+			return nil, nil, stage, fmt.Errorf("binding stage returned candidates with stdout_path_input pointing to an input source")
 		}
 		return nil, nil, stage, fmt.Errorf("binding stage returned no candidates")
 	}
@@ -69,6 +80,12 @@ func normalize(input []model.Candidate, materialInput []ProbeMaterial, req *Requ
 		case !hasMaterial:
 			trace.Decision = model.ProposalDecisionSkip
 			trace.Reason = skipReasonMissingProbeMaterial
+		case missingStdoutPathInput(candidate, material):
+			trace.Decision = model.ProposalDecisionSkip
+			trace.Reason = skipReasonMissingStdoutInput
+		case invalidStdoutPathInput(candidate):
+			trace.Decision = model.ProposalDecisionSkip
+			trace.Reason = skipReasonInvalidStdoutInput
 		default:
 			identity := candidate.ProviderID + "|" + candidate.CapabilityID + "|" + key
 			if _, ok := seen[identity]; ok {
@@ -142,6 +159,37 @@ func normalizeMaterial(material ProbeMaterial) ProbeMaterial {
 		material.Inputs = map[string]any{}
 	}
 	return material
+}
+
+func missingStdoutPathInput(candidate model.Candidate, material ProbeMaterial) bool {
+	inputName, ok := stdoutPathInput(candidate)
+	if !ok {
+		return false
+	}
+	_, ok = material.Inputs[inputName]
+	return !ok
+}
+
+func invalidStdoutPathInput(candidate model.Candidate) bool {
+	inputName, ok := stdoutPathInput(candidate)
+	if !ok {
+		return false
+	}
+	switch strings.ToLower(inputName) {
+	case inputNameSource, inputNameInput, inputNameStdin:
+		return true
+	default:
+		return false
+	}
+}
+
+func stdoutPathInput(candidate model.Candidate) (string, bool) {
+	inputName, ok := candidate.Execution.Spec[model.ExecutionSpecStdoutPathInput].(string)
+	inputName = strings.TrimSpace(inputName)
+	if !ok || inputName == "" {
+		return "", false
+	}
+	return inputName, true
 }
 
 func stageHasSkipReason(stage model.ProposalStage, reason string) bool {

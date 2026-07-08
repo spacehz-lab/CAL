@@ -23,3 +23,12 @@ func TestSystemPromptUsesVerifyPredicateRules(t *testing.T) {
 		t.Fatal("systemPrompt must point the model at verify_predicate_rules")
 	}
 }
+
+func TestSystemPromptAvoidsWhitespaceSensitiveJSONContains(t *testing.T) {
+	if !strings.Contains(systemPrompt, "do not use whitespace-sensitive contains checks") {
+		t.Fatal("systemPrompt must avoid whitespace-sensitive JSON contains checks")
+	}
+	if !strings.Contains(systemPrompt, "contains_any with compact and spaced forms") {
+		t.Fatal("systemPrompt must allow robust JSON content checks")
+	}
+}

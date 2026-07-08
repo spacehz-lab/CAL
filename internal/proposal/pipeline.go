@@ -62,6 +62,7 @@ func (runner *Runner) runCapabilityPipeline(ctx context.Context, req *Request, s
 		Observations:  req.Observations,
 		Surfaces:      bindingSurfacesForPlan(surfaces, plan.SourceSurfaceIDs),
 		Capability:    bindingPlan(plan),
+		Hint:          req.Hint,
 		MaxCandidates: options.CandidateLimit,
 	})
 	bindingStage, bindingAttempt := bindingStepDiagnostics(bindingResult)

@@ -60,8 +60,20 @@ func writeLiveLLMExporter(t *testing.T, path string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
   echo "Live LLM Exporter"
-  echo "Usage: live-llm-exporter make-pdf --in <input-text> --out <output.pdf>"
-  echo "Converts a UTF-8 text file into a valid PDF document."
+  echo ""
+  echo "Usage:"
+  echo "  live-llm-exporter <command> [options]"
+  echo ""
+  echo "Commands:"
+  echo "  make-pdf    Convert a UTF-8 text file into a valid PDF document."
+  echo ""
+  echo "Command usage:"
+  echo "  live-llm-exporter make-pdf --in <input.txt> --out <output.pdf>"
+  echo ""
+  echo "Options for make-pdf:"
+  echo "  --in <input.txt>      Path to a UTF-8 text input file."
+  echo "  --out <output.pdf>    Path where the generated PDF should be written."
+  echo "  -h, --help            Show command help."
   exit 0
 fi
 if [ "$1" = "make-pdf" ]; then
@@ -100,11 +112,22 @@ func writeLiveLLMMultiCapabilityExporter(t *testing.T, path string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
   echo "Live Multi Tool"
-  echo "Usage: live-multi-tool make-pdf --in <input.txt> --out <output.pdf>"
-  echo "Usage: live-multi-tool write-note --in <input.txt> --out <output.txt>"
+  echo ""
+  echo "Usage:"
+  echo "  live-multi-tool <command> [options]"
+  echo ""
   echo "Commands:"
-  echo "  make-pdf      Converts a UTF-8 text file into a valid PDF document."
-  echo "  write-note    Writes a UTF-8 text note file."
+  echo "  make-pdf      Convert a UTF-8 text file into a valid PDF document."
+  echo "  write-note    Write a UTF-8 text note file."
+  echo ""
+  echo "Command usage:"
+  echo "  live-multi-tool make-pdf --in <input.txt> --out <output.pdf>"
+  echo "  live-multi-tool write-note --in <input.txt> --out <output.txt>"
+  echo ""
+  echo "Options:"
+  echo "  --in <input.txt>       Path to a UTF-8 input file."
+  echo "  --out <output-path>    Path where the command should write its output."
+  echo "  -h, --help             Show command help."
   exit 0
 fi
 if [ "$1" = "make-pdf" ]; then
@@ -171,10 +194,23 @@ func writeLiveLLMMarkerWriter(t *testing.T, path string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
   echo "Live Marker Tool"
-  echo "Usage: live-marker-tool write-marker --in <input.txt> --out <output.txt>"
+  echo ""
+  echo "Usage:"
+  echo "  live-marker-tool <command> [options]"
+  echo ""
   echo "Commands:"
   echo "  write-marker    Writes the literal text CAL_PROBE_OK to the output file."
-  echo "A correct output must contain CAL_PROBE_OK."
+  echo ""
+  echo "Command usage:"
+  echo "  live-marker-tool write-marker --in <input.txt> --out <output.txt>"
+  echo ""
+  echo "Options for write-marker:"
+  echo "  --in <input.txt>       Optional input file path."
+  echo "  --out <output.txt>     Path where the marker output should be written."
+  echo "  -h, --help             Show command help."
+  echo ""
+  echo "Output contract:"
+  echo "  The output file contains CAL_PROBE_OK."
   exit 0
 fi
 if [ "$1" = "write-marker" ]; then
@@ -208,18 +244,28 @@ func writeLiveLLMNestedPackageManager(t *testing.T, path string) {
 	script := `#!/bin/sh
 if [ "$1" = "--help" ] || [ "$1" = "help" ]; then
   echo "Live Nested Package Manager"
+  echo ""
   echo "Usage:"
+  echo "  live-nested-pm <namespace> <command> [options]"
+  echo ""
+  echo "Command usage:"
   echo "  live-nested-pm package install <name>"
   echo "  live-nested-pm package remove <name>"
   echo "  live-nested-pm package update"
   echo "  live-nested-pm package upgrade"
   echo "  live-nested-pm system doctor --json --output <report.json>"
+  echo ""
   echo "Commands:"
   echo "  package install <name>   Install a package. Modifies local package state and may contact remote registries."
   echo "  package remove <name>    Remove an installed package. Modifies local package state."
   echo "  package update           Refresh package metadata from remote registries and modifies local metadata state."
   echo "  package upgrade          Upgrade installed packages and modifies local package state."
   echo "  system doctor --json --output <report.json>  Validate local package-manager configuration without changing state. Writes a JSON report with status=\"ok\" and checks[]."
+  echo ""
+  echo "Options for system doctor:"
+  echo "  --json                    Write the report as JSON."
+  echo "  --output <report.json>    Path where the JSON report should be written."
+  echo "  -h, --help                Show command help."
   exit 0
 fi
 if [ "$1" = "system" ] && [ "$2" = "doctor" ]; then

@@ -40,7 +40,8 @@ func selectResult(result *Result, options selectOptions) (*Result, error) {
 		plansByCandidate[plan.CandidateIndex] = plan
 	}
 
-	seen := map[string]struct{}{}
+	seenExecutions := map[string]struct{}{}
+	seenCapabilities := map[string]struct{}{}
 	selected := &Result{
 		Candidates:  make([]model.Candidate, 0, len(result.Candidates)),
 		ProbePlans:  make([]ProbePlan, 0, len(result.Candidates)),
@@ -58,13 +59,18 @@ func selectResult(result *Result, options selectOptions) (*Result, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := seen[key]; ok {
+		if _, ok := seenExecutions[key]; ok {
+			continue
+		}
+		capabilityKey := candidateCapabilityKey(candidate)
+		if _, ok := seenCapabilities[capabilityKey]; ok {
 			continue
 		}
 		if options.Limit > 0 && len(selected.Candidates) >= options.Limit {
 			break
 		}
-		seen[key] = struct{}{}
+		seenExecutions[key] = struct{}{}
+		seenCapabilities[capabilityKey] = struct{}{}
 		plan.CandidateIndex = len(selected.Candidates)
 		selected.Candidates = append(selected.Candidates, candidate)
 		selected.ProbePlans = append(selected.ProbePlans, plan)
@@ -78,4 +84,8 @@ func candidateIdentity(candidate model.Candidate) (string, error) {
 		return "", err
 	}
 	return candidate.ProviderID + "|" + candidate.CapabilityID + "|" + canonical, nil
+}
+
+func candidateCapabilityKey(candidate model.Candidate) string {
+	return candidate.ProviderID + "|" + candidate.CapabilityID
 }

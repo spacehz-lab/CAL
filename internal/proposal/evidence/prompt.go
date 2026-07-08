@@ -49,6 +49,7 @@ Check rules:
 - For generated file artifacts, prefer exists, non_empty, and format when they prove the output shape.
 - Use file contains, contains_any, or regex only when observations explicitly guarantee stable literal output content.
 - For stable literal output content, prefer contains over anchored full-file regex. Use anchored regex only when observations specify the exact whole file content including newline behavior.
+- For structured formats such as JSON, do not use whitespace-sensitive contains checks for key/value snippets. Prefer regex with optional whitespace or contains_any with compact and spaced forms when observations guarantee the key/value content.
 - Fixture content is probe-only sample input. Do not use fixture content as durable expected output unless observations explicitly say the command always emits that literal.
 - Use stdout, stderr, and exit_code subjects only for process result checks.`
 

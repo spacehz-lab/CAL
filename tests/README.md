@@ -13,11 +13,12 @@ tests/
   e2e/
     functional/  # deterministic closed-loop CLI tests, expected to run by default
     local_cli/   # local real-CLI end-to-end checks, environment-dependent
+    live_llm/    # fake local CLI + live LLM acquisition checks, opt-in
+    cli_canary/  # real local CLI + live LLM acquisition canaries, opt-in
 ```
 
-Old pre-v1 live LLM and CLI canary suites are archived under
-`backup/tests/e2e/` with the old implementation. They are not part of the main
-module test set after the `internal/` v1 switch.
+Old pre-v1 suites are archived under `backup/tests/e2e/` with the old
+implementation. Current v1 suites live under `tests/e2e/`.
 
 ## Commands
 
@@ -45,3 +46,15 @@ go test ./tests/e2e/live_llm -count=1 -v
 
 `CAL_LLM_API_KEY` must stay in the environment. Do not write it into repository
 files, traces, logs, or committed artifacts.
+
+Real local CLI canaries use real system tools plus live LLM acquisition. They
+are intentionally separate from `live_llm` because they depend on host CLI
+availability and platform-specific help output:
+
+```sh
+CAL_CLI_CANARY_E2E=1 \
+CAL_LLM_API=chat_completions \
+CAL_LLM_MODEL=<model> \
+CAL_LLM_API_KEY=<api-key> \
+go test ./tests/e2e/cli_canary -count=1 -v -timeout=30m
+```
