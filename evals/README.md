@@ -12,7 +12,7 @@ This directory is separate from `tests/`:
   intentionally selected for release notes or reports.
 
 Generated outputs belong under `evals/out/`, which is ignored by git. Commit
-eval runners, tasks, fixtures, scoring definitions, curated summaries, and
+eval runners, suite cases, fixtures, scoring definitions, curated summaries, and
 documentation.
 Do not commit API keys, raw LLM responses, full provider output dumps, or local
 machine-specific run artifacts.
@@ -39,9 +39,9 @@ reuse.jsonl             # held-out use/run plus independent oracle scoring
 ```
 
 Benchmark reports should compare CAL with direct CLI oracle, LLM one-shot CLI,
-and provider-tool baselines. The primary comparison is repeated-task
+and provider-tool baselines. The primary comparison is repeated-case
 amortization: LLM calls, tokens, latency, and oracle-verified successes across
-held-out reuse tasks.
+held-out reuse cases.
 
 ## Current Eval
 
@@ -51,6 +51,7 @@ Replay CLI capability eval:
 make build
 python3 evals/cli-capability/runner/run.py \
   --mode replay \
+  --suite acquisition,capability_model,reuse \
   --level focus \
   --calctl build/bin/calctl \
   --cald build/bin/cald
@@ -65,6 +66,7 @@ CAL_LLM_MODEL=<model> \
 CAL_LLM_API_KEY=<api key> \
   python3 evals/cli-capability/runner/run.py \
     --mode live_llm \
+    --suite acquisition,reuse \
     --level focus \
     --calctl build/bin/calctl \
     --cald build/bin/cald

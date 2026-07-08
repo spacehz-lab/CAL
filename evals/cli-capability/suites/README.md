@@ -7,7 +7,7 @@ HTML report.
 The suites share `providers.json`, `fixtures/`, `oracles/`, `proposals/replay/`,
 and `baselines/`.
 
-Planned suite files:
+Suite files:
 
 ```text
 evals/cli-capability/suites/
@@ -117,7 +117,7 @@ step?
 ```
 
 The suite uses held-out fixtures that differ from acquisition probe fixtures.
-Task success is decided by benchmark oracles, not by CAL's internal verification
+Case success is decided by benchmark oracles, not by CAL's internal verification
 alone.
 
 Representative target set:
@@ -161,17 +161,17 @@ The suites compare CAL against three baselines:
 | Baseline | Purpose | Reuse expectation |
 | --- | --- | --- |
 | Direct CLI oracle | Shows task feasibility and latency with a hand-authored correct command. | No reusable binding. |
-| LLM one-shot CLI | Tests model memory and one-off command synthesis from provider help plus task input. | Repeats LLM work per task. |
-| Provider tool baseline | Treats the CLI as a generic tool and lets the model choose arguments each time. | Repeats tool selection and argument synthesis per task. |
+| LLM one-shot CLI | Tests model memory and one-off command synthesis from provider help plus case input. | Repeats LLM work per case. |
+| Provider tool baseline | Treats the CLI as a generic tool and lets the model choose arguments each time. | Repeats tool selection and argument synthesis per case. |
 | CAL replay/live | Acquires once, promotes verified bindings, then reuses them through `use` and `run`. | Reuse should amortize acquisition cost. |
 
-The main comparison is repeated-task amortization, not single-task latency:
+The main comparison is repeated-case amortization, not single-case latency:
 
 ```text
-method / repeated tasks / LLM calls / tokens / total latency / oracle successes
+method / repeated cases / LLM calls / tokens / total latency / oracle successes
 -> average cost per oracle-verified success
 ```
 
-CAL may be slower on the first task because acquisition has an upfront cost. The
+CAL may be slower on the first case because acquisition has an upfront cost. The
 paper claim depends on later held-out reuse reducing repeated LLM calls, repeated
 prompt tokens, and repeated command-synthesis failures.

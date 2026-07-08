@@ -6,7 +6,7 @@ evaluation.
 Benchmark id: `cli-capability`
 Benchmark version: `v0`
 
-This eval fixes suites, tasks, providers, scoring, and baselines so results can
+This eval fixes suites, cases, providers, scoring, and baselines so results can
 be compared across runs and systems.
 
 The v0 benchmark should stay small. Its job is to make CAL's first
@@ -19,9 +19,8 @@ computer-use leaderboard.
 evals/cli-capability/
   README.md
   suites/          # acquisition, capability-model, and reuse suite cases
-  tasks.jsonl      # legacy/bootstrap task intents while suites are migrated
   providers.json   # provider availability and environment requirements
-  fixtures/        # deterministic task inputs
+  fixtures/        # deterministic case inputs
   oracles/         # independent benchmark scoring scripts
   scoring.md       # scoring contract and failure taxonomy
   baselines/       # baseline runners or baseline result format
@@ -45,13 +44,12 @@ The suites map directly to the arXiv v0 experiment questions:
   surfaces?
 - Capability Model: does CAL form a capability layer instead of a one-provider
   wrapper?
-- Reuse: can promoted bindings solve held-out tasks through `calctl use` and
+- Reuse: can promoted bindings solve held-out cases through `calctl use` and
   `calctl runs create` without another acquisition step?
 
 Each suite case should reference shared provider records, fixtures, replay
-proposals, oracles, and baseline definitions. The runner may still support
-legacy `tasks.jsonl` while the case files are migrated, but release reports
-should be generated from the suite files.
+proposals, oracles, and baseline definitions. `suites/*.jsonl` is the only
+benchmark input.
 
 ## Scoring Boundary
 
@@ -59,12 +57,12 @@ The benchmark separates CAL's internal promotion gate from external scoring:
 
 ```text
 CAL verify spec  -> decides whether a candidate may be promoted
-benchmark oracle -> decides whether a held-out benchmark task succeeded
+benchmark oracle -> decides whether a held-out benchmark case succeeded
 ```
 
 Live LLM mode may propose verify specs, probe plans, and capability ids. The
 benchmark must not predeclare acceptable capability ids and must not trust CAL's
-internal verify checks as final task evidence. Held-out reuse outputs are scored
+internal verify checks as final case evidence. Held-out reuse outputs are scored
 by fixed scripts under `oracles/`.
 
 ## Seed Benchmark Scope
@@ -74,7 +72,7 @@ The seed benchmark should cover:
 - 15-20 fixed real-CLI cases across production CLIs for the full release report;
 - 8-10 focus cases for repeated live LLM runs;
 - a replay mode that runs without LLM API keys;
-- a live LLM focus set of 3-5 tasks;
+- a live LLM focus set of 3-5 cases;
 - at least one provider that promotes more than one capability binding;
 - at least one capability that can be realized by two provider bindings;
 - at least one failed or rejected candidate record;
@@ -82,9 +80,9 @@ The seed benchmark should cover:
 - intent-level held-out reuse through `calctl use`, with `calctl runs create`
   remaining the deterministic lower-level primitive.
 
-The current checked-in task schema is a bootstrap slice. It is meant to lock the
-benchmark contract and the evidence layers before expanding into the physical
-suite files and the full release run.
+The current checked-in suite files are a bootstrap slice. They lock the
+benchmark contract and evidence layers before expanding into the full release
+run.
 
 Representative provider coverage:
 
@@ -105,7 +103,7 @@ This benchmark should report four evidence layers:
 
 - acquisition evidence: observation, candidate generation, probe execution,
   deterministic verification, and promotion;
-- held-out task success: replay direct binding reuse for deterministic
+- held-out case success: replay direct binding reuse for deterministic
   engineering checks, live intent-level Use selection, runtime execution on
   reuse fixtures, and benchmark oracle scoring;
 - capability-layer evidence: provider-to-capability and capability-to-binding
@@ -142,7 +140,7 @@ Benchmark results should be machine-readable and include:
 
 - run id, mode, platform, architecture, CAL revision, and model settings when
   live LLM mode is used;
-- selected tasks, attempted providers, available providers, and unavailable
+- selected cases, attempted providers, available providers, and unavailable
   provider reasons;
 - candidate count, probe pass count, probe fail count, promoted capabilities,
   promoted bindings, Use selections, verified reuses, and failed cases;
@@ -186,31 +184,52 @@ Benchmark results should be machine-readable and include:
 
 The minimum v0 baselines are:
 
-- direct CLI oracle: a hand-authored correct invocation for each task, used as a
+- direct CLI oracle: a hand-authored correct invocation for each case, used as a
   correctness and latency upper-bound reference;
-- LLM one-shot CLI command: the model receives provider documentation and task
+- LLM one-shot CLI command: the model receives provider documentation and case
   input, then emits a command without CAL promotion or reuse;
 - provider tool baseline: the model treats the provider CLI as a generic tool and
-  selects arguments for every task without durable promotion;
+  selects arguments for every case without durable promotion;
 - CAL replay/live: the CAL acquisition loop with deterministic verification,
   promotion, later intent-level Use, and replay-only direct runtime reuse.
 
-The oracle baseline is not a fair agent baseline. It exists to show task
+The oracle baseline is not a fair agent baseline. It exists to show case
 feasibility and provide a performance reference.
 
-The main comparison is repeated-task amortization:
+The main comparison is repeated-case amortization:
 
 ```text
-method / repeated tasks / LLM calls / tokens / total latency / oracle successes
+method / repeated cases / LLM calls / tokens / total latency / oracle successes
 -> average cost per oracle-verified success
 ```
 
-CAL may lose on first-task latency because acquisition has an upfront cost. The
+CAL may lose on first-case latency because acquisition has an upfront cost. The
 claim is that promoted bindings reduce repeated command-synthesis work on later
-held-out tasks.
+held-out cases.
 
 No benchmark result is committed by default. Generated results should be written
 under `evals/out/cli-capability/`.
+
+Replay focus run:
+
+```sh
+python3 evals/cli-capability/runner/run.py \
+  --mode replay \
+  --suite acquisition,capability_model,reuse \
+  --level focus \
+  --calctl build/bin/calctl \
+  --cald build/bin/cald
+```
+
+Single suite run:
+
+```sh
+python3 evals/cli-capability/runner/run.py \
+  --mode replay \
+  --suite acquisition \
+  --case file_hash_sha1 \
+  --level focus
+```
 
 Each run writes:
 

@@ -1,22 +1,30 @@
 # CLI Capability Benchmark Runner
 
-The benchmark runner is a black-box runner over compiled `calctl` and `cald`
-with fixed scoring contracts:
+The runner is a suite-first black-box benchmark over compiled `calctl` and
+`cald`. It loads only physical suite files. Each benchmark case lives in one
+physical suite file under `suites/`.
 
-1. Load `tasks.jsonl` and `providers.json`.
-2. Resolve available provider candidates.
-3. Run CAL acquisition in replay or live mode.
-4. In replay mode, run direct held-out reuse through `calctl runs create` when
-   held-out fixture inputs satisfy the promoted binding contract.
-5. Route held-out intents through Capability Use and execute the selected
-   promoted bindings.
-6. Score held-out outputs with `oracles/*.py`, not with CAL's internal verify
-   specs or script fallbacks.
-7. Report four evidence layers:
-   - acquisition evidence;
-   - held-out task success;
-   - capability-layer evidence;
-   - cost and reuse evidence.
+## Flow
+
+For each selected case and provider, the runner records:
+
+```text
+provider.resolve
+-> provider.register
+-> acquisition.run
+-> acquisition.observe
+-> proposal.surface
+-> proposal.capability
+-> proposal.binding
+-> proposal.evidence
+-> acquisition.probe
+-> acquisition.promote
+-> direct_reuse.oracle
+-> intent_use.oracle
+```
+
+The runner scores held-out outputs with `oracles/*.py`. CAL internal verify
+results are acquisition evidence, not benchmark truth.
 
 Generated outputs belong under:
 
@@ -24,44 +32,27 @@ Generated outputs belong under:
 evals/out/cli-capability/<run-id>/
 ```
 
-The runner writes `flow.json` as the primary evidence artifact. The HTML report
-renders the same flow as:
+Primary artifacts:
 
-```text
-provider.resolve
--> provider.register
--> acquisition.stage1.observe
--> acquisition.stage2.propose
--> acquisition.stage3.verify
--> acquisition.stage4.promote
--> direct_reuse
--> intent_use
-```
+- `flow.json`: per-case flow, provider steps, candidates, reuse, and baselines.
+- `summary.json`: aggregate metrics for scripts and tables.
+- `artifact.json`: compact release artifact with trace references.
+- `index.html`: human-readable report.
 
-`summary.json` remains the aggregate metrics artifact for scripts and tables.
+## Replay
 
-## Replay Bootstrap
-
-The first executable slice supports deterministic replay for `file_hash_sha1`:
+Replay uses fixed proposals from `proposals/replay/<case-id>/<provider>.json`:
 
 ```sh
 python3 evals/cli-capability/runner/run.py \
   --mode replay \
-  --tasks file_hash_sha1 \
+  --suite acquisition \
+  --case file_hash_sha1 \
   --calctl build/bin/calctl \
   --cald build/bin/cald
 ```
 
-This slice is intentionally narrow. It proves the benchmark runner can collect
-the four evidence layers for one clean multi-binding case. It records both
-direct reuse and intent-level Use:
-
-```text
-promoted binding -> direct fixture reuse -> oracle
-intent -> selected promoted binding -> oracle
-```
-
-The replay focus set runs the three current focus tasks:
+Run the focus set:
 
 ```sh
 python3 evals/cli-capability/runner/run.py \
@@ -71,9 +62,12 @@ python3 evals/cli-capability/runner/run.py \
   --cald build/bin/cald
 ```
 
-## Live LLM Bootstrap
+Replay mode is strict: any benchmark failure fails the run.
 
-The same runner also supports a narrow live LLM focus mode for the same task:
+## Live LLM
+
+Live mode asks the configured LLM to produce proposal evidence from observed CLI
+behavior:
 
 ```sh
 CAL_LLM_API=chat_completions \
@@ -87,24 +81,5 @@ python3 evals/cli-capability/runner/run.py \
   --cald build/bin/cald
 ```
 
-Live mode does not use replay proposals. CAL asks the configured model to
-propose candidate capabilities, verify specs, and probe plans from observed CLI
-behavior. The benchmark scores intent-level Use with fixed oracle scripts, not
-with CAL's internal verification result.
-
-Replay mode is strict and fails on any recorded benchmark failure. Live mode is
-allowed to record failed providers or candidates, but the run is considered
-usable only if at least one intent-level Use path passes the benchmark oracle.
-
-For stability measurements, run live mode multiple times as separate benchmark
-runs so each run gets its own `CAL_HOME` and run-id:
-
-```sh
-for i in 1 2 3; do
-  python3 evals/cli-capability/runner/run.py \
-    --mode live_llm \
-    --level focus \
-    --calctl build/bin/calctl \
-    --cald build/bin/cald
-done
-```
+Live mode records failed providers and candidates as evidence. The run is useful
+only when at least one intent-level held-out use passes the benchmark oracle.

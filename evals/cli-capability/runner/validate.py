@@ -7,35 +7,46 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SUITES = {"acquisition", "capability_model", "reuse"}
 
 
 def main() -> int:
-    tasks = read_jsonl(ROOT / "tasks.jsonl")
+    cases = []
+    for suite in sorted(SUITES):
+        path = ROOT / "suites" / f"{suite}.jsonl"
+        if not path.exists():
+            raise SystemExit(f"missing suite file {path}")
+        for case in read_jsonl(path):
+            if case.get("suite") != suite:
+                raise SystemExit(f"{path}: case {case.get('id', '')} has suite {case.get('suite')!r}, want {suite!r}")
+            cases.append(case)
     providers = read_json(ROOT / "providers.json")
     provider_ids = {provider["id"] for provider in providers["providers"]}
 
-    seen_tasks: set[str] = set()
-    for task in tasks:
-        task_id = require(task, "id")
-        if task_id in seen_tasks:
-            raise SystemExit(f"duplicate task id: {task_id}")
-        seen_tasks.add(task_id)
-        require(task, "intent")
-        for provider in require(task, "provider_candidates"):
+    seen_cases: set[tuple[str, str]] = set()
+    for case in cases:
+        case_id = require(case, "id")
+        suite = require(case, "suite")
+        key = (suite, case_id)
+        if key in seen_cases:
+            raise SystemExit(f"duplicate suite case id: {suite}:{case_id}")
+        seen_cases.add(key)
+        require(case, "intent")
+        for provider in require(case, "provider_candidates"):
             if provider not in provider_ids:
-                raise SystemExit(f"{task_id}: unknown provider candidate {provider}")
-        oracle = require(task, "oracle")
+                raise SystemExit(f"{case_id}: unknown provider candidate {provider}")
+        oracle = require(case, "oracle")
         oracle_path = ROOT / require(oracle, "path")
         if not oracle_path.exists():
-            raise SystemExit(f"{task_id}: missing oracle {oracle_path}")
+            raise SystemExit(f"{case_id}: missing oracle {oracle_path}")
         py_compile.compile(str(oracle_path), doraise=True)
-        check_fixture_group(task_id, task.get("acquisition") or {})
-        check_fixture_group(task_id, task.get("reuse") or {})
-        if task.get("level") == "focus":
-            for provider in task["provider_candidates"]:
-                proposal_path = ROOT / "proposals" / "replay" / task_id / f"{provider}.json"
+        check_fixture_group(case_id, case.get("acquisition") or {})
+        check_fixture_group(case_id, case.get("reuse") or {})
+        if case.get("level") == "focus":
+            for provider in case["provider_candidates"]:
+                proposal_path = ROOT / "proposals" / "replay" / case_id / f"{provider}.json"
                 if not proposal_path.exists():
-                    raise SystemExit(f"{task_id}: missing focus replay proposal {proposal_path}")
+                    raise SystemExit(f"{case_id}: missing focus replay proposal {proposal_path}")
                 check_replay_proposal(proposal_path)
 
     for path in (ROOT / "oracles").glob("*.py"):
@@ -43,14 +54,14 @@ def main() -> int:
     for path in (ROOT / "proposals" / "replay").glob("*/*.json"):
         check_replay_proposal(path)
     read_jsonl(ROOT / "baselines" / "oracle" / "commands.jsonl")
-    print(f"validated {len(tasks)} tasks and {len(provider_ids)} providers")
+    print(f"validated {len(cases)} cases and {len(provider_ids)} providers")
     return 0
 
 
-def check_fixture_group(task_id: str, group: dict) -> None:
+def check_fixture_group(case_id: str, group: dict) -> None:
     fixtures = group.get("fixtures") or []
     if not fixtures:
-        raise SystemExit(f"{task_id}: fixture group is empty")
+        raise SystemExit(f"{case_id}: fixture group is empty")
     for fixture in fixtures:
         inputs = fixture.get("inputs") or {}
         for key, value in inputs.items():
@@ -59,7 +70,7 @@ def check_fixture_group(task_id: str, group: dict) -> None:
             if value.startswith("{work}/"):
                 continue
             if value.startswith("fixtures/") and not (ROOT / value).exists():
-                raise SystemExit(f"{task_id}: missing fixture input {key}={value}")
+                raise SystemExit(f"{case_id}: missing fixture input {key}={value}")
 
 
 def check_replay_proposal(path: Path) -> None:
@@ -74,8 +85,6 @@ def check_replay_proposal(path: Path) -> None:
         candidate_index = plan.get("candidate_index")
         if not isinstance(candidate_index, int) or candidate_index < 0 or candidate_index >= len(candidates):
             raise SystemExit(f"{path}: probe_plan {index} candidate_index is out of range")
-        if "verifier" in plan:
-            raise SystemExit(f"{path}: probe_plan {index} uses legacy verifier field; use verify")
         verify = plan.get("verify")
         if not isinstance(verify, dict):
             raise SystemExit(f"{path}: probe_plan {index} verify is required")

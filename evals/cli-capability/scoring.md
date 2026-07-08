@@ -1,12 +1,12 @@
 # CLI Capability Scoring
 
 This scoring contract defines the target shape for the CLI Capability seed
-benchmark. The benchmark should not be marked active until the tasks, fixtures,
+benchmark. The benchmark should not be marked active until the cases, fixtures,
 result schema, and runner all follow this contract.
 
 ## Case Outcomes
 
-Each task case should end in exactly one top-level outcome:
+Each suite case should end in exactly one top-level outcome:
 
 - `success`: provider was available, at least one candidate was verified,
   promotion completed, Use selected a promoted binding for the held-out intent,
@@ -27,7 +27,7 @@ Each task case should end in exactly one top-level outcome:
   the held-out output.
 - `cli_unavailable`: the required provider could not be found or did not meet
   the declared environment requirement.
-- `unsupported`: the task requires a provider behavior or verification type outside
+- `unsupported`: the case requires a provider behavior or verification type outside
   the current v0 scope.
 - `skipped`: in replay diagnostics, promotion succeeded, but a direct reuse
   fixture did not contain the runtime inputs required by that binding. Skipped
@@ -48,12 +48,12 @@ CAL runtime verify specs and benchmark oracles have different jobs:
   capability catalog.
 - Capability Use decides whether a user or benchmark intent can route to a
   promoted binding and binding-compatible inputs.
-- Benchmark oracles decide whether the promoted binding solved the held-out task
+- Benchmark oracles decide whether the promoted binding solved the held-out case
   on held-out reuse inputs.
 
 This distinction is required because live LLM acquisition may propose internal
 verify specs. Reported results should never use CAL's internal verify checks as
-the only success criterion for a benchmark task.
+the only success criterion for a benchmark case.
 
 ## Metrics
 
@@ -92,7 +92,7 @@ comparison. Scores are computed only from `summary` and must not affect
 
 Score timing fields use workflow names rather than a single opaque latency:
 
-- `provider_acquisition_*`: total `discovery run` time per provider;
+- `provider_acquisition_*`: total `acquisition run` time per provider;
 - `proposal_llm_*`: model time spent producing the acquisition proposal;
 - `acquisition_local_overhead_*`: provider acquisition time outside proposal
   LLM time;
@@ -196,32 +196,32 @@ Required metrics:
 
 ## Baseline Scoring
 
-Baseline results should use the same task ids and fixtures.
+Baseline results should use the same case ids and fixtures.
 
 - Direct CLI oracle succeeds when the hand-authored invocation produces the
   expected deterministic oracle result.
 - LLM one-shot CLI command succeeds when the generated command produces the
   expected deterministic oracle result without CAL promotion or reuse.
 - Provider tool baseline succeeds when the model can select a provider command
-  and arguments for the current task and the independent oracle passes, without
+  and arguments for the current case and the independent oracle passes, without
   creating a durable binding.
 - CAL succeeds only when acquisition, deterministic verification, promotion,
   later Use selection, runtime execution, and independent benchmark oracle
   scoring all succeed. Replay mode additionally requires direct binding reuse.
 
-Reported benchmark summaries should compare baselines on task success, latency,
+Reported benchmark summaries should compare baselines on case success, latency,
 LLM calls/tokens, and whether successful behavior becomes reusable. Baselines
 that do not promote bindings should have no verified reuse count.
 
-Repeated-task cost should be reported separately from first-task latency. CAL is
+Repeated-case cost should be reported separately from first-case latency. CAL is
 allowed to pay acquisition cost once; the paper comparison should show average
-cost per oracle-verified success after multiple held-out reuse tasks.
+cost per oracle-verified success after multiple held-out reuse cases.
 
 ## Failure Reporting
 
 Every non-success case should record:
 
-- task id
+- case id
 - provider id or provider path when available
 - failure stage
 - failure reason
@@ -237,11 +237,11 @@ Failure cases are part of the evidence. They show that promotion is gated by
 deterministic verification rather than LLM assertion.
 
 In live LLM mode, provider-level acquisition failures and rejected candidates
-are reported as negative evidence, not closed-loop task failures, when another
+are reported as negative evidence, not closed-loop case failures, when another
 promoted binding still lets `calctl use` solve the held-out intent and pass the
 benchmark oracle.
 
-Capability id quality should be reported separately from task success. A live
+Capability id quality should be reported separately from case success. A live
 LLM acquisition may generate a semantically usable capability id that differs
 from another run's naming. The benchmark should not predeclare acceptable
 capability ids and should not treat naming drift as a failed held-out reuse when
