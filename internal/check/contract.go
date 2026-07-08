@@ -6,6 +6,7 @@ const (
 	paramPattern   = "pattern"
 	paramFormat    = "format"
 	paramSource    = "source"
+	paramQuery     = "query"
 	paramTransform = "transform"
 	paramAlgorithm = "algorithm"
 )
@@ -15,6 +16,7 @@ const (
 	formatPNG  = "png"
 	formatJSON = "json"
 	formatText = "text"
+	formatZIP  = "zip"
 )
 
 const (

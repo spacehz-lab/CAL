@@ -125,6 +125,8 @@ predicate_file.go  -> exists, non_empty, format
 predicate_text.go  -> equals, not_equals, contains, contains_any, regex
 predicate_bytes.go -> bytes_equal_transform
 predicate_hash.go  -> hash_line_matches
+predicate_archive.go -> archive_contains_input
+predicate_json.go -> json_query_matches
 ```
 
 That keeps adding a predicate local to one file: params, allowed subjects, and
@@ -175,6 +177,8 @@ contains_any
 regex
 bytes_equal_transform
 hash_line_matches
+archive_contains_input
+json_query_matches
 ```
 
 Allowed subject/predicate combinations:
@@ -189,6 +193,8 @@ file:
   regex
   bytes_equal_transform
   hash_line_matches
+  archive_contains_input
+  json_query_matches
 
 stdout:
   equals
@@ -198,6 +204,7 @@ stdout:
   contains_any
   regex
   hash_line_matches
+  json_query_matches
 
 stderr:
   equals
@@ -207,6 +214,7 @@ stderr:
   contains_any
   regex
   hash_line_matches
+  json_query_matches
 
 exit_code:
   equals
@@ -244,6 +252,15 @@ hash_line_matches:
   source required
   algorithm required
   allowed values: sha1, sha256, sha-1, sha-256, sha_1, sha_256, sha 1, sha 256
+
+archive_contains_input:
+  source required
+  format required
+  allowed values: zip
+
+json_query_matches:
+  source required
+  query required
 ```
 
 ## Run Semantics

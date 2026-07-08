@@ -37,7 +37,7 @@
         }
       ],
       "verify": {
-        "level": "L2",
+        "level": "L3",
         "method": "execute",
         "checks": [
           {
@@ -45,7 +45,11 @@
               "type": "file",
               "input": "target"
             },
-            "predicate": "non_empty"
+            "predicate": "json_query_matches",
+            "params": {
+              "source": "source",
+              "query": "query"
+            }
           }
         ]
       }

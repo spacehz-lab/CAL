@@ -21,6 +21,8 @@ func NewChecker() *Checker {
 	registerFilePredicates(checker)
 	registerBytesPredicates(checker)
 	registerHashPredicates(checker)
+	registerArchivePredicates(checker)
+	registerJSONPredicates(checker)
 	return checker
 }
 

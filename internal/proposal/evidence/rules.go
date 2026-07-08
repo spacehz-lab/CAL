@@ -13,6 +13,7 @@ const (
 	paramPattern   = "pattern"
 	paramFormat    = "format"
 	paramSource    = "source"
+	paramQuery     = "query"
 	paramTransform = "transform"
 	paramAlgorithm = "algorithm"
 )
@@ -22,6 +23,7 @@ const (
 	formatPNG  = "png"
 	formatJSON = "json"
 	formatText = "text"
+	formatZIP  = "zip"
 )
 
 const (
@@ -74,6 +76,17 @@ func verifyPredicateRules() []PredicateRule {
 			RequiredParams: []string{paramSource, paramAlgorithm},
 			AllowedParams:  []string{paramSource, paramAlgorithm},
 			AllowedValues:  map[string][]string{paramAlgorithm: []string{hashSHA1, hashSHA256, hashSHA1Dash, hashSHA256Dash, hashSHA1Under, hashSHA256Under, hashSHA1Space, hashSHA256Space}},
+		},
+		{
+			Predicate:      model.VerifyPredicateArchiveContainsInput,
+			RequiredParams: []string{paramSource, paramFormat},
+			AllowedParams:  []string{paramSource, paramFormat},
+			AllowedValues:  map[string][]string{paramFormat: []string{formatZIP}},
+		},
+		{
+			Predicate:      model.VerifyPredicateJSONQueryMatches,
+			RequiredParams: []string{paramSource, paramQuery},
+			AllowedParams:  []string{paramSource, paramQuery},
 		},
 	}
 }

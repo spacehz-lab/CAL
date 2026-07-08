@@ -22,16 +22,18 @@ const (
 type VerifyPredicate string
 
 const (
-	VerifyPredicateEquals              VerifyPredicate = "equals"
-	VerifyPredicateNotEquals           VerifyPredicate = "not_equals"
-	VerifyPredicateExists              VerifyPredicate = "exists"
-	VerifyPredicateNonEmpty            VerifyPredicate = "non_empty"
-	VerifyPredicateFormat              VerifyPredicate = "format"
-	VerifyPredicateContains            VerifyPredicate = "contains"
-	VerifyPredicateContainsAny         VerifyPredicate = "contains_any"
-	VerifyPredicateRegex               VerifyPredicate = "regex"
-	VerifyPredicateBytesEqualTransform VerifyPredicate = "bytes_equal_transform"
-	VerifyPredicateHashLineMatches     VerifyPredicate = "hash_line_matches"
+	VerifyPredicateEquals               VerifyPredicate = "equals"
+	VerifyPredicateNotEquals            VerifyPredicate = "not_equals"
+	VerifyPredicateExists               VerifyPredicate = "exists"
+	VerifyPredicateNonEmpty             VerifyPredicate = "non_empty"
+	VerifyPredicateFormat               VerifyPredicate = "format"
+	VerifyPredicateContains             VerifyPredicate = "contains"
+	VerifyPredicateContainsAny          VerifyPredicate = "contains_any"
+	VerifyPredicateRegex                VerifyPredicate = "regex"
+	VerifyPredicateBytesEqualTransform  VerifyPredicate = "bytes_equal_transform"
+	VerifyPredicateHashLineMatches      VerifyPredicate = "hash_line_matches"
+	VerifyPredicateArchiveContainsInput VerifyPredicate = "archive_contains_input"
+	VerifyPredicateJSONQueryMatches     VerifyPredicate = "json_query_matches"
 )
 
 // VerifySubjectType identifies where a deterministic check reads evidence.

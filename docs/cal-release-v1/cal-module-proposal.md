@@ -961,8 +961,8 @@ predicate should update the evidence rule table first.
 Evidence derives `VerifySpec.Level` locally after filtering checks. Contract
 verification is L1. Execute verification with only process checks is L1,
 artifact-shape checks such as `non_empty`, `format`, or `regex` are L2, and
-semantic checks such as `contains`, `contains_any`, `bytes_equal_transform`, or
-`hash_line_matches` are L3.
+semantic checks such as `contains`, `contains_any`, `bytes_equal_transform`,
+`hash_line_matches`, `archive_contains_input`, or `json_query_matches` are L3.
 
 Evidence checks for structured formats must avoid brittle serialization details.
 For JSON key/value content, Evidence should prefer a regex with optional

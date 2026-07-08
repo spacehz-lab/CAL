@@ -140,6 +140,8 @@ def required_params(predicate: str) -> list[str]:
         "format": ["format"],
         "bytes_equal_transform": ["source", "transform"],
         "hash_line_matches": ["source", "algorithm"],
+        "archive_contains_input": ["source", "format"],
+        "json_query_matches": ["source", "query"],
     }.get(predicate, [])
 
 
@@ -155,6 +157,8 @@ def verify_predicates() -> set[str]:
         "regex",
         "bytes_equal_transform",
         "hash_line_matches",
+        "archive_contains_input",
+        "json_query_matches",
     }
 
 

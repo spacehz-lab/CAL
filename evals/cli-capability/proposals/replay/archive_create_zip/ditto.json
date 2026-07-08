@@ -37,7 +37,7 @@
         }
       ],
       "verify": {
-        "level": "L2",
+        "level": "L3",
         "method": "execute",
         "checks": [
           {
@@ -45,14 +45,11 @@
               "type": "file",
               "input": "target"
             },
-            "predicate": "exists"
-          },
-          {
-            "subject": {
-              "type": "file",
-              "input": "target"
-            },
-            "predicate": "non_empty"
+            "predicate": "archive_contains_input",
+            "params": {
+              "source": "source",
+              "format": "zip"
+            }
           }
         ]
       }

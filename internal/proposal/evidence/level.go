@@ -45,7 +45,9 @@ func checkStrength(check model.VerifyCheck) evidenceStrength {
 	case model.VerifyPredicateContains,
 		model.VerifyPredicateContainsAny,
 		model.VerifyPredicateBytesEqualTransform,
-		model.VerifyPredicateHashLineMatches:
+		model.VerifyPredicateHashLineMatches,
+		model.VerifyPredicateArchiveContainsInput,
+		model.VerifyPredicateJSONQueryMatches:
 		return evidenceStrengthSemantic
 	case model.VerifyPredicateNonEmpty,
 		model.VerifyPredicateFormat,

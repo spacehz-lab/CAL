@@ -25,6 +25,8 @@ func TestCheckerRulesExposeSupportedContract(t *testing.T) {
 			model.VerifyPredicateRegex,
 			model.VerifyPredicateBytesEqualTransform,
 			model.VerifyPredicateHashLineMatches,
+			model.VerifyPredicateArchiveContainsInput,
+			model.VerifyPredicateJSONQueryMatches,
 		},
 		model.VerifySubjectStdout: {
 			model.VerifyPredicateEquals,
@@ -34,6 +36,7 @@ func TestCheckerRulesExposeSupportedContract(t *testing.T) {
 			model.VerifyPredicateContainsAny,
 			model.VerifyPredicateRegex,
 			model.VerifyPredicateHashLineMatches,
+			model.VerifyPredicateJSONQueryMatches,
 		},
 		model.VerifySubjectStderr: {
 			model.VerifyPredicateEquals,
@@ -43,6 +46,7 @@ func TestCheckerRulesExposeSupportedContract(t *testing.T) {
 			model.VerifyPredicateContainsAny,
 			model.VerifyPredicateRegex,
 			model.VerifyPredicateHashLineMatches,
+			model.VerifyPredicateJSONQueryMatches,
 		},
 		model.VerifySubjectExitCode: {
 			model.VerifyPredicateEquals,

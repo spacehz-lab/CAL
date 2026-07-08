@@ -16,7 +16,7 @@ Goal:
 Stage 4 is Evidence. It only proposes verify method and checks so Proposal can derive the final verify level locally, then later Verification can execute the candidate and evaluate built-in checks or record weak contract evidence when execution is unsafe.
 
 Response shape:
-{"verify":{"method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches","params":{}}]}}.
+{"verify":{"method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches|archive_contains_input|json_query_matches","params":{}}]}}.
 
 Boundary:
 - Do not execute the candidate.
@@ -46,7 +46,7 @@ Check rules:
 - Use verify_predicate_rules for predicate params. Emit a check only when all required_params for its predicate are present, and do not add params outside that predicate rule.
 - A file subject input names a path input; it is not file content.
 - Use file subjects for artifact path checks and file content checks.
-- For generated file artifacts, prefer exists, non_empty, and format when they prove the output shape.
+- Prefer built-in predicates that compare output with declared inputs when available. Use exists, non_empty, and format only when shape checks are the strongest supported evidence.
 - Use file contains, contains_any, or regex only when observations explicitly guarantee stable literal output content.
 - For stable literal output content, prefer contains over anchored full-file regex. Use anchored regex only when observations specify the exact whole file content including newline behavior.
 - For structured formats such as JSON, do not use whitespace-sensitive contains checks for key/value snippets. Prefer regex with optional whitespace or contains_any with compact and spaced forms when observations guarantee the key/value content.
@@ -101,6 +101,8 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateRegex,
 				model.VerifyPredicateBytesEqualTransform,
 				model.VerifyPredicateHashLineMatches,
+				model.VerifyPredicateArchiveContainsInput,
+				model.VerifyPredicateJSONQueryMatches,
 			},
 		},
 		{
@@ -113,6 +115,7 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateContainsAny,
 				model.VerifyPredicateRegex,
 				model.VerifyPredicateHashLineMatches,
+				model.VerifyPredicateJSONQueryMatches,
 			},
 		},
 		{
@@ -125,6 +128,7 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateContainsAny,
 				model.VerifyPredicateRegex,
 				model.VerifyPredicateHashLineMatches,
+				model.VerifyPredicateJSONQueryMatches,
 			},
 		},
 		{
