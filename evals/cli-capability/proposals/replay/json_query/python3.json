@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "json.query",
+      "description": "Apply a dotted JSON query to a JSON file and write the selected value.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-c",
+            "import json,sys; data=json.load(open(sys.argv[1])); value=data\nfor part in sys.argv[2].strip('.').split('.'):\n    value=value[part]\nprint(value)",
+            "{{source}}",
+            "{{query}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "query": ".project.name",
+        "target": "{{workdir}}/name.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.json",
+          "content": "{\"project\":{\"name\":\"cal\",\"version\":\"0.0.1\"}}\n"
+        }
+      ],
+      "verify": {
+        "level": "L2",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "non_empty"
+          }
+        ]
+      }
+    }
+  ]
+}

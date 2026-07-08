@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "archive.create",
+      "description": "Create a ZIP archive containing a source file.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-q",
+            "{{target}}",
+            "{{source}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/archive.zip"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "cal benchmark zip fixture\n"
+        }
+      ],
+      "verify": {
+        "level": "L2",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "exists"
+          },
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "non_empty"
+          }
+        ]
+      }
+    }
+  ]
+}
