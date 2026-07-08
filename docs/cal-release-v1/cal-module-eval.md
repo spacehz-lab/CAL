@@ -22,6 +22,28 @@ traces + runs + capabilities
 `eval` is a read-only reporting use case. It is not an acquisition, run, or use
 workflow.
 
+## Product Eval vs Benchmark Eval
+
+V1 keeps two evaluation layers separate:
+
+```text
+internal/eval
+-> product/local repository status
+-> calctl eval --json and HTTP eval response
+
+evals/cli-capability
+-> executable paper benchmark
+-> fixed suites, real CLIs, held-out reuse, independent oracles, reports
+```
+
+`internal/eval` must stay small and deterministic. It reports what is already in
+`CAL_HOME`; it does not decide whether an arXiv benchmark case succeeded.
+
+The arXiv/release benchmark belongs under `evals/cli-capability/`. That layer may
+start `cald`, call `calctl`, run providers, invoke oracles, compare baselines,
+sanitize artifacts, and render HTML. Those are experiment orchestration concerns,
+not application metric concerns.
+
 ## Boundary
 
 `eval/` owns:
@@ -46,6 +68,10 @@ workflow.
 - API DTO rendering.
 - Config loading, logging setup, daemon behavior, HTTP, or CLI behavior.
 - Store writes or record mutation.
+- Benchmark task catalogs, suites, or case definitions.
+- Independent benchmark oracle execution.
+- Direct CLI, LLM one-shot, or provider-tool baseline execution.
+- HTML report generation or release artifact sanitization.
 
 ## Dependency Rule
 
@@ -109,6 +135,9 @@ eval/
 Do not split provider-specific or UI-specific metric files into this package.
 Those belong in adapters if they are only presentation concerns.
 
+Benchmark-specific runner files belong under `evals/cli-capability/runner/`, not
+under `internal/eval`.
+
 ## Public Shape
 
 `runner.go` owns the request, result, store interface, and runner:
@@ -149,6 +178,11 @@ caller's perspective.
 Keep the first V1 metric surface count-oriented. Avoid scores, trends,
 diagnosis, benchmark judgments, and policy labels until there is a concrete
 consumer that needs them.
+
+Benchmark scores such as closed-loop success rate, oracle reuse success rate,
+cost amortization, capability-model coverage, and baseline comparison belong to
+`evals/cli-capability` summaries. They should not be added to `internal/eval`
+unless the product API gains a concrete non-benchmark consumer for them.
 
 ### AcquisitionMetrics
 

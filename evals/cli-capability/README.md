@@ -6,8 +6,8 @@ evaluation.
 Benchmark id: `cli-capability`
 Benchmark version: `v0`
 
-This eval fixes tasks, providers, scoring, and baselines so results can be
-compared across runs and systems.
+This eval fixes suites, tasks, providers, scoring, and baselines so results can
+be compared across runs and systems.
 
 The v0 benchmark should stay small. Its job is to make CAL's first
 trace-backed acquisition/reuse evidence reproducible, not to become a broad
@@ -18,7 +18,8 @@ computer-use leaderboard.
 ```text
 evals/cli-capability/
   README.md
-  tasks.jsonl      # fixed task intents and held-out reuse fixtures
+  suites/          # acquisition, capability-model, and reuse suite cases
+  tasks.jsonl      # legacy/bootstrap task intents while suites are migrated
   providers.json   # provider availability and environment requirements
   fixtures/        # deterministic task inputs
   oracles/         # independent benchmark scoring scripts
@@ -27,6 +28,30 @@ evals/cli-capability/
   runner/          # benchmark runner
   report/          # report generation notes and templates
 ```
+
+## Suite Model
+
+The benchmark is physically split into three suites:
+
+```text
+suites/acquisition.jsonl
+suites/capability_model.jsonl
+suites/reuse.jsonl
+```
+
+The suites map directly to the arXiv v0 experiment questions:
+
+- Acquisition: can CAL acquire verified provider-specific bindings from real CLI
+  surfaces?
+- Capability Model: does CAL form a capability layer instead of a one-provider
+  wrapper?
+- Reuse: can promoted bindings solve held-out tasks through `calctl use` and
+  `calctl runs create` without another acquisition step?
+
+Each suite case should reference shared provider records, fixtures, replay
+proposals, oracles, and baseline definitions. The runner may still support
+legacy `tasks.jsonl` while the case files are migrated, but release reports
+should be generated from the suite files.
 
 ## Scoring Boundary
 
@@ -46,7 +71,8 @@ by fixed scripts under `oracles/`.
 
 The seed benchmark should cover:
 
-- 10 fixed real-CLI tasks across production CLIs;
+- 15-20 fixed real-CLI cases across production CLIs for the full release report;
+- 8-10 focus cases for repeated live LLM runs;
 - a replay mode that runs without LLM API keys;
 - a live LLM focus set of 3-5 tasks;
 - at least one provider that promotes more than one capability binding;
@@ -56,9 +82,24 @@ The seed benchmark should cover:
 - intent-level held-out reuse through `calctl use`, with `calctl runs create`
   remaining the deterministic lower-level primitive.
 
-The current checked-in task schema is a bootstrap slice with five task intents.
-It is meant to lock the benchmark contract and the four evidence layers before
-expanding to the full 10-task release run.
+The current checked-in task schema is a bootstrap slice. It is meant to lock the
+benchmark contract and the evidence layers before expanding into the physical
+suite files and the full release run.
+
+Representative provider coverage:
+
+| Domain | Providers | Target capabilities |
+| --- | --- | --- |
+| Text and encoding | `base64`, `openssl` | Base64 encode/decode |
+| Security and checksums | `shasum`, `openssl` | SHA-1 checksum |
+| Archive and compression | `tar`, `zip`, `gzip`, `ditto` | archive create, compression |
+| Structured data | `jq`, `python3`, `plutil`, `yq` | JSON query, plist conversion, YAML query |
+| Documents | `pandoc`, `pdftotext` | document conversion, PDF text extraction |
+| Media and images | `ffmpeg`, `magick` | media conversion, image resize/convert |
+| Search and extraction | `rg` | text search |
+
+Optional third-party CLIs may be unavailable on a host. The runner should report
+those cases as provider availability, not CAL acquisition failure.
 
 This benchmark should report four evidence layers:
 
@@ -71,6 +112,15 @@ This benchmark should report four evidence layers:
   structure;
 - cost and reuse evidence: acquisition latency, reuse latency, LLM calls, token
   count when available, and run-stage LLM calls.
+
+The HTML report should render those layers as three suite sections:
+
+- Acquisition Suite: acquisition matrix, proposal stage detail, probe/promote
+  evidence, and acquisition failure taxonomy.
+- Capability Model Suite: provider coverage, capability coverage, and
+  provider-to-capability-to-binding tables.
+- Reuse Suite: held-out reuse matrix, Use resolver detail, CAL verify vs
+  independent oracle, and baseline cost amortization.
 
 For v0, Use selection is scored as a bounded resolver:
 
@@ -103,6 +153,35 @@ Benchmark results should be machine-readable and include:
 - acquisition latency, Use latency, reuse latency, LLM call count, and token
   count when available.
 
+`summary.json` should aggregate by suite:
+
+```json
+{
+  "suites": {
+    "acquisition": {
+      "attempted": 0,
+      "available": 0,
+      "candidates": 0,
+      "probe_passed": 0,
+      "probe_failed": 0,
+      "promoted_bindings": 0
+    },
+    "capability_model": {
+      "providers": 0,
+      "capabilities": 0,
+      "multi_capability_providers": 0,
+      "multi_binding_capabilities": 0
+    },
+    "reuse": {
+      "held_out_uses": 0,
+      "use_selected": 0,
+      "runs_succeeded": 0,
+      "oracle_passed": 0
+    }
+  }
+}
+```
+
 ## Baselines
 
 The minimum v0 baselines are:
@@ -111,23 +190,39 @@ The minimum v0 baselines are:
   correctness and latency upper-bound reference;
 - LLM one-shot CLI command: the model receives provider documentation and task
   input, then emits a command without CAL promotion or reuse;
+- provider tool baseline: the model treats the provider CLI as a generic tool and
+  selects arguments for every task without durable promotion;
 - CAL replay/live: the CAL acquisition loop with deterministic verification,
   promotion, later intent-level Use, and replay-only direct runtime reuse.
 
 The oracle baseline is not a fair agent baseline. It exists to show task
 feasibility and provide a performance reference.
 
+The main comparison is repeated-task amortization:
+
+```text
+method / repeated tasks / LLM calls / tokens / total latency / oracle successes
+-> average cost per oracle-verified success
+```
+
+CAL may lose on first-task latency because acquisition has an upfront cost. The
+claim is that promoted bindings reduce repeated command-synthesis work on later
+held-out tasks.
+
 No benchmark result is committed by default. Generated results should be written
 under `evals/out/cli-capability/`.
 
 Each run writes:
 
+- `summary.json`: aggregate metrics and suite-level scores derived from the run
+  records;
 - `flow.json`: the primary step-by-step evidence artifact, organized around
-  provider resolution, registration, the four acquisition stages, direct reuse,
-  and intent-level Use;
-- `summary.json`: aggregate task/provider metrics derived from the run records;
+  provider resolution, registration, acquisition stages, direct reuse,
+  intent-level Use, oracle scoring, and baseline comparison;
 - `index.html`: a human-readable flow report with a closed-loop matrix and
-  acquisition-stage detail;
+  acquisition, capability-model, reuse, and cost-amortization sections;
+- `artifact.json`: optional sanitized trace/run/capability excerpts used by a
+  release report;
 - `cald.log`: local service log for debugging.
 
 For reported release results, reference the exact generated run directory and

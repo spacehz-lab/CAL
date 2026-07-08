@@ -6,7 +6,8 @@ This directory is separate from `tests/`:
 
 - `tests/` catches engineering regressions.
 - `evals/cli-capability/` defines the current executable evaluation surface for
-  local CLI capability acquisition and intent reuse.
+  local CLI capability acquisition, capability-model evidence, held-out reuse,
+  and baseline comparison.
 - `evals/results/` stores curated, commit-ready result summaries when a run is
   intentionally selected for release notes or reports.
 
@@ -28,6 +29,19 @@ evals/
   results/             # curated commit-ready result summaries
   out/                 # local generated outputs, ignored by git
 ```
+
+`evals/cli-capability/suites/` physically separates the paper questions:
+
+```text
+acquisition.jsonl       # acquire verified bindings from real CLI surfaces
+capability_model.jsonl  # prove Provider -> Capability* and Capability -> Binding*
+reuse.jsonl             # held-out use/run plus independent oracle scoring
+```
+
+Benchmark reports should compare CAL with direct CLI oracle, LLM one-shot CLI,
+and provider-tool baselines. The primary comparison is repeated-task
+amortization: LLM calls, tokens, latency, and oracle-verified successes across
+held-out reuse tasks.
 
 ## Current Eval
 

@@ -83,6 +83,8 @@ Aggregate benchmark output should report:
 - intent Use total and average latency
 - replay direct reuse latency
 - LLM call count and token count when available
+- suite-level acquisition, capability-model, and reuse summaries
+- baseline success, latency, LLM-call, token, and amortized cost comparison
 
 The runner also emits a derived `scores` object for display and run-to-run
 comparison. Scores are computed only from `summary` and must not affect
@@ -119,6 +121,79 @@ oracle_verified_intent_uses / held_out_intents
 Report provider availability separately so missing local CLIs do not look like
 CAL acquisition failures.
 
+## Suite Scoring
+
+The benchmark reports three suite groups:
+
+### Acquisition
+
+Acquisition cases score the path from provider surface to promoted binding:
+
+```text
+provider.resolve
+-> provider.register
+-> acquisition.observe
+-> proposal.surface
+-> proposal.capability
+-> proposal.binding
+-> proposal.evidence
+-> probe
+-> promote
+```
+
+Required metrics:
+
+- attempted and available providers;
+- candidate count;
+- probe pass and fail count;
+- promoted binding count;
+- verification level distribution;
+- acquisition latency and proposal LLM latency;
+- failure stage and reason.
+
+### Capability Model
+
+Capability-model cases score whether CAL builds structure above providers:
+
+```text
+Provider -> Capability*
+Capability -> Binding* -> Provider
+```
+
+Required metrics:
+
+- provider count;
+- capability count;
+- bindings per capability;
+- capabilities per provider;
+- multi-capability provider count;
+- multi-binding capability count;
+- verification level distribution by capability.
+
+### Reuse
+
+Reuse cases score held-out capability use:
+
+```text
+held-out intent
+-> calctl use selection
+-> runtime run
+-> CAL verify
+-> independent oracle
+```
+
+Required metrics:
+
+- held-out use attempts;
+- selection success count;
+- shortlist size distribution;
+- selected capability and binding ids;
+- run success count;
+- CAL verification pass count;
+- independent oracle pass count;
+- use and run latency;
+- failure stage and reason.
+
 ## Baseline Scoring
 
 Baseline results should use the same task ids and fixtures.
@@ -127,6 +202,9 @@ Baseline results should use the same task ids and fixtures.
   expected deterministic oracle result.
 - LLM one-shot CLI command succeeds when the generated command produces the
   expected deterministic oracle result without CAL promotion or reuse.
+- Provider tool baseline succeeds when the model can select a provider command
+  and arguments for the current task and the independent oracle passes, without
+  creating a durable binding.
 - CAL succeeds only when acquisition, deterministic verification, promotion,
   later Use selection, runtime execution, and independent benchmark oracle
   scoring all succeed. Replay mode additionally requires direct binding reuse.
@@ -134,6 +212,10 @@ Baseline results should use the same task ids and fixtures.
 Reported benchmark summaries should compare baselines on task success, latency,
 LLM calls/tokens, and whether successful behavior becomes reusable. Baselines
 that do not promote bindings should have no verified reuse count.
+
+Repeated-task cost should be reported separately from first-task latency. CAL is
+allowed to pay acquisition cost once; the paper comparison should show average
+cost per oracle-verified success after multiple held-out reuse tasks.
 
 ## Failure Reporting
 
