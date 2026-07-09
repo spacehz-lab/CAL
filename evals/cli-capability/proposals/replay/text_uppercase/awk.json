@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "text.uppercase",
+      "description": "Convert source text to uppercase.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "{print toupper($0)}",
+            "{{source}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/upper.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "hello cal\nCapability Layer\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "text_transform_matches",
+            "params": {
+              "source": "source",
+              "transform": "uppercase"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

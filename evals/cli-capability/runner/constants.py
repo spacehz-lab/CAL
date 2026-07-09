@@ -4,10 +4,38 @@ from __future__ import annotations
 MODE_REPLAY = "replay"
 MODE_LIVE_LLM = "live_llm"
 
-SUITE_ACQUISITION = "acquisition"
-SUITE_CAPABILITY_MODEL = "capability_model"
-SUITE_REUSE = "reuse"
-SUITES = [SUITE_ACQUISITION, SUITE_CAPABILITY_MODEL, SUITE_REUSE]
+SCENARIO_ACQUISITION = "acquisition"
+SCENARIO_FAILURE_GATING = "failure_gating"
+SCENARIO_CAPABILITY_STRUCTURE = "capability_structure"
+SCENARIO_REPEATED_REUSE = "repeated_reuse"
+SCENARIO_GROUPS = [
+    SCENARIO_ACQUISITION,
+    SCENARIO_FAILURE_GATING,
+    SCENARIO_CAPABILITY_STRUCTURE,
+    SCENARIO_REPEATED_REUSE,
+]
+
+EXPERIMENT_ACQUISITION = "acquisition"
+EXPERIMENT_VERIFICATION_FAILURE = "verification_failure"
+EXPERIMENT_CAPABILITY_STRUCTURE = "capability_structure"
+EXPERIMENT_REPEATED_REUSE = "repeated_reuse"
+EXPERIMENTS = [
+    EXPERIMENT_ACQUISITION,
+    EXPERIMENT_VERIFICATION_FAILURE,
+    EXPERIMENT_CAPABILITY_STRUCTURE,
+    EXPERIMENT_REPEATED_REUSE,
+]
+
+ACQUISITION_INTENT_GUIDED = "intent_guided"
+ACQUISITION_PROVIDER_WIDE = "provider_wide"
+
+FAILURE_NONE = ""
+FAILURE_MISSING_OPTION = "missing_option"
+FAILURE_CHANGED_OUTPUT = "changed_output"
+FAILURE_UNAVAILABLE_FUNCTION = "unavailable_function"
+FAILURE_EXIT_ZERO_WRONG_SEMANTICS = "exit_zero_wrong_semantics"
+FAILURE_WRONG_VERIFIER_ASSUMPTION = "wrong_verifier_assumption"
+FAILURE_PROVIDER_UNAVAILABLE = "provider_unavailable"
 
 BASELINE_DIRECT_CLI = "direct_cli"
 BASELINE_LLM_ONESHOT = "llm_oneshot"
@@ -18,7 +46,11 @@ STATUS_FAILED = "failed"
 STATUS_SKIPPED = "skipped"
 STATUS_NOT_RUN = "not_run"
 
-FLOW_SCHEMA_VERSION = "cli-capability-flow-v2"
+UPSTREAM_ACQUISITION_FAILED = "upstream_acquisition_failed"
+UPSTREAM_NO_PROMOTED_BINDING = "no_promoted_binding"
+UPSTREAM_DEPENDENCY_NOT_PROMOTED = "dependency_not_promoted"
+
+FLOW_SCHEMA_VERSION = "cli-capability-flow-v3"
 
 STEP_PROVIDER_RESOLVE = "provider.resolve"
 STEP_PROVIDER_REGISTER = "provider.register"
@@ -36,6 +68,7 @@ STEP_INTENT_USE_SELECT = "intent_use.select"
 STEP_INTENT_USE_RUN = "intent_use.run"
 STEP_INTENT_USE_ORACLE = "intent_use.oracle"
 STEP_BASELINE_DIRECT_CLI = "baseline.direct_cli"
+STEP_BASELINE_LLM_ONESHOT = "baseline.llm_oneshot"
 STEP_BASELINE_ORACLE = "baseline.oracle"
 
 FLOW_MATRIX_STEPS = [

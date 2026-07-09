@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "text.count",
+      "description": "Count lines in a text file.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-l",
+            "{{source}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/line_count.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "one\ntwo\nthree\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "line_count_matches",
+            "params": {
+              "source": "source"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

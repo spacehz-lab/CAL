@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "text.search",
+      "description": "Write lines containing a requested pattern.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "{{pattern}}",
+            "{{source}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "pattern": "error",
+        "target": "{{workdir}}/matches.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "info ready\nerror disk\nwarn retry\nerror net\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "text_filter_matches",
+            "params": {
+              "source": "source",
+              "pattern": "pattern"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

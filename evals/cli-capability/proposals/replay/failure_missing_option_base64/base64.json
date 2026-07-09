@@ -1,0 +1,52 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "failure-gating-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "failure.missing_option",
+      "description": "Use a nonexistent base64 flag.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "--definitely-missing-cal-flag",
+            "{{source}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/out.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "alpha\nbeta\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "non_empty",
+            "params": {}
+          }
+        ]
+      }
+    }
+  ]
+}

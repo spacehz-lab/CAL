@@ -1,92 +1,76 @@
-# CLI Capability Benchmark Runner
+# CLI Capability Paper Runner
 
-The runner is a suite-first black-box benchmark over compiled `calctl` and
-`cald`. It loads only physical suite files. Each benchmark case lives in one
-physical suite file under `suites/`.
+The runner executes the scenario-first CAL paper benchmark. It loads
+`scenarios/*.jsonl`.
 
-## Flow
+## Basic Commands
 
-For each selected case and provider, the runner records:
-
-```text
-provider.resolve
--> provider.register
--> acquisition.run
--> acquisition.observe
--> proposal.surface
--> proposal.capability
--> proposal.binding
--> proposal.evidence
--> acquisition.probe
--> acquisition.promote
--> direct_reuse.oracle
--> intent_use.oracle
-```
-
-The runner scores held-out outputs with `oracles/*.py`. CAL internal verify
-results are acquisition evidence, not benchmark truth.
-
-Generated outputs belong under:
-
-```text
-evals/out/cli-capability/<run-id>/
-```
-
-Primary artifacts:
-
-- `flow.json`: per-case flow, provider steps, candidates, reuse, and baselines.
-- `summary.json`: aggregate metrics for scripts and tables.
-- `artifact.json`: compact release artifact with trace references.
-- `index.html`: human-readable report.
-
-Suite display rules:
-
-- Acquisition Suite shows CAL acquisition evidence only.
-- Capability Model Suite shows durable Provider -> Capability -> Binding
-  structure and coverage.
-- Reuse Suite shows the main non-CAL comparison and cost amortization table.
-
-## Replay
-
-Replay uses fixed proposals from `proposals/replay/<case-id>/<provider>.json`:
+Replay run:
 
 ```sh
 python3 evals/cli-capability/runner/run.py \
   --mode replay \
-  --suite acquisition \
-  --case file_hash_sha1 \
-  --calctl build/bin/calctl \
-  --cald build/bin/cald
-```
-
-Run the focus set:
-
-```sh
-python3 evals/cli-capability/runner/run.py \
-  --mode replay \
+  --experiment acquisition,repeated_reuse \
   --level focus \
-  --calctl build/bin/calctl \
-  --cald build/bin/cald
+  --jobs 4
 ```
 
-Replay mode is strict: any benchmark failure fails the run.
-
-## Live LLM
-
-Live mode asks the configured LLM to produce proposal evidence from observed CLI
-behavior:
+Live LLM run:
 
 ```sh
-CAL_LLM_API=chat_completions \
-CAL_LLM_BASE_URL=<openai-compatible base url> \
-CAL_LLM_MODEL=<model> \
-CAL_LLM_API_KEY=<api key> \
 python3 evals/cli-capability/runner/run.py \
   --mode live_llm \
+  --experiment acquisition,repeated_reuse \
   --level focus \
-  --calctl build/bin/calctl \
-  --cald build/bin/cald
+  --jobs 4 \
+  --llm-jobs 2
 ```
 
-Live mode records failed providers and candidates as evidence. The run is useful
-only when at least one intent-level held-out use passes the benchmark oracle.
+Targeted run:
+
+```sh
+python3 evals/cli-capability/runner/run.py \
+  --mode replay \
+  --experiment repeated_reuse \
+  --case repeated_reuse:file_hash_sha1
+```
+
+## Selection Flags
+
+- `--experiment`: comma-separated paper experiments:
+  `acquisition`, `verification_failure`, `capability_structure`,
+  `repeated_reuse`
+- `--case`: comma-separated case ids or `scenario_group:case_id` keys
+- `--provider-class`: filter by paper provider class
+- `--tag`: filter by scenario tag
+- `--failure-type`: filter controlled failure cases
+- `--jobs`: case-level worker count
+- `--llm-jobs`: maximum live LLM worker count
+
+## Execution Model
+
+Each case worker gets an isolated shard:
+
+```text
+<run-dir>/shards/<scenario-case-key>/
+  home/
+  cald.log
+```
+
+The worker starts its own `cald` with `CAL_HOME` pointing to that shard. The
+main process aggregates case artifacts into:
+
+- `summary.json`
+- `flow.json`
+- `artifact.json`
+- `index.html`
+
+This design makes acquisition parallel without sharing provider registration,
+promotion, trace, or output state across cases.
+
+## Validation
+
+```sh
+python3 evals/cli-capability/runner/validate.py
+python3 -m unittest evals/cli-capability/runner/run_test.py
+```

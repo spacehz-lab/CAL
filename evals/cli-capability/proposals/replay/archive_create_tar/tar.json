@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "tar.create",
+      "description": "Create a TAR archive containing the source file.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-cf",
+            "{{target}}",
+            "{{source}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/archive.tar"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "cal benchmark archive fixture\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "archive_contains_input",
+            "params": {
+              "source": "source",
+              "format": "tar"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

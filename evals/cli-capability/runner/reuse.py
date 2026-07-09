@@ -35,18 +35,18 @@ class ReuseRunner:
         for candidate in provider_result.get("candidates") or []:
             if not (candidate.get("promotion") or {}).get("binding_id"):
                 continue
-            for fixture in (case.get("reuse") or {}).get("fixtures") or []:
+            for fixture in reuse_rounds(case):
                 reuse = self.run_reuse_fixture(case, provider_id, candidate, fixture)
                 candidate.setdefault("reuse", []).append(reuse)
                 provider_result.setdefault("steps", []).extend(reuse.get("steps") or [])
 
     def run_intent_uses(self, case: dict[str, Any], case_result: dict[str, Any]) -> None:
-        fixtures = (case.get("reuse") or {}).get("fixtures") or []
-        if not fixtures:
+        rounds = reuse_rounds(case)
+        if not rounds:
             return
         providers = [provider for provider in case_result.get("providers") or [] if provider_has_promoted_binding(provider)]
         providers = providers[:1] or [{}]
-        for fixture in fixtures:
+        for fixture in rounds:
             inputs = materialize_inputs(self.bench, self.home, case["id"], fixture)
             for provider in providers:
                 use = self.run_use_fixture(case, fixture, inputs, provider.get("provider_id", ""))
@@ -120,7 +120,6 @@ class ReuseRunner:
             intent,
             "--inputs-json",
             json.dumps(call_inputs, separators=(",", ":")),
-            "--verify",
             "--json",
         ]
         if provider_id:
@@ -164,6 +163,8 @@ class ReuseRunner:
                 flow_step(STEP_INTENT_USE_ORACLE, STATUS_SKIPPED, fixture_id=fixture.get("id", ""), failure=use["failure"]),
             ]
             return use
+        if isinstance(output.get("duration_ms"), int):
+            use["duration_ms"] = output["duration_ms"]
         use["selection"] = output.get("selection") or {}
         use["run"] = output.get("run") or {}
         if not use["run"]:
@@ -215,6 +216,10 @@ def materialize_inputs(bench: Path, home: Path, case_id: str, fixture: dict[str,
         else:
             inputs[key] = value
     return inputs
+
+
+def reuse_rounds(case: dict[str, Any]) -> list[dict[str, Any]]:
+    return (case.get("reuse") or {}).get("rounds") or []
 
 
 def runtime_inputs(case: dict[str, Any], inputs: dict[str, Any]) -> dict[str, Any]:

@@ -127,6 +127,8 @@ class AcquisitionRunner:
             return
         trace = read_json(path)
         result["observation_sources"] = [obs.get("source", "") for obs in trace.get("observations", [])]
+        if self.mode == MODE_LIVE_LLM:
+            result.update(proposal_llm_metrics(trace))
         result["steps"].append(flow_step(STEP_STAGE_OBSERVE, STATUS_PASSED if result["observation_sources"] else STATUS_SKIPPED, sources=result["observation_sources"]))
         self.add_proposal_stage_steps(result, trace)
         candidates = self.trace_candidates(trace)
@@ -215,3 +217,26 @@ def provider_failure(mode: str, require_reuse_oracle: bool) -> dict[str, str]:
     if mode == MODE_REPLAY and require_reuse_oracle:
         return failure("oracle_failure", "oracle_not_passed", "no held-out oracle passed")
     return failure("acquisition_failed", "no_promoted_binding", "no promoted binding")
+
+
+def proposal_llm_metrics(trace: dict[str, Any]) -> dict[str, int]:
+    attempts = ((trace.get("proposal") or {}).get("attempts") or [])
+    metrics = {
+        "llm_call_count": 0,
+        "proposal_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+    }
+    for attempt in attempts:
+        if not isinstance(attempt, dict):
+            continue
+        metrics["llm_call_count"] += 1
+        duration = int(attempt.get("duration_ms") or 0)
+        metrics["proposal_duration_ms"] += duration
+        metrics["llm_duration_ms"] += duration
+        metrics["prompt_tokens"] += int(attempt.get("prompt_tokens") or 0)
+        metrics["completion_tokens"] += int(attempt.get("completion_tokens") or 0)
+        metrics["total_tokens"] += int(attempt.get("total_tokens") or 0)
+    return metrics

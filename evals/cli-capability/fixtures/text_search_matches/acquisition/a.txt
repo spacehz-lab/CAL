@@ -1,0 +1,4 @@
+info boot complete
+error disk full
+warn retry
+error network timeout

@@ -1,0 +1,62 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "csv.extract",
+      "description": "Extract a one-based column from delimited text.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-d",
+            "{{delimiter}}",
+            "-f",
+            "{{column}}",
+            "{{source}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "delimiter": ",",
+        "column": "2",
+        "target": "{{workdir}}/column.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.csv",
+          "content": "name,score,team\ncal,9,alpha\nagent,7,beta\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "delimited_column_matches",
+            "params": {
+              "source": "source",
+              "delimiter": "delimiter",
+              "column": "column"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

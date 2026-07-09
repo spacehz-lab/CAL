@@ -19,6 +19,9 @@ Rules:
 
 - Do not use CAL capabilities, bindings, traces, or verify specs.
 - Produce a direct CLI command for the requested provider.
+- Return `command` as argv only. Do not return shell strings, pipes, command
+  substitution, or wrapper scripts.
+- The first argv item must be the requested provider command.
 - Use the supplied `target` path when the provider supports writing output to a
   file.
 - If the command prints the result to stdout, set `writes_target` to `false` so

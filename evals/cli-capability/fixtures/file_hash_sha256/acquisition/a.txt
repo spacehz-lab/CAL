@@ -1,0 +1,1 @@
+CAL acquisition fixture for SHA-256.

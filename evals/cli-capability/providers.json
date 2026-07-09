@@ -5,84 +5,336 @@
       "kind": "cli",
       "command": "shasum",
       "provider_class": "system",
-      "domains": ["checksum"],
+      "domains": [
+        "checksum"
+      ],
       "optional": false,
-      "platforms": ["darwin", "linux"],
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["shasum", "--version"],
-      "task_families": ["file_hash_sha1"]
+      "version_command": [
+        "shasum",
+        "--version"
+      ],
+      "task_families": [
+        "file_hash_sha1",
+        "file_hash_sha256"
+      ]
     },
     {
-      "id": "openssl",
+      "id": "sha1sum",
       "kind": "cli",
-      "command": "openssl",
-      "provider_class": "common",
-      "domains": ["checksum", "encoding"],
+      "command": "sha1sum",
+      "provider_class": "system",
+      "domains": [
+        "checksum"
+      ],
       "optional": false,
-      "platforms": ["darwin", "linux"],
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["openssl", "version"],
-      "task_families": ["file_hash_sha1", "text_base64_encode", "text_base64_decode"]
+      "version_command": [
+        "sha1sum",
+        "--version"
+      ],
+      "task_families": [
+        "file_hash_sha1"
+      ]
+    },
+    {
+      "id": "sha256sum",
+      "kind": "cli",
+      "command": "sha256sum",
+      "provider_class": "system",
+      "domains": [
+        "checksum"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "sha256sum",
+        "--version"
+      ],
+      "task_families": [
+        "file_hash_sha256"
+      ]
     },
     {
       "id": "base64",
       "kind": "cli",
       "command": "base64",
       "provider_class": "system",
-      "domains": ["encoding"],
+      "domains": [
+        "encoding"
+      ],
       "optional": false,
-      "platforms": ["darwin", "linux"],
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["base64", "-h"],
-      "task_families": ["text_base64_encode", "text_base64_decode"]
+      "version_command": [
+        "base64",
+        "-h"
+      ],
+      "task_families": [
+        "text_base64_encode",
+        "text_base64_decode"
+      ]
+    },
+    {
+      "id": "dd",
+      "kind": "cli",
+      "command": "dd",
+      "provider_class": "system",
+      "domains": [
+        "text"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "dd",
+        "--version"
+      ],
+      "task_families": [
+        "text_uppercase"
+      ]
+    },
+    {
+      "id": "wc",
+      "kind": "cli",
+      "command": "wc",
+      "provider_class": "system",
+      "domains": [
+        "text"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "wc",
+        "--version"
+      ],
+      "task_families": [
+        "text_line_count"
+      ]
+    },
+    {
+      "id": "grep",
+      "kind": "cli",
+      "command": "grep",
+      "provider_class": "system",
+      "domains": [
+        "search",
+        "text"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "grep",
+        "--version"
+      ],
+      "task_families": [
+        "text_search_matches"
+      ]
+    },
+    {
+      "id": "rg",
+      "kind": "cli",
+      "command": "rg",
+      "provider_class": "third_party",
+      "domains": [
+        "search",
+        "text"
+      ],
+      "optional": true,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "rg",
+        "--version"
+      ],
+      "task_families": [
+        "text_search_matches"
+      ]
+    },
+    {
+      "id": "cut",
+      "kind": "cli",
+      "command": "cut",
+      "provider_class": "system",
+      "domains": [
+        "tabular",
+        "text"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "cut",
+        "--version"
+      ],
+      "task_families": [
+        "csv_column_extract"
+      ]
     },
     {
       "id": "zip",
       "kind": "cli",
       "command": "zip",
       "provider_class": "system",
-      "domains": ["archive"],
+      "domains": [
+        "archive"
+      ],
       "optional": true,
-      "platforms": ["darwin", "linux"],
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["zip", "-v"],
-      "task_families": ["archive_create_zip"]
+      "version_command": [
+        "zip",
+        "-v"
+      ],
+      "task_families": [
+        "archive_create_zip"
+      ]
     },
     {
       "id": "ditto",
       "kind": "cli",
       "command": "ditto",
       "provider_class": "system",
-      "domains": ["archive"],
+      "domains": [
+        "archive"
+      ],
       "optional": true,
-      "platforms": ["darwin"],
+      "platforms": [
+        "darwin"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["ditto", "-h"],
-      "task_families": ["archive_create_zip"]
+      "version_command": [
+        "ditto",
+        "-h"
+      ],
+      "task_families": [
+        "archive_create_zip"
+      ]
+    },
+    {
+      "id": "tar",
+      "kind": "cli",
+      "command": "tar",
+      "provider_class": "system",
+      "domains": [
+        "archive"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "tar",
+        "--version"
+      ],
+      "task_families": [
+        "archive_create_tar"
+      ]
     },
     {
       "id": "jq",
       "kind": "cli",
       "command": "jq",
       "provider_class": "third_party",
-      "domains": ["structured_data"],
+      "domains": [
+        "structured_data"
+      ],
       "optional": true,
-      "platforms": ["darwin", "linux"],
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["jq", "--version"],
-      "task_families": ["json_query"]
+      "version_command": [
+        "jq",
+        "--version"
+      ],
+      "task_families": [
+        "json_query",
+        "json_format"
+      ]
     },
     {
       "id": "python3",
       "kind": "cli",
       "command": "python3",
       "provider_class": "system",
-      "domains": ["structured_data"],
+      "domains": [
+        "structured_data"
+      ],
       "optional": false,
-      "platforms": ["darwin", "linux"],
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
       "path_lookup": "PATH",
-      "version_command": ["python3", "--version"],
-      "task_families": ["json_query"]
+      "version_command": [
+        "python3",
+        "--version"
+      ],
+      "task_families": [
+        "json_query",
+        "json_format"
+      ]
+    },
+    {
+      "id": "cal_missing_cli",
+      "kind": "cli",
+      "command": "cal-missing-cli-for-failure-gating",
+      "provider_class": "synthetic",
+      "domains": [
+        "failure"
+      ],
+      "optional": true,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "PATH",
+      "version_command": [
+        "cal-missing-cli-for-failure-gating",
+        "--version"
+      ],
+      "task_families": [
+        "failure_provider_unavailable"
+      ]
     }
   ]
 }

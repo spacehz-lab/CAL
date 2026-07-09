@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "sha256.hash",
+      "description": "Compute the SHA-256 digest of a file.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-a",
+            "256",
+            "{{source}}"
+          ],
+          "stdout_path_input": "target"
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/sha256.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "cal benchmark checksum fixture\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "hash_line_matches",
+            "params": {
+              "source": "source",
+              "algorithm": "sha256"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

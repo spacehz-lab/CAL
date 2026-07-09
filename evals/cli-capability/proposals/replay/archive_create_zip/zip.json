@@ -1,14 +1,14 @@
 {
   "metadata": {
     "source": "cli-capability-benchmark",
-    "prompt_version": "benchmark-replay-v1",
+    "prompt_version": "benchmark-replay-v2",
     "model": "fixture",
     "schema_version": "proposal.v1"
   },
   "candidates": [
     {
-      "capability_id": "archive.create",
-      "description": "Create a ZIP archive containing a source file.",
+      "capability_id": "zip.create",
+      "description": "Create a ZIP archive containing the source file.",
       "execution": {
         "kind": "cli",
         "spec": {
@@ -31,7 +31,7 @@
         {
           "input": "source",
           "filename": "input.txt",
-          "content": "cal benchmark zip fixture\n"
+          "content": "cal benchmark archive fixture\n"
         }
       ],
       "verify": {

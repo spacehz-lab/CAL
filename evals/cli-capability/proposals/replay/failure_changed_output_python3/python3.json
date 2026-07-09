@@ -1,0 +1,54 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "failure-gating-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "failure.changed_output",
+      "description": "Write non-JSON where JSON equivalent output is required.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-c",
+            "open('{{target}}','w').write('not-json')"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/out.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.json",
+          "content": "{\"ok\": true}\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "json_equivalent",
+            "params": {
+              "source": "source"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

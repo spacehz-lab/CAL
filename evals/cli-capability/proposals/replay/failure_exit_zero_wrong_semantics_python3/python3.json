@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "failure-gating-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "failure.exit_zero_wrong_semantics",
+      "description": "Exit zero but write lowercase when uppercase is required.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "-c",
+            "open('{{target}}','w').write(open('{{source}}').read().lower())"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/out.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "Alpha\nBeta\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "text_transform_matches",
+            "params": {
+              "source": "source",
+              "transform": "uppercase"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

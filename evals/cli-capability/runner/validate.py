@@ -5,21 +5,21 @@ import json
 import py_compile
 from pathlib import Path
 
+from constants import BASELINE_DIRECT_CLI, BASELINE_LLM_ONESHOT, EXPERIMENTS, EXPERIMENT_REPEATED_REUSE, SCENARIO_GROUPS
+
 
 ROOT = Path(__file__).resolve().parents[1]
-SUITES = {"acquisition", "capability_model", "reuse"}
-IMPLEMENTED_BASELINES = {"direct_cli"}
+IMPLEMENTED_BASELINES = {BASELINE_DIRECT_CLI, BASELINE_LLM_ONESHOT}
 
 
 def main() -> int:
     cases = []
-    for suite in sorted(SUITES):
-        path = ROOT / "suites" / f"{suite}.jsonl"
+    for group in SCENARIO_GROUPS:
+        path = ROOT / "scenarios" / f"{group}.jsonl"
         if not path.exists():
-            raise SystemExit(f"missing suite file {path}")
+            raise SystemExit(f"missing scenario file {path}")
         for case in read_jsonl(path):
-            if case.get("suite") != suite:
-                raise SystemExit(f"{path}: case {case.get('id', '')} has suite {case.get('suite')!r}, want {suite!r}")
+            case["scenario_group"] = group
             cases.append(case)
     providers = read_json(ROOT / "providers.json")
     provider_ids = {provider["id"] for provider in providers["providers"]}
@@ -27,28 +27,33 @@ def main() -> int:
     seen_cases: set[tuple[str, str]] = set()
     for case in cases:
         case_id = require(case, "id")
-        suite = require(case, "suite")
-        key = (suite, case_id)
+        group = require(case, "scenario_group")
+        key = (group, case_id)
         if key in seen_cases:
-            raise SystemExit(f"duplicate suite case id: {suite}:{case_id}")
+            raise SystemExit(f"duplicate scenario case id: {group}:{case_id}")
         seen_cases.add(key)
         require(case, "intent")
-        check_baselines(case_id, suite, case.get("baselines") or [])
+        experiments = require(case, "paper_experiments")
+        for experiment in experiments:
+            if experiment not in EXPERIMENTS:
+                raise SystemExit(f"{group}:{case_id}: unknown experiment {experiment}")
+        check_baselines(case_id, experiments, case.get("baselines") or [])
         for provider in require(case, "provider_candidates"):
             if provider not in provider_ids:
-                raise SystemExit(f"{case_id}: unknown provider candidate {provider}")
+                raise SystemExit(f"{group}:{case_id}: unknown provider candidate {provider}")
         oracle = require(case, "oracle")
         oracle_path = ROOT / require(oracle, "path")
         if not oracle_path.exists():
-            raise SystemExit(f"{case_id}: missing oracle {oracle_path}")
+            raise SystemExit(f"{group}:{case_id}: missing oracle {oracle_path}")
         py_compile.compile(str(oracle_path), doraise=True)
-        check_fixture_group(case_id, case.get("acquisition") or {})
-        check_fixture_group(case_id, case.get("reuse") or {})
+        check_fixture_group(group, case_id, case.get("acquisition") or {}, "fixtures")
+        if EXPERIMENT_REPEATED_REUSE in experiments:
+            check_fixture_group(group, case_id, case.get("reuse") or {}, "rounds")
         if case.get("level") == "focus":
             for provider in case["provider_candidates"]:
                 proposal_path = ROOT / "proposals" / "replay" / case_id / f"{provider}.json"
                 if not proposal_path.exists():
-                    raise SystemExit(f"{case_id}: missing focus replay proposal {proposal_path}")
+                    raise SystemExit(f"{group}:{case_id}: missing focus replay proposal {proposal_path}")
                 check_replay_proposal(proposal_path)
 
     for path in (ROOT / "oracles").glob("*.py"):
@@ -56,31 +61,31 @@ def main() -> int:
     for path in (ROOT / "proposals" / "replay").glob("*/*.json"):
         check_replay_proposal(path)
     read_jsonl(ROOT / "baselines" / "oracle" / "commands.jsonl")
-    print(f"validated {len(cases)} cases and {len(provider_ids)} providers")
+    print(f"validated {len(cases)} scenario cases and {len(provider_ids)} providers")
     return 0
 
 
-def check_baselines(case_id: str, suite: str, baselines: list[str]) -> None:
-    if baselines and suite != "reuse":
-        raise SystemExit(f"{case_id}: baselines are only allowed in reuse suite")
+def check_baselines(case_id: str, experiments: list[str], baselines: list[str]) -> None:
+    if baselines and EXPERIMENT_REPEATED_REUSE not in experiments:
+        raise SystemExit(f"{case_id}: baselines are only allowed for repeated_reuse experiment")
     for baseline in baselines:
         if baseline not in IMPLEMENTED_BASELINES:
             raise SystemExit(f"{case_id}: baseline {baseline!r} is not implemented")
 
 
-def check_fixture_group(case_id: str, group: dict) -> None:
-    fixtures = group.get("fixtures") or []
+def check_fixture_group(group: str, case_id: str, fixture_group: dict, key: str) -> None:
+    fixtures = fixture_group.get(key) or []
     if not fixtures:
-        raise SystemExit(f"{case_id}: fixture group is empty")
+        raise SystemExit(f"{group}:{case_id}: {key} group is empty")
     for fixture in fixtures:
         inputs = fixture.get("inputs") or {}
-        for key, value in inputs.items():
+        for input_key, value in inputs.items():
             if not isinstance(value, str):
                 continue
             if value.startswith("{work}/"):
                 continue
             if value.startswith("fixtures/") and not (ROOT / value).exists():
-                raise SystemExit(f"{case_id}: missing fixture input {key}={value}")
+                raise SystemExit(f"{group}:{case_id}: missing fixture input {input_key}={value}")
 
 
 def check_replay_proposal(path: Path) -> None:
@@ -124,10 +129,9 @@ def check_verify_spec(path: Path, index: int, verify: dict) -> None:
         if predicate not in verify_predicates():
             raise SystemExit(f"{path}: probe_plan {index} check {check_index} predicate {predicate!r} is invalid")
         params = check.get("params") or {}
-        required = required_params(predicate)
-        for key in required:
-            if key not in params:
-                raise SystemExit(f"{path}: probe_plan {index} check {check_index} predicate {predicate} requires params.{key}")
+        for param in required_params(predicate):
+            if param not in params:
+                raise SystemExit(f"{path}: probe_plan {index} check {check_index} predicate {predicate} requires params.{param}")
 
 
 def required_params(predicate: str) -> list[str]:
@@ -142,6 +146,11 @@ def required_params(predicate: str) -> list[str]:
         "hash_line_matches": ["source", "algorithm"],
         "archive_contains_input": ["source", "format"],
         "json_query_matches": ["source", "query"],
+        "json_equivalent": ["source"],
+        "text_transform_matches": ["source", "transform"],
+        "line_count_matches": ["source"],
+        "text_filter_matches": ["source", "pattern"],
+        "delimited_column_matches": ["source", "delimiter", "column"],
     }.get(predicate, [])
 
 
@@ -159,6 +168,11 @@ def verify_predicates() -> set[str]:
         "hash_line_matches",
         "archive_contains_input",
         "json_query_matches",
+        "json_equivalent",
+        "text_transform_matches",
+        "line_count_matches",
+        "text_filter_matches",
+        "delimited_column_matches",
     }
 
 
