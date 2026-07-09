@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -69,12 +70,18 @@ func (runner *Runner) Run(ctx context.Context, req *Request) (*Result, error) {
 		runner.emitProgress(ctx, result, model.ProgressStageSelect, model.ProgressStatusFailed, stageStarted, useRecordError(CodeUseStoreFailed, err.Error()))
 		return nil, err
 	}
+	providers, err := runner.store.ListProviders()
+	if err != nil {
+		runner.emitProgress(ctx, result, model.ProgressStageSelect, model.ProgressStatusFailed, stageStarted, useRecordError(CodeUseStoreFailed, err.Error()))
+		return nil, err
+	}
 	selection, err := runner.selector.Run(ctx, &selector.Request{
-		Intent:         normalized.Intent,
-		Inputs:         normalized.Inputs,
-		ProviderID:     normalized.ProviderID,
-		MinVerifyLevel: normalized.MinVerifyLevel,
-		Capabilities:   capabilities,
+		Intent:           normalized.Intent,
+		Inputs:           normalized.Inputs,
+		ProviderID:       normalized.ProviderID,
+		MinVerifyLevel:   normalized.MinVerifyLevel,
+		Capabilities:     capabilities,
+		ProviderCommands: providerCommands(providers),
 	})
 	if err != nil {
 		code, message := selectionError(err)
@@ -181,6 +188,20 @@ func selectionResult(result *selector.Result) *Selection {
 		Reason:               result.Reason,
 		CandidatesConsidered: result.CandidatesConsidered,
 	}
+}
+
+func providerCommands(providers []model.Provider) map[string]string {
+	commands := make(map[string]string, len(providers))
+	for _, provider := range providers {
+		command := strings.TrimSpace(provider.Name)
+		if command == "" {
+			command = filepath.Base(provider.Path)
+		}
+		if provider.ID != "" && command != "" {
+			commands[provider.ID] = command
+		}
+	}
+	return commands
 }
 
 func selectionError(err error) (string, string) {

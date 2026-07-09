@@ -19,4 +19,12 @@ type Request struct {
 type Response struct {
 	Text  string
 	Model string
+	Usage Usage
+}
+
+// Usage reports provider token accounting when the provider returns it.
+type Usage struct {
+	PromptTokens     int64
+	CompletionTokens int64
+	TotalTokens      int64
 }

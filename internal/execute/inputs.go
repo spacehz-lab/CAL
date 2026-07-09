@@ -77,14 +77,21 @@ func StdoutPathInput(execution *model.Execution) (string, bool, error) {
 	if !ok {
 		return "", false, nil
 	}
+	if value == nil {
+		return "", false, nil
+	}
 	input, ok := value.(string)
-	if !ok || strings.TrimSpace(input) == "" {
+	if !ok {
 		return "", false, fmt.Errorf("cli execution stdout path input must be a string")
+	}
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return "", false, nil
 	}
 	if strings.Contains(input, "{{") || strings.Contains(input, "}}") {
 		return "", false, fmt.Errorf("cli execution stdout path input must be an input name")
 	}
-	return strings.TrimSpace(input), true, nil
+	return input, true, nil
 }
 
 func executionArgs(execution *model.Execution) ([]string, error) {

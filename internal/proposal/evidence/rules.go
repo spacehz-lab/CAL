@@ -16,6 +16,8 @@ const (
 	paramQuery     = "query"
 	paramTransform = "transform"
 	paramAlgorithm = "algorithm"
+	paramDelimiter = "delimiter"
+	paramColumn    = "column"
 )
 
 const (
@@ -24,11 +26,14 @@ const (
 	formatJSON = "json"
 	formatText = "text"
 	formatZIP  = "zip"
+	formatTAR  = "tar"
 )
 
 const (
 	transformBase64Encode = "base64_encode"
 	transformBase64Decode = "base64_decode"
+	transformUppercase    = "uppercase"
+	transformLowercase    = "lowercase"
 )
 
 const (
@@ -81,12 +86,38 @@ func verifyPredicateRules() []PredicateRule {
 			Predicate:      model.VerifyPredicateArchiveContainsInput,
 			RequiredParams: []string{paramSource, paramFormat},
 			AllowedParams:  []string{paramSource, paramFormat},
-			AllowedValues:  map[string][]string{paramFormat: []string{formatZIP}},
+			AllowedValues:  map[string][]string{paramFormat: []string{formatZIP, formatTAR}},
 		},
 		{
 			Predicate:      model.VerifyPredicateJSONQueryMatches,
 			RequiredParams: []string{paramSource, paramQuery},
 			AllowedParams:  []string{paramSource, paramQuery},
+		},
+		{
+			Predicate:      model.VerifyPredicateJSONEquivalent,
+			RequiredParams: []string{paramSource},
+			AllowedParams:  []string{paramSource},
+		},
+		{
+			Predicate:      model.VerifyPredicateTextTransformMatches,
+			RequiredParams: []string{paramSource, paramTransform},
+			AllowedParams:  []string{paramSource, paramTransform},
+			AllowedValues:  map[string][]string{paramTransform: []string{transformUppercase, transformLowercase}},
+		},
+		{
+			Predicate:      model.VerifyPredicateLineCountMatches,
+			RequiredParams: []string{paramSource},
+			AllowedParams:  []string{paramSource},
+		},
+		{
+			Predicate:      model.VerifyPredicateTextFilterMatches,
+			RequiredParams: []string{paramSource, paramPattern},
+			AllowedParams:  []string{paramSource, paramPattern},
+		},
+		{
+			Predicate:      model.VerifyPredicateDelimitedColumnMatch,
+			RequiredParams: []string{paramSource, paramDelimiter, paramColumn},
+			AllowedParams:  []string{paramSource, paramDelimiter, paramColumn},
 		},
 	}
 }

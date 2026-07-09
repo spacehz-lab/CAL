@@ -38,7 +38,14 @@ func TestResponsesClientCompleteCallsResponsesAPI(t *testing.T) {
 					"text": " {\"candidates\":[]} ",
 					"annotations": []
 				}]
-			}]
+			}],
+			"usage": {
+				"input_tokens": 11,
+				"output_tokens": 7,
+				"total_tokens": 18,
+				"input_tokens_details": {"cached_tokens": 0},
+				"output_tokens_details": {"reasoning_tokens": 0}
+			}
 		}`))
 	}))
 	defer server.Close()
@@ -54,6 +61,9 @@ func TestResponsesClientCompleteCallsResponsesAPI(t *testing.T) {
 	}
 	if response.Text != `{"candidates":[]}` || response.Model != "test-model" {
 		t.Fatalf("response = %#v, want trimmed output and model", response)
+	}
+	if response.Usage.PromptTokens != 11 || response.Usage.CompletionTokens != 7 || response.Usage.TotalTokens != 18 {
+		t.Fatalf("usage = %#v, want response usage", response.Usage)
 	}
 	if body["model"] != "test-model" || body["instructions"] != "system prompt" || body["input"] != "user prompt" || body["store"] != false {
 		t.Fatalf("body = %#v, want model, instructions, input, and disabled store", body)
@@ -85,7 +95,12 @@ func TestChatClientCompleteCallsChatCompletionsAPIWithJSONHint(t *testing.T) {
 					"content": " {\"candidates\":[]} "
 				},
 				"finish_reason": "stop"
-			}]
+			}],
+			"usage": {
+				"prompt_tokens": 13,
+				"completion_tokens": 5,
+				"total_tokens": 18
+			}
 		}`))
 	}))
 	defer server.Close()
@@ -101,6 +116,9 @@ func TestChatClientCompleteCallsChatCompletionsAPIWithJSONHint(t *testing.T) {
 	}
 	if response.Text != `{"candidates":[]}` || response.Model != "test-model" {
 		t.Fatalf("response = %#v, want trimmed output and model", response)
+	}
+	if response.Usage.PromptTokens != 13 || response.Usage.CompletionTokens != 5 || response.Usage.TotalTokens != 18 {
+		t.Fatalf("usage = %#v, want chat completion usage", response.Usage)
 	}
 	messages, ok := body["messages"].([]any)
 	if !ok || len(messages) != 2 {

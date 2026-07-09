@@ -1,6 +1,7 @@
 package check
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"bytes"
 	"fmt"
@@ -17,20 +18,24 @@ func registerArchivePredicates(c *Checker) {
 		subjects: []model.VerifySubjectType{model.VerifySubjectFile},
 		params: []paramRule{
 			{name: paramSource, required: true},
-			{name: paramFormat, required: true, allowedValues: []string{formatZIP}},
+			{name: paramFormat, required: true, allowedValues: []string{formatZIP, formatTAR}},
 		},
 		run: checkArchiveContainsInput,
 	})
 }
 
 func checkArchiveContainsInput(ctx *predicateContext) error {
-	if format := strings.ToLower(stringParam(ctx.check.Params, paramFormat)); format != formatZIP {
+	format := strings.ToLower(stringParam(ctx.check.Params, paramFormat))
+	if format != formatZIP && format != formatTAR {
 		return fmt.Errorf("verify archive format %q is not supported", format)
 	}
 	source := pathParam(ctx.check.Params, paramSource, ctx.subject.inputs)
 	sourceBytes, err := os.ReadFile(source)
 	if err != nil {
 		return fmt.Errorf("read source: %w", err)
+	}
+	if format == formatTAR {
+		return checkTarContainsInput(ctx.subject.path, sourceBytes)
 	}
 	archive, err := zip.OpenReader(ctx.subject.path)
 	if err != nil {
@@ -44,6 +49,35 @@ func checkArchiveContainsInput(ctx *predicateContext) error {
 		content, err := readZipFile(file)
 		if err != nil {
 			return err
+		}
+		if bytes.Equal(content, sourceBytes) {
+			return nil
+		}
+	}
+	return fmt.Errorf("verify archive_contains_input failed")
+}
+
+func checkTarContainsInput(path string, sourceBytes []byte) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("verify archive_contains_input open tar: %w", err)
+	}
+	defer file.Close()
+	reader := tar.NewReader(file)
+	for {
+		header, err := reader.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("read tar entry: %w", err)
+		}
+		if header.FileInfo().IsDir() {
+			continue
+		}
+		content, err := io.ReadAll(reader)
+		if err != nil {
+			return fmt.Errorf("read tar entry: %w", err)
 		}
 		if bytes.Equal(content, sourceBytes) {
 			return nil

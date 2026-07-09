@@ -65,13 +65,16 @@ const (
 
 // ProposalAttempt records raw LLM response diagnostics for one Proposal stage call.
 type ProposalAttempt struct {
-	Stage          ProposalStageName     `json:"stage"`
-	CapabilityID   string                `json:"capability_id,omitempty"`
-	CandidateIndex *int                  `json:"candidate_index,omitempty"`
-	Status         ProposalAttemptStatus `json:"status"`
-	DurationMS     int64                 `json:"duration_ms,omitempty"`
-	Error          *RecordError          `json:"error,omitempty"`
-	RawResponse    string                `json:"raw_response,omitempty"`
+	Stage            ProposalStageName     `json:"stage"`
+	CapabilityID     string                `json:"capability_id,omitempty"`
+	CandidateIndex   *int                  `json:"candidate_index,omitempty"`
+	Status           ProposalAttemptStatus `json:"status"`
+	DurationMS       int64                 `json:"duration_ms,omitempty"`
+	PromptTokens     int64                 `json:"prompt_tokens,omitempty"`
+	CompletionTokens int64                 `json:"completion_tokens,omitempty"`
+	TotalTokens      int64                 `json:"total_tokens,omitempty"`
+	Error            *RecordError          `json:"error,omitempty"`
+	RawResponse      string                `json:"raw_response,omitempty"`
 }
 
 // ProposalDecision records whether a proposal item should continue to the next stage.

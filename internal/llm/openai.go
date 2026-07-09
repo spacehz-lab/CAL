@@ -63,7 +63,11 @@ func (client *openAIClient) completeResponses(ctx context.Context, req *Request)
 	if err != nil {
 		return nil, err
 	}
-	return client.response(response.OutputText())
+	return client.response(response.OutputText(), Usage{
+		PromptTokens:     response.Usage.InputTokens,
+		CompletionTokens: response.Usage.OutputTokens,
+		TotalTokens:      response.Usage.TotalTokens,
+	})
 }
 
 func (client *openAIClient) completeChat(ctx context.Context, req *Request) (*Response, error) {
@@ -87,15 +91,19 @@ func (client *openAIClient) completeChat(ctx context.Context, req *Request) (*Re
 	if len(completion.Choices) == 0 {
 		return nil, ErrEmptyResponse
 	}
-	return client.response(completion.Choices[0].Message.Content)
+	return client.response(completion.Choices[0].Message.Content, Usage{
+		PromptTokens:     completion.Usage.PromptTokens,
+		CompletionTokens: completion.Usage.CompletionTokens,
+		TotalTokens:      completion.Usage.TotalTokens,
+	})
 }
 
-func (client *openAIClient) response(text string) (*Response, error) {
+func (client *openAIClient) response(text string, usage Usage) (*Response, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, ErrEmptyResponse
 	}
-	return &Response{Text: text, Model: client.model}, nil
+	return &Response{Text: text, Model: client.model, Usage: usage}, nil
 }
 
 func newOpenAIClient(opts Options) *openAIClient {

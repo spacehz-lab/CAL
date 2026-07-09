@@ -1,6 +1,7 @@
 package check
 
 import (
+	"archive/tar"
 	"archive/zip"
 	"os"
 	"testing"
@@ -19,6 +20,16 @@ func TestArchiveContainsInputPassesAndFails(t *testing.T) {
 	}
 	if err := runOneCheck(check, map[string]any{"source": source, "target": bad}, "", "", 0); err == nil {
 		t.Fatal("Run() error = nil, want mismatch error")
+	}
+}
+
+func TestTarContainsInputPasses(t *testing.T) {
+	source := writeTempFile(t, "source.txt", "hello tar\n")
+	target := writeTempTar(t, "target.tar", map[string]string{"source.txt": "hello tar\n"})
+	check := fileCheck(model.VerifyPredicateArchiveContainsInput, map[string]any{paramSource: "source", paramFormat: formatTAR})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target}, "", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
 	}
 }
 
@@ -44,6 +55,32 @@ func writeTempZip(t *testing.T, name string, files map[string]string) string {
 	}
 	if err := target.Close(); err != nil {
 		t.Fatalf("close zip file: %v", err)
+	}
+	return path
+}
+
+func writeTempTar(t *testing.T, name string, files map[string]string) string {
+	t.Helper()
+	path := writeTempFile(t, name, "")
+	target, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create tar: %v", err)
+	}
+	writer := tar.NewWriter(target)
+	for filename, content := range files {
+		header := &tar.Header{Name: filename, Mode: 0o600, Size: int64(len(content))}
+		if err := writer.WriteHeader(header); err != nil {
+			t.Fatalf("write tar header: %v", err)
+		}
+		if _, err := writer.Write([]byte(content)); err != nil {
+			t.Fatalf("write tar entry: %v", err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatalf("close tar: %v", err)
+	}
+	if err := target.Close(); err != nil {
+		t.Fatalf("close tar file: %v", err)
 	}
 	return path
 }

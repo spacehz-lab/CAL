@@ -123,7 +123,27 @@ func normalizeCandidate(candidate model.Candidate, req *Request) model.Candidate
 	}
 	candidate.Source = strings.TrimSpace(candidate.Source)
 	candidate.Execution.Kind = model.ExecutionKind(strings.TrimSpace(string(candidate.Execution.Kind)))
+	normalizeExecutionSpec(candidate.Execution.Spec)
 	return candidate
+}
+
+func normalizeExecutionSpec(spec map[string]any) {
+	if spec == nil {
+		return
+	}
+	value, ok := spec[model.ExecutionSpecStdoutPathInput]
+	if !ok {
+		return
+	}
+	if value == nil {
+		delete(spec, model.ExecutionSpecStdoutPathInput)
+		return
+	}
+	input, ok := value.(string)
+	if ok && strings.TrimSpace(input) == "" {
+		delete(spec, model.ExecutionSpecStdoutPathInput)
+		return
+	}
 }
 
 func normalizeProviderID(providerID string) string {

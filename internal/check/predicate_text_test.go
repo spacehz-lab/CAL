@@ -38,6 +38,45 @@ func TestTextPredicatesPassAndFail(t *testing.T) {
 	}
 }
 
+func TestTextTransformMatches(t *testing.T) {
+	source := writeTempFile(t, "source.txt", "hello\nCal\n")
+	target := writeTempFile(t, "target.txt", "HELLO\nCAL\n")
+	check := fileCheck(model.VerifyPredicateTextTransformMatches, map[string]any{paramSource: "source", paramTransform: transformUppercase})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target}, "", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}
+
+func TestLineCountMatches(t *testing.T) {
+	source := writeTempFile(t, "source.txt", "a\nb\nc\n")
+	check := stdoutCheck(model.VerifyPredicateLineCountMatches, map[string]any{paramSource: "source"})
+
+	if err := runOneCheck(check, map[string]any{"source": source}, "       3 source.txt\n", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}
+
+func TestTextFilterMatches(t *testing.T) {
+	source := writeTempFile(t, "source.txt", "info ready\nerror disk\nerror net\n")
+	target := writeTempFile(t, "target.txt", "error disk\nerror net\n")
+	check := fileCheck(model.VerifyPredicateTextFilterMatches, map[string]any{paramSource: "source", paramPattern: "pattern"})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target, "pattern": "error"}, "", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}
+
+func TestDelimitedColumnMatches(t *testing.T) {
+	source := writeTempFile(t, "source.csv", "name,score\ncal,9\nagent,7\n")
+	target := writeTempFile(t, "target.txt", "score\n9\n7\n")
+	check := fileCheck(model.VerifyPredicateDelimitedColumnMatch, map[string]any{paramSource: "source", paramDelimiter: "delimiter", paramColumn: "column"})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target, "delimiter": ",", "column": "2"}, "", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}
+
 func stdoutCheck(predicate model.VerifyPredicate, params map[string]any) model.VerifyCheck {
 	return model.VerifyCheck{
 		Subject:   model.VerifySubject{Type: model.VerifySubjectStdout},

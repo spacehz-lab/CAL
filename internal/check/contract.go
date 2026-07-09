@@ -9,6 +9,8 @@ const (
 	paramQuery     = "query"
 	paramTransform = "transform"
 	paramAlgorithm = "algorithm"
+	paramDelimiter = "delimiter"
+	paramColumn    = "column"
 )
 
 const (
@@ -17,11 +19,14 @@ const (
 	formatJSON = "json"
 	formatText = "text"
 	formatZIP  = "zip"
+	formatTAR  = "tar"
 )
 
 const (
 	transformBase64Encode = "base64_encode"
 	transformBase64Decode = "base64_decode"
+	transformUppercase    = "uppercase"
+	transformLowercase    = "lowercase"
 )
 
 const (

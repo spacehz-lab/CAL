@@ -2,6 +2,7 @@ package selector
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -85,6 +86,57 @@ func TestRunUsesLLMForTiedCandidates(t *testing.T) {
 	}
 }
 
+func TestRunUsesLLMForCloseCandidates(t *testing.T) {
+	client := &fakeLLM{response: `{"binding_id":"binding_file","reason":"closer to file export"}`}
+	result, err := NewRunner(WithLLM(client)).Run(context.Background(), &Request{
+		Intent: "export pdf file",
+		Capabilities: []model.Capability{
+			capability("export_pdf", "Export PDF file", binding("binding_pdf", "provider_a", model.VerifyLevelL2, []string{"run"})),
+			capability("export_file", "Export file", binding("binding_file", "provider_b", model.VerifyLevelL2, []string{"run"})),
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if result.Source != SourceLLM || result.BindingID != "binding_file" {
+		t.Fatalf("result = %#v, want LLM binding_file", result)
+	}
+}
+
+func TestRunLLMPayloadIncludesProviderCommandAndInputSummaries(t *testing.T) {
+	client := &fakeLLM{response: `{"binding_id":"binding_cut","inputs_patch":{"fields":"2"},"reason":"cut extracts fields"}`}
+	_, err := NewRunner(WithLLM(client)).Run(context.Background(), &Request{
+		Intent:           "extract requested column",
+		Inputs:           map[string]any{"source": "/private/tmp/scores.csv", "delimiter": ",", "column": "2"},
+		ProviderCommands: map[string]string{"provider_cut": "cut", "provider_awk": "awk"},
+		Capabilities: []model.Capability{
+			capability("csv_column_extract", "Extract delimited column", binding("binding_cut", "provider_cut", model.VerifyLevelL2, []string{"-d", "{{delimiter}}", "-f", "{{fields}}", "{{source}}"})),
+			capability("text_column_extract", "Extract delimited column", binding("binding_awk", "provider_awk", model.VerifyLevelL2, []string{"-F", "{{delimiter}}", "{print $2}", "{{source}}"})),
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	var payload llmPayload
+	if err := json.Unmarshal([]byte(client.request.User), &payload); err != nil {
+		t.Fatalf("decode llm payload: %v", err)
+	}
+	if payload.Candidates[0].ProviderCommand != "cut" {
+		t.Fatalf("provider command = %q, want cut", payload.Candidates[0].ProviderCommand)
+	}
+	if payload.Inputs["column"] != "2" || payload.Inputs["delimiter"] != "," {
+		t.Fatalf("inputs = %#v, want scalar caller input summaries", payload.Inputs)
+	}
+	source, ok := payload.Inputs["source"].(map[string]any)
+	if !ok || source[inputSummaryKindKey] != inputSummaryPathKind || source[inputSummaryBasenameKey] != "scores.csv" {
+		t.Fatalf("source summary = %#v, want path basename only", payload.Inputs["source"])
+	}
+	if strings.Contains(client.request.User, "/private/tmp") {
+		t.Fatalf("llm payload leaked absolute path: %s", client.request.User)
+	}
+}
+
 func TestRunRejectsLLMUnknownBinding(t *testing.T) {
 	client := &fakeLLM{response: `{"binding_id":"missing"}`}
 	_, err := NewRunner(WithLLM(client)).Run(context.Background(), &Request{
@@ -121,7 +173,9 @@ func TestLLMSystemPromptContainsBoundedSelectionRules(t *testing.T) {
 		"Choose only from candidates[].binding_id.",
 		"Return exactly one JSON object:",
 		"inputs_patch may include only keys required by the selected candidate.",
+		"inputs_patch may copy or rename values from caller inputs",
 		"Do not include target in inputs_patch",
+		"Do not invent values that are not present in the user intent or caller inputs.",
 		"Do not invent capabilities, bindings, inputs, commands, files, paths, formats, algorithms, or outcomes.",
 		"Do not include markdown, comments, or extra text.",
 	}

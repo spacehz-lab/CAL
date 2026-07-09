@@ -3,11 +3,19 @@ package selector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/spacehz-lab/cal/internal/llm"
 	"github.com/spacehz-lab/cal/internal/model"
+)
+
+const (
+	inputSummaryKindKey     = "kind"
+	inputSummaryBasenameKey = "basename"
+	inputSummaryPathKind    = "path"
 )
 
 const llmSystemPrompt = `You select one already-promoted CAL binding for a user intent.
@@ -17,6 +25,7 @@ Choose only from candidates[].binding_id.
 Choose the binding that best matches the intent and can be satisfied by caller inputs plus a valid inputs_patch.
 Prefer candidates with fewer missing non-target inputs.
 Prefer explicit intent matches over inferred matches.
+Use provider_command and execution_args to distinguish operation direction, output format, and required inputs.
 
 Return exactly one JSON object:
 {"binding_id":"...","inputs_patch":{},"reason":"short reason"}
@@ -24,9 +33,10 @@ Return exactly one JSON object:
 Rules:
 - binding_id must be one of candidates[].binding_id.
 - inputs_patch may include only keys required by the selected candidate.
-- inputs_patch may include only literal values explicitly present in the user intent.
+- inputs_patch may copy or rename values from caller inputs when required by the selected candidate.
 Do not include target in inputs_patch; CAL creates missing target paths locally.
 Do not overwrite input_keys already supplied by the caller.
+- Do not invent values that are not present in the user intent or caller inputs.
 - Do not invent capabilities, bindings, inputs, commands, files, paths, formats, algorithms, or outcomes.
 - Do not claim execution or verification success; CAL validates and runs after selection.
 - Do not include markdown, comments, or extra text.`
@@ -74,9 +84,10 @@ type llmDecision struct {
 }
 
 type llmPayload struct {
-	Intent     string    `json:"intent"`
-	InputKeys  []string  `json:"input_keys"`
-	Candidates []llmCard `json:"candidates"`
+	Intent     string         `json:"intent"`
+	InputKeys  []string       `json:"input_keys"`
+	Inputs     map[string]any `json:"inputs,omitempty"`
+	Candidates []llmCard      `json:"candidates"`
 }
 
 type llmCard struct {
@@ -84,6 +95,7 @@ type llmCard struct {
 	CapabilityDescription string   `json:"capability_description,omitempty"`
 	BindingID             string   `json:"binding_id"`
 	ProviderID            string   `json:"provider_id"`
+	ProviderCommand       string   `json:"provider_command,omitempty"`
 	ExecutionKind         string   `json:"execution_kind"`
 	RequiredInputs        []string `json:"required_inputs,omitempty"`
 	ExecutionArgs         []string `json:"execution_args,omitempty"`
@@ -99,6 +111,7 @@ func buildLLMRequest(req *Request, candidates []candidate) (*llm.Request, map[st
 			CapabilityDescription: candidate.capability.Description,
 			BindingID:             candidate.binding.ID,
 			ProviderID:            candidate.binding.ProviderID,
+			ProviderCommand:       providerCommand(req, candidate.binding.ProviderID),
 			ExecutionKind:         string(candidate.binding.Execution.Kind),
 			RequiredInputs:        candidate.required,
 			ExecutionArgs:         executionArgs(candidate.binding.Execution),
@@ -107,6 +120,7 @@ func buildLLMRequest(req *Request, candidates []candidate) (*llm.Request, map[st
 	payload := llmPayload{
 		Intent:     req.Intent,
 		InputKeys:  inputKeys(req.Inputs),
+		Inputs:     inputSummaries(req.Inputs),
 		Candidates: cards,
 	}
 	content, err := json.Marshal(payload)
@@ -130,7 +144,7 @@ func validateInputsPatch(req *Request, selected candidate, patch map[string]any)
 		if name == "" {
 			return nil, &Error{Code: CodeInvalidLLMSelection, Message: "llm inputs_patch contains an empty key"}
 		}
-		if name == "target" {
+		if name == targetInputName {
 			return nil, &Error{Code: CodeInvalidLLMSelection, Message: "llm inputs_patch must not include target"}
 		}
 		if _, ok := allowed[name]; !ok {
@@ -153,6 +167,42 @@ func inputKeys(inputs map[string]any) []string {
 	return keys
 }
 
+func inputSummaries(inputs map[string]any) map[string]any {
+	if len(inputs) == 0 {
+		return nil
+	}
+	summaries := make(map[string]any, len(inputs))
+	for key, value := range inputs {
+		summaries[key] = inputSummary(value)
+	}
+	return summaries
+}
+
+func inputSummary(value any) any {
+	switch typed := value.(type) {
+	case string:
+		text := strings.TrimSpace(typed)
+		if text == "" {
+			return ""
+		}
+		if looksLikePath(text) {
+			return map[string]string{inputSummaryKindKey: inputSummaryPathKind, inputSummaryBasenameKey: filepath.Base(text)}
+		}
+		return text
+	case bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return typed
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
+func providerCommand(req *Request, providerID string) string {
+	if req == nil || len(req.ProviderCommands) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(req.ProviderCommands[providerID])
+}
+
 func executionArgs(execution model.Execution) []string {
 	value, ok := execution.Spec[model.ExecutionSpecArgs]
 	if !ok {
@@ -173,6 +223,13 @@ func executionArgs(execution model.Execution) []string {
 	default:
 		return nil
 	}
+}
+
+func looksLikePath(text string) bool {
+	if strings.ContainsAny(text, `/\`) {
+		return true
+	}
+	return filepath.Base(text) != text
 }
 
 func hasInput(inputs map[string]any, name string) bool {

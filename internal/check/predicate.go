@@ -67,6 +67,11 @@ var predicateOrder = []model.VerifyPredicate{
 	model.VerifyPredicateHashLineMatches,
 	model.VerifyPredicateArchiveContainsInput,
 	model.VerifyPredicateJSONQueryMatches,
+	model.VerifyPredicateJSONEquivalent,
+	model.VerifyPredicateTextTransformMatches,
+	model.VerifyPredicateLineCountMatches,
+	model.VerifyPredicateTextFilterMatches,
+	model.VerifyPredicateDelimitedColumnMatch,
 }
 
 func subjectRequiresInput(subject model.VerifySubjectType) (bool, bool) {

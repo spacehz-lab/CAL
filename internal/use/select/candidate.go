@@ -14,6 +14,8 @@ const (
 	scoreDescToken    = 2
 	scoreSatisfied    = 1
 	scoreProviderHint = 4
+	llmScoreGap       = 4
+	targetInputName   = "target"
 )
 
 var tokenPattern = regexp.MustCompile(`[a-z0-9]+`)
@@ -120,7 +122,7 @@ func missingInputs(required []string, inputs map[string]any) []string {
 
 func hasNonTargetMissing(candidate candidate) bool {
 	for _, name := range candidate.missing {
-		if name != "target" {
+		if name != targetInputName {
 			return true
 		}
 	}
@@ -146,7 +148,7 @@ func shouldUseLLM(candidates []candidate) bool {
 	if hasNonTargetMissing(candidates[0]) {
 		return true
 	}
-	return len(candidates) > 1 && candidates[0].score == candidates[1].score
+	return len(candidates) > 1 && candidates[0].score-candidates[1].score <= llmScoreGap
 }
 
 func resultFromCandidate(source Source, candidate candidate, reason string, considered int, inputsPatch map[string]any) *Result {

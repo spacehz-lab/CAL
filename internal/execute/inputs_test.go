@@ -25,6 +25,24 @@ func TestRequiredInputsReturnsSortedPlaceholdersAndStdoutTarget(t *testing.T) {
 	}
 }
 
+func TestRequiredInputsTreatsNilStdoutPathInputAsUnset(t *testing.T) {
+	execution := &model.Execution{
+		Kind: model.ExecutionKindCLI,
+		Spec: map[string]any{
+			model.ExecutionSpecArgs:            []string{"run", "{{source}}", "{{target}}"},
+			model.ExecutionSpecStdoutPathInput: nil,
+		},
+	}
+	required, err := RequiredInputs(execution)
+	if err != nil {
+		t.Fatalf("RequiredInputs() error = %v", err)
+	}
+	want := []string{"source", "target"}
+	if !reflect.DeepEqual(required, want) {
+		t.Fatalf("RequiredInputs() = %#v, want %#v", required, want)
+	}
+}
+
 func TestRenderArgsRendersStringArgs(t *testing.T) {
 	execution := &model.Execution{
 		Kind: model.ExecutionKindCLI,
@@ -92,5 +110,22 @@ func TestStdoutPathInputRejectsPlaceholder(t *testing.T) {
 	}
 	if _, _, err := StdoutPathInput(execution); err == nil {
 		t.Fatal("StdoutPathInput() error = nil, want invalid stdout path input error")
+	}
+}
+
+func TestStdoutPathInputTreatsEmptyStringAsUnset(t *testing.T) {
+	execution := &model.Execution{
+		Kind: model.ExecutionKindCLI,
+		Spec: map[string]any{
+			model.ExecutionSpecArgs:            []string{},
+			model.ExecutionSpecStdoutPathInput: " ",
+		},
+	}
+	_, ok, err := StdoutPathInput(execution)
+	if err != nil {
+		t.Fatalf("StdoutPathInput() error = %v", err)
+	}
+	if ok {
+		t.Fatal("StdoutPathInput() ok = true, want unset")
 	}
 }

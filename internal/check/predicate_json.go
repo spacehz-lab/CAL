@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,12 @@ func registerJSONPredicates(c *Checker) {
 			{name: paramQuery, required: true},
 		},
 		run: checkJSONQueryMatches,
+	})
+	c.register(predicate{
+		name:     model.VerifyPredicateJSONEquivalent,
+		subjects: []model.VerifySubjectType{model.VerifySubjectFile, model.VerifySubjectStdout, model.VerifySubjectStderr},
+		params:   []paramRule{{name: paramSource, required: true}},
+		run:      checkJSONEquivalent,
 	})
 }
 
@@ -44,11 +51,33 @@ func checkJSONQueryMatches(ctx *predicateContext) error {
 	return nil
 }
 
+func checkJSONEquivalent(ctx *predicateContext) error {
+	source := pathParam(ctx.check.Params, paramSource, ctx.subject.inputs)
+	sourceBytes, err := os.ReadFile(source)
+	if err != nil {
+		return fmt.Errorf("read source: %w", err)
+	}
+	text, err := subjectText(ctx.subject)
+	if err != nil {
+		return err
+	}
+	sourceValue, err := parseJSONValue(sourceBytes)
+	if err != nil {
+		return fmt.Errorf("parse json source: %w", err)
+	}
+	targetValue, err := parseJSONValue([]byte(text))
+	if err != nil {
+		return fmt.Errorf("parse json target: %w", err)
+	}
+	if !reflect.DeepEqual(sourceValue, targetValue) {
+		return fmt.Errorf("verify json_equivalent failed")
+	}
+	return nil
+}
+
 func queryJSON(content []byte, query string) (string, error) {
-	var value any
-	decoder := json.NewDecoder(bytes.NewReader(content))
-	decoder.UseNumber()
-	if err := decoder.Decode(&value); err != nil {
+	value, err := parseJSONValue(content)
+	if err != nil {
 		return "", fmt.Errorf("parse json source: %w", err)
 	}
 	current, err := walkJSON(value, query)
@@ -56,6 +85,16 @@ func queryJSON(content []byte, query string) (string, error) {
 		return "", err
 	}
 	return jsonScalarText(current)
+}
+
+func parseJSONValue(content []byte) (any, error) {
+	var value any
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.UseNumber()
+	if err := decoder.Decode(&value); err != nil {
+		return nil, err
+	}
+	return value, nil
 }
 
 func walkJSON(value any, query string) (any, error) {

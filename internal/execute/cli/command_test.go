@@ -73,6 +73,30 @@ func TestRunWritesStdoutTarget(t *testing.T) {
 	}
 }
 
+func TestRunAllowsCommandOwnedTargetOutput(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "file-output-cli")
+	target := filepath.Join(dir, "output.txt")
+	writeExecutable(t, path, "#!/bin/sh\nprintf 'artifact bytes' > \"$1\"\n")
+
+	req := request(path, []string{"{{target}}"}, map[string]any{"target": target})
+	req.Execution.Spec[model.ExecutionSpecStdoutPathInput] = nil
+	result, err := NewRunner().Run(context.Background(), req)
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	content, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatalf("read target: %v", err)
+	}
+	if string(content) != "artifact bytes" {
+		t.Fatalf("target content = %q, want artifact bytes", content)
+	}
+	if _, ok := result.Outputs[execute.OutputTarget]; ok {
+		t.Fatalf("target output = %#v, want no stdout-captured target output", result.Outputs[execute.OutputTarget])
+	}
+}
+
 func TestRunReportsMissingStdoutTarget(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "stdout-cli")

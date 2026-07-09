@@ -52,12 +52,15 @@ func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
 				},
 			}},
 			Attempts: []ProposalAttempt{{
-				Stage:          ProposalStageEvidence,
-				CapabilityID:   "document.convert",
-				CandidateIndex: &candidateIndex,
-				Status:         ProposalAttemptFailed,
-				Error:          &RecordError{Code: "proposal_stage_failed", Message: "bad verify"},
-				RawResponse:    `{"verify":{}}`,
+				Stage:            ProposalStageEvidence,
+				CapabilityID:     "document.convert",
+				CandidateIndex:   &candidateIndex,
+				Status:           ProposalAttemptFailed,
+				PromptTokens:     11,
+				CompletionTokens: 7,
+				TotalTokens:      18,
+				Error:            &RecordError{Code: "proposal_stage_failed", Message: "bad verify"},
+				RawResponse:      `{"verify":{}}`,
 			}},
 		},
 	}
@@ -67,7 +70,7 @@ func TestProposalDiagnosticsUseStableJSONStrings(t *testing.T) {
 		t.Fatalf("Marshal() error = %v", err)
 	}
 	text := string(data)
-	for _, want := range []string{`"name":"surface"`, `"name":"binding"`, `"raw":2`, `"selected":1`, `"decision":"keep"`, `"reason":"local_policy"`, `"attempts"`, `"stage":"evidence"`, `"candidate_index":0`, `"status":"failed"`, `"raw_response":"{\"verify\":{}}"`} {
+	for _, want := range []string{`"name":"surface"`, `"name":"binding"`, `"raw":2`, `"selected":1`, `"decision":"keep"`, `"reason":"local_policy"`, `"attempts"`, `"stage":"evidence"`, `"candidate_index":0`, `"status":"failed"`, `"prompt_tokens":11`, `"completion_tokens":7`, `"total_tokens":18`, `"raw_response":"{\"verify\":{}}"`} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("trace JSON = %s, want %s", data, want)
 		}

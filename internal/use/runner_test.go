@@ -121,13 +121,18 @@ func TestRunNormalizesNilInputs(t *testing.T) {
 
 type fakeStore struct {
 	capabilities []model.Capability
+	providers    []model.Provider
 	err          error
+	providerErr  error
 }
 
 func newFakeStore() *fakeStore {
-	return &fakeStore{capabilities: []model.Capability{
-		useCapability("markdown_to_pdf", "Markdown to PDF", useBinding("binding_pdf", []string{"run", "{{source}}"})),
-	}}
+	return &fakeStore{
+		capabilities: []model.Capability{
+			useCapability("markdown_to_pdf", "Markdown to PDF", useBinding("binding_pdf", []string{"run", "{{source}}"})),
+		},
+		providers: []model.Provider{{ID: "provider_test", Name: "provider", Kind: model.ProviderKindCLI, Path: "/usr/bin/provider"}},
+	}
 }
 
 func (store *fakeStore) ListCapabilities() ([]model.Capability, error) {
@@ -135,6 +140,13 @@ func (store *fakeStore) ListCapabilities() ([]model.Capability, error) {
 		return nil, store.err
 	}
 	return store.capabilities, nil
+}
+
+func (store *fakeStore) ListProviders() ([]model.Provider, error) {
+	if store.providerErr != nil {
+		return nil, store.providerErr
+	}
+	return store.providers, nil
 }
 
 type fakeRunRunner struct {

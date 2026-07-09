@@ -22,6 +22,7 @@ const (
 // Store describes the catalog operation required by use.
 type Store interface {
 	ListCapabilities() ([]model.Capability, error)
+	ListProviders() ([]model.Provider, error)
 }
 
 // Executor executes a planned formal run.

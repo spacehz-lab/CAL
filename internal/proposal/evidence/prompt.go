@@ -16,7 +16,7 @@ Goal:
 Stage 4 is Evidence. It only proposes verify method and checks so Proposal can derive the final verify level locally, then later Verification can execute the candidate and evaluate built-in checks or record weak contract evidence when execution is unsafe.
 
 Response shape:
-{"verify":{"method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches|archive_contains_input|json_query_matches","params":{}}]}}.
+{"verify":{"method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches|archive_contains_input|json_query_matches|json_equivalent|text_transform_matches|line_count_matches|text_filter_matches|delimited_column_matches","params":{}}]}}.
 
 Boundary:
 - Do not execute the candidate.
@@ -103,6 +103,11 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateHashLineMatches,
 				model.VerifyPredicateArchiveContainsInput,
 				model.VerifyPredicateJSONQueryMatches,
+				model.VerifyPredicateJSONEquivalent,
+				model.VerifyPredicateTextTransformMatches,
+				model.VerifyPredicateLineCountMatches,
+				model.VerifyPredicateTextFilterMatches,
+				model.VerifyPredicateDelimitedColumnMatch,
 			},
 		},
 		{
@@ -116,6 +121,10 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateRegex,
 				model.VerifyPredicateHashLineMatches,
 				model.VerifyPredicateJSONQueryMatches,
+				model.VerifyPredicateJSONEquivalent,
+				model.VerifyPredicateLineCountMatches,
+				model.VerifyPredicateTextFilterMatches,
+				model.VerifyPredicateDelimitedColumnMatch,
 			},
 		},
 		{
@@ -129,6 +138,10 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateRegex,
 				model.VerifyPredicateHashLineMatches,
 				model.VerifyPredicateJSONQueryMatches,
+				model.VerifyPredicateJSONEquivalent,
+				model.VerifyPredicateLineCountMatches,
+				model.VerifyPredicateTextFilterMatches,
+				model.VerifyPredicateDelimitedColumnMatch,
 			},
 		},
 		{

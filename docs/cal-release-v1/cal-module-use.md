@@ -192,7 +192,7 @@ Main flow:
 ```text
 1. Validate use request.
 2. Start use result.
-3. Load capabilities from store.
+3. Load capabilities and providers from store.
 4. Select binding with use/select.
 5. Plan final inputs with use/plan.
 6. Call run.Run.
@@ -254,11 +254,12 @@ Input shape:
 
 ```go
 type Request struct {
-	Intent         string
-	Inputs         map[string]any
-	ProviderID     string
-	MinVerifyLevel model.VerifyLevel
-	Capabilities   []model.Capability
+	Intent           string
+	Inputs           map[string]any
+	ProviderID       string
+	MinVerifyLevel   model.VerifyLevel
+	Capabilities     []model.Capability
+	ProviderCommands map[string]string
 }
 ```
 
@@ -360,6 +361,11 @@ local token matching leaves semantic ambiguity
 the caller explicitly enables semantic selection, if such a flag is added later
 ```
 
+The first implementation treats candidates as close when the top two local
+scores differ by at most four points. This keeps obvious local reuse local, but
+lets the LLM handle direction-sensitive or input-mapping cases where token
+scoring is too weak.
+
 Do not call LLM when:
 
 ```text
@@ -373,15 +379,23 @@ LLM input should include only:
 ```text
 intent
 caller input keys
+sanitized caller input summaries:
+  scalar values such as column, delimiter, query, pattern
+  path values as kind=path plus basename only
 topK candidate cards:
   capability_id
   capability_description
   binding_id
   provider_id
+  provider_command
   execution_kind
   required_inputs
   execution args summary
 ```
+
+`provider_command` is derived at runtime from stored provider metadata. The
+durable `model.Provider` record remains `id/name/kind/path/version`; the command
+name should not be duplicated as another persisted provider field.
 
 LLM output:
 
@@ -394,6 +408,7 @@ Validation rules:
 ```text
 binding_id must be in topK
 inputs_patch keys must be required by the selected binding
+inputs_patch may copy or rename values from caller inputs
 inputs_patch must not overwrite caller inputs
 inputs_patch must not include target
 inputs_patch must not invent input names

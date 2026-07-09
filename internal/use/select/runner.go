@@ -42,11 +42,12 @@ func (err *Error) Error() string {
 
 // Request provides semantic binding selection input.
 type Request struct {
-	Intent         string
-	Inputs         map[string]any
-	ProviderID     string
-	MinVerifyLevel model.VerifyLevel
-	Capabilities   []model.Capability
+	Intent           string
+	Inputs           map[string]any
+	ProviderID       string
+	MinVerifyLevel   model.VerifyLevel
+	Capabilities     []model.Capability
+	ProviderCommands map[string]string
 }
 
 // Result describes the selected promoted binding.

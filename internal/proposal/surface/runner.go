@@ -65,17 +65,30 @@ func (runner *Runner) Run(ctx context.Context, req *Request) (*Result, error) {
 	started := time.Now()
 	response, err := runner.client.Complete(ctx, prompt(req))
 	raw := ""
+	var usage llm.Usage
 	if response != nil {
 		raw = response.Text
+		usage = response.Usage
 	}
 	attempt := newAttempt(started, raw, err)
+	applyUsage(&attempt, usage)
 	if err != nil {
 		return &Result{Attempt: attempt}, err
 	}
 	items, stage, err := Parse(raw, req)
 	attempt = newAttempt(started, raw, err)
+	applyUsage(&attempt, usage)
 	if err != nil {
 		return &Result{Stage: stage, Attempt: attempt}, err
 	}
 	return &Result{Items: items, Stage: stage, Attempt: attempt}, nil
+}
+
+func applyUsage(attempt *model.ProposalAttempt, usage llm.Usage) {
+	if attempt == nil {
+		return
+	}
+	attempt.PromptTokens = usage.PromptTokens
+	attempt.CompletionTokens = usage.CompletionTokens
+	attempt.TotalTokens = usage.TotalTokens
 }

@@ -30,3 +30,17 @@ func TestJSONQueryMatchesSupportsLiteralQueryAndStdout(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 }
+
+func TestJSONEquivalentPassesAndFails(t *testing.T) {
+	source := writeTempFile(t, "source.json", `{"project":{"name":"cal","version":"0.0.1"}}`)
+	target := writeTempFile(t, "target.json", "{\n  \"project\": {\"version\": \"0.0.1\", \"name\": \"cal\"}\n}\n")
+	bad := writeTempFile(t, "bad.json", `{"project":{"name":"other","version":"0.0.1"}}`)
+	check := fileCheck(model.VerifyPredicateJSONEquivalent, map[string]any{paramSource: "source"})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target}, "", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if err := runOneCheck(check, map[string]any{"source": source, "target": bad}, "", "", 0); err == nil {
+		t.Fatal("Run() error = nil, want mismatch error")
+	}
+}

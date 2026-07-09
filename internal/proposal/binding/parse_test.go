@@ -28,6 +28,21 @@ func TestParseKeepsCandidatesWithProbeMaterial(t *testing.T) {
 	}
 }
 
+func TestParseNormalizesNilStdoutPathInput(t *testing.T) {
+	raw := `{"candidates":[{"execution":{"kind":"cli","spec":{"args":["write","{{source}}","{{target}}"],"stdout_path_input":null}}}],"probe_material":[{"candidate_index":0,"inputs":{"source":"{{workdir}}/input.txt","target":"{{workdir}}/output.txt"}}]}`
+
+	candidates, _, _, err := Parse(raw, &Request{
+		Provider:   &model.Provider{ID: "provider_test"},
+		Capability: Plan{CapabilityID: "file.write"},
+	})
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if _, ok := candidates[0].Execution.Spec[model.ExecutionSpecStdoutPathInput]; ok {
+		t.Fatalf("stdout_path_input = %#v, want normalized away", candidates[0].Execution.Spec[model.ExecutionSpecStdoutPathInput])
+	}
+}
+
 func TestParseRejectsCandidateWithoutProbeMaterial(t *testing.T) {
 	raw := `{"candidates":[{"execution":{"kind":"cli","spec":{"args":["tool"]}}}]}`
 

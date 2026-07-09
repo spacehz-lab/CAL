@@ -34,6 +34,11 @@ const (
 	VerifyPredicateHashLineMatches      VerifyPredicate = "hash_line_matches"
 	VerifyPredicateArchiveContainsInput VerifyPredicate = "archive_contains_input"
 	VerifyPredicateJSONQueryMatches     VerifyPredicate = "json_query_matches"
+	VerifyPredicateJSONEquivalent       VerifyPredicate = "json_equivalent"
+	VerifyPredicateTextTransformMatches VerifyPredicate = "text_transform_matches"
+	VerifyPredicateLineCountMatches     VerifyPredicate = "line_count_matches"
+	VerifyPredicateTextFilterMatches    VerifyPredicate = "text_filter_matches"
+	VerifyPredicateDelimitedColumnMatch VerifyPredicate = "delimited_column_matches"
 )
 
 // VerifySubjectType identifies where a deterministic check reads evidence.
