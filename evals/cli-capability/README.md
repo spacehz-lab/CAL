@@ -28,11 +28,27 @@ evals/cli-capability/
   fixtures/
   oracles/
   baselines/
+  tools/bin/
   runner/
   report/
 ```
 
 `scenarios/*.jsonl` is the benchmark case source of truth.
+`tools/bin/` contains eval-local synthetic enterprise CLIs used for uncommon
+provider cases; the runner prepends this directory to worker `PATH`.
+
+Current scenario surface:
+
+- `acquisition`: 17 cases, including 5 uncommon/enterprise-like CLI cases.
+- `verification_failure`: 6 controlled invalid-provider cases.
+- `capability_structure`: structure checks attached to acquisition cases.
+- `repeated_reuse`: 17 cases with held-out reuse rounds.
+
+The uncommon provider slice uses `acmejson`, `corp-redact`, `datapick`, and
+`packnote`. These are intentionally small eval-local command surfaces whose
+syntax is not a standard Unix interface, so live runs can test whether a model
+can acquire behavior from provider help instead of relying only on memorized
+common CLI patterns.
 
 ## Case Contract
 

@@ -1,0 +1,61 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "json.pluck",
+      "description": "Extract a scalar value from a dotted JSON path with acmejson.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "pluck",
+            "--input",
+            "{{source}}",
+            "--path",
+            "{{path}}",
+            "--output",
+            "{{target}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "path": "project.owner",
+        "target": "{{workdir}}/owner.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.json",
+          "content": "{\"project\":{\"name\":\"cal\",\"owner\":\"research\"}}\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "json_query_matches",
+            "params": {
+              "source": "source",
+              "query": "path"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

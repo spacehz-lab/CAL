@@ -1,0 +1,63 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "table.fieldextract",
+      "description": "Extract values for a named header field from delimited data.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "emit",
+            "--input",
+            "{{source}}",
+            "--delimiter",
+            "{{delimiter}}",
+            "--field",
+            "{{field}}",
+            "--output",
+            "{{target}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "delimiter": ",",
+        "field": "score",
+        "target": "{{workdir}}/score.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.csv",
+          "content": "name,score,team\ncal,9,alpha\nagent,7,beta\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "regex",
+            "params": {
+              "pattern": "^9\\n7\\n?$"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

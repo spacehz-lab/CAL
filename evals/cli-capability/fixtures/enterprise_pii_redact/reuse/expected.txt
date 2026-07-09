@@ -1,0 +1,2 @@
+contact [EMAIL] with token [TOKEN]
+notify [EMAIL] after token [TOKEN]

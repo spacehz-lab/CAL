@@ -42,7 +42,7 @@ class AcquisitionRunner:
             "optional": bool(provider.get("optional", False)),
             "steps": [],
         }
-        provider_path = shutil.which(provider["command"])
+        provider_path = shutil.which(provider["command"], path=self.workspace.env.get("PATH"))
         if not provider_path:
             result["status"] = STATUS_SKIPPED
             result["failure"] = failure("cli_unavailable", "cli_unavailable", f"{provider['command']} was not found on PATH")

@@ -68,6 +68,10 @@ main process aggregates case artifacts into:
 This design makes acquisition parallel without sharing provider registration,
 promotion, trace, or output state across cases.
 
+The runner also prepends `evals/cli-capability/tools/bin` to each worker `PATH`.
+That directory contains eval-local synthetic enterprise CLIs for the uncommon
+provider slice and is intentionally scoped to benchmark execution.
+
 ## Validation
 
 ```sh

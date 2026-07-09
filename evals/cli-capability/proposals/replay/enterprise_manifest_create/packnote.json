@@ -1,0 +1,70 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "metadata.manifest",
+      "description": "Create a JSON manifest with source metadata and label.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "manifest",
+            "--source",
+            "{{source}}",
+            "--label",
+            "{{label}}",
+            "--output",
+            "{{target}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "label": "alpha-release",
+        "target": "{{workdir}}/manifest.json"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "artifact.txt",
+          "content": "release artifact alpha\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "format",
+            "params": {
+              "format": "json"
+            }
+          },
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "contains",
+            "params": {
+              "value": "alpha-release"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

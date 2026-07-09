@@ -1,0 +1,2 @@
+contact release@example.invalid with token tok_DEMO_RELEASE
+notify ops@example.invalid after token tok_DEMO_DONE

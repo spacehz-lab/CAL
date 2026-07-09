@@ -29,6 +29,7 @@ catalog = load_module("catalog")
 constants = load_module("constants")
 reuse = load_module("reuse")
 oracle = load_module("oracle")
+baseline = load_module("baseline")
 llm_oneshot = load_module("llm_oneshot")
 llm_client = load_module("llm_client")
 summary = load_module("summary")
@@ -239,6 +240,27 @@ class RunContractTest(unittest.TestCase):
 
     def test_should_run_acquisition_for_repeated_reuse(self) -> None:
         self.assertTrue(run.should_run_acquisition({"paper_experiments": ["repeated_reuse"]}))
+
+    def test_benchmark_env_prepends_eval_tools(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            bench = Path(temp) / "bench"
+            (bench / "tools" / "bin").mkdir(parents=True)
+
+            env = run.benchmark_env({"PATH": "/usr/bin"}, bench)
+
+            self.assertTrue(env["PATH"].startswith(str(bench / "tools" / "bin")))
+
+
+class BaselineEnvTest(unittest.TestCase):
+    def test_unavailable_command_uses_runner_env_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            tool = Path(temp) / "fake-tool"
+            tool.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            tool.chmod(0o755)
+
+            err = baseline.unavailable_command({}, ["fake-tool"], {"PATH": temp})
+
+            self.assertIsNone(err)
 
 
 def write_catalog_fixture(bench: Path) -> None:

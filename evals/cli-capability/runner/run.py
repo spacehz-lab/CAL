@@ -42,7 +42,7 @@ def main() -> int:
     out_base = Path(args.out).resolve() if args.out else repo / "evals" / "out" / "cli-capability"
     run_dir = out_base / run_id
     home = Path(args.home).resolve() if args.home else run_dir / "home"
-    env = os.environ.copy()
+    env = benchmark_env(os.environ.copy(), bench)
     env["CAL_HOME"] = str(home)
 
     calctl = resolve_executable(args.calctl)
@@ -60,7 +60,7 @@ def main() -> int:
         workspace = Workspace(repo, home, calctl, env)
         oracle = OracleRunner(repo, bench)
         benchmark = BenchmarkRunner(bench, home, workspace, args.mode, oracle)
-        baselines = BaselineRunner(repo, bench, home, oracle, args.mode)
+        baselines = BaselineRunner(repo, bench, home, oracle, args.mode, env)
         for case in selected_cases:
             result = run_case(case, benchmark, baselines)
             artifact["cases"].append(result)
@@ -135,7 +135,7 @@ class BenchmarkRunner:
 def run_case_shard(case: dict[str, Any], repo: Path, bench: Path, run_dir: Path, calctl: str, cald: str, mode: str) -> dict[str, Any]:
     shard = run_dir / "shards" / clean_run_part(case.get("case_key", case.get("id", "case")))
     home = shard / "home"
-    env = os.environ.copy()
+    env = benchmark_env(os.environ.copy(), bench)
     env["CAL_HOME"] = str(home)
     process = None
     try:
@@ -144,7 +144,7 @@ def run_case_shard(case: dict[str, Any], repo: Path, bench: Path, run_dir: Path,
         workspace = Workspace(repo, home, calctl, env)
         oracle = OracleRunner(repo, bench)
         benchmark = BenchmarkRunner(bench, home, workspace, mode, oracle)
-        baselines = BaselineRunner(repo, bench, home, oracle, mode)
+        baselines = BaselineRunner(repo, bench, home, oracle, mode, env)
         result = run_case(case, benchmark, baselines)
         result["shard"] = {"path": str(shard), "home": str(home)}
         return result
@@ -177,6 +177,13 @@ def should_run_acquisition(case: dict[str, Any]) -> bool:
             }
         )
     )
+
+
+def benchmark_env(env: dict[str, str], bench: Path) -> dict[str, str]:
+    tools = bench / "tools" / "bin"
+    if tools.exists():
+        env["PATH"] = str(tools) + os.pathsep + env.get("PATH", "")
+    return env
 
 
 def parse_args() -> argparse.Namespace:

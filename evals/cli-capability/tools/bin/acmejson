@@ -1,0 +1,77 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+
+
+HELP = """acmejson 1.4.2
+
+Enterprise JSON utility used by Acme data pipelines.
+
+Commands:
+  pluck --input FILE --path dotted.path --output FILE
+      Write the scalar value at a dotted JSON path. Lists use numeric path
+      segments, for example project.owners.0.email.
+
+  normalize --input FILE --output FILE
+      Write JSON with deterministic key ordering and two-space indentation.
+"""
+
+
+def main() -> int:
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        print(HELP)
+        return 0
+    if "--version" in sys.argv[1:]:
+        print("acmejson 1.4.2")
+        return 0
+
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    pluck = subparsers.add_parser("pluck", add_help=False)
+    pluck.add_argument("--input", required=True)
+    pluck.add_argument("--path", required=True)
+    pluck.add_argument("--output", required=True)
+    normalize = subparsers.add_parser("normalize", add_help=False)
+    normalize.add_argument("--input", required=True)
+    normalize.add_argument("--output", required=True)
+    args = parser.parse_args()
+
+    if args.command == "pluck":
+        return run_pluck(args.input, args.path, args.output)
+    if args.command == "normalize":
+        return run_normalize(args.input, args.output)
+    return 2
+
+
+def run_pluck(source: str, query: str, target: str) -> int:
+    with open(source, "r", encoding="utf-8") as handle:
+        value = json.load(handle)
+    current = value
+    for part in query.strip(".").split("."):
+        if isinstance(current, list):
+            current = current[int(part)]
+        else:
+            current = current[part]
+    with open(target, "w", encoding="utf-8") as handle:
+        if isinstance(current, (dict, list)):
+            json.dump(current, handle, sort_keys=True, separators=(",", ":"))
+            handle.write("\n")
+        else:
+            handle.write(str(current) + "\n")
+    return 0
+
+
+def run_normalize(source: str, target: str) -> int:
+    with open(source, "r", encoding="utf-8") as handle:
+        value = json.load(handle)
+    with open(target, "w", encoding="utf-8") as handle:
+        json.dump(value, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

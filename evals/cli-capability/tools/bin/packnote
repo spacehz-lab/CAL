@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+
+HELP = """packnote 3.0.3
+
+Internal release-manifest generator.
+
+Commands:
+  manifest --source FILE --label TEXT --output FILE
+      Write a JSON manifest with basename, byte size, sha256 digest, and label.
+"""
+
+
+def main() -> int:
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        print(HELP)
+        return 0
+    if "--version" in sys.argv[1:]:
+        print("packnote 3.0.3")
+        return 0
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    manifest = subparsers.add_parser("manifest", add_help=False)
+    manifest.add_argument("--source", required=True)
+    manifest.add_argument("--label", required=True)
+    manifest.add_argument("--output", required=True)
+    args = parser.parse_args()
+    if args.command != "manifest":
+        return 2
+    source = Path(args.source)
+    content = source.read_bytes()
+    payload = {
+        "basename": source.name,
+        "bytes": len(content),
+        "label": args.label,
+        "sha256": hashlib.sha256(content).hexdigest(),
+    }
+    with open(args.output, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

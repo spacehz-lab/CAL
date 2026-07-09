@@ -26,6 +26,8 @@ Aggregate output should report:
 
 - attempted cases and provider-case pairs
 - provider class and domain coverage
+- common, third-party, uncommon synthetic-enterprise, and controlled-failure
+  provider slices
 - provider availability
 - candidate count
 - probe pass/fail count
@@ -74,3 +76,6 @@ Baselines are attached to repeated held-out reuse:
 CAL may be slower on the first case because acquisition has upfront cost. The
 comparison is acquire-once/reuse-many versus repeated one-shot synthesis.
 
+The uncommon provider slice is reported separately from well-known CLI cases.
+Its purpose is to test provider-surface acquisition under command syntax that
+should not be treated as memorized model prior knowledge.

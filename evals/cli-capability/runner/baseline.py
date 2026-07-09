@@ -15,14 +15,15 @@ from util import elapsed_ms, failure, flow_step, read_jsonl, render_template
 
 
 class BaselineRunner:
-    def __init__(self, repo: Path, bench: Path, home: Path, oracle: OracleRunner, mode: str = MODE_REPLAY) -> None:
+    def __init__(self, repo: Path, bench: Path, home: Path, oracle: OracleRunner, mode: str = MODE_REPLAY, env: dict[str, str] | None = None) -> None:
         self.repo = repo
         self.bench = bench
         self.home = home
         self.oracle = oracle
         self.mode = mode
+        self.env = env
         self.commands = read_jsonl(bench / "baselines" / "oracle" / "commands.jsonl")
-        self.llm_oneshot = OneShotRunner(repo, bench, home, mode, oracle)
+        self.llm_oneshot = OneShotRunner(repo, bench, home, mode, oracle, env=env)
 
     def run_case(self, case: dict[str, Any]) -> dict[str, Any]:
         baselines: dict[str, Any] = {}
@@ -43,7 +44,7 @@ class BaselineRunner:
     def run_direct_cli_fixture(self, case: dict[str, Any], command: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]:
         inputs = materialize_inputs(self.bench, self.home, case["id"], fixture)
         rendered = [render_template(str(arg), inputs) for arg in command.get("command") or []]
-        skip = unavailable_command(command, rendered)
+        skip = unavailable_command(command, rendered, self.env)
         if skip:
             return {
                 "id": command.get("id", ""),
@@ -57,7 +58,7 @@ class BaselineRunner:
                 ],
             }
         started = time.monotonic()
-        completed = subprocess.run(rendered, cwd=self.repo, text=True, capture_output=True)
+        completed = subprocess.run(rendered, cwd=self.repo, env=self.env, text=True, capture_output=True)
         duration = elapsed_ms(started)
         result: dict[str, Any] = {
             "id": command.get("id", ""),
@@ -92,11 +93,12 @@ class BaselineRunner:
         return result
 
 
-def unavailable_command(command: dict[str, Any], rendered: list[str]) -> dict[str, str] | None:
+def unavailable_command(command: dict[str, Any], rendered: list[str], env: dict[str, str] | None = None) -> dict[str, str] | None:
     platforms = command.get("platforms") or []
     if platforms and current_platform() not in platforms:
         return failure("baseline_direct_cli", "platform_unavailable", f"baseline command is not configured for {current_platform()}")
-    if not rendered or not shutil.which(rendered[0]):
+    path = env.get("PATH") if env else None
+    if not rendered or not shutil.which(rendered[0], path=path):
         return failure("baseline_direct_cli", "cli_unavailable", f"{rendered[0] if rendered else 'command'} was not found on PATH")
     return None
 

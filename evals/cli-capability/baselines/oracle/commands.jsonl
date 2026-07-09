@@ -16,3 +16,8 @@
 {"id":"oracle_python_json_query","case_id":"json_query","provider":"python3","command":["python3","-c","import json,sys; data=json.load(open(sys.argv[1])); value=data\nfor part in sys.argv[2].strip('.').split('.'):\n    value=value[part]\nprint(value)","{{source}}","{{query}}"],"stdout_path_input":"target"}
 {"id":"oracle_jq_format","case_id":"json_format","provider":"jq","command":["jq",".","{{source}}"],"stdout_path_input":"target"}
 {"id":"oracle_python_json_format","case_id":"json_format","provider":"python3","command":["python3","-m","json.tool","{{source}}"],"stdout_path_input":"target"}
+{"id":"oracle_acmejson_pluck","case_id":"enterprise_json_pluck","provider":"acmejson","command":["acmejson","pluck","--input","{{source}}","--path","{{path}}","--output","{{target}}"]}
+{"id":"oracle_acmejson_normalize","case_id":"enterprise_json_normalize","provider":"acmejson","command":["acmejson","normalize","--input","{{source}}","--output","{{target}}"]}
+{"id":"oracle_corp_redact","case_id":"enterprise_pii_redact","provider":"corp_redact","command":["corp-redact","apply","--input","{{source}}","--output","{{target}}","--emails","mask","--tokens","mask"]}
+{"id":"oracle_datapick_field","case_id":"enterprise_table_field","provider":"datapick","command":["datapick","emit","--input","{{source}}","--delimiter","{{delimiter}}","--field","{{field}}","--output","{{target}}"]}
+{"id":"oracle_packnote_manifest","case_id":"enterprise_manifest_create","provider":"packnote","command":["packnote","manifest","--source","{{source}}","--label","{{label}}","--output","{{target}}"]}

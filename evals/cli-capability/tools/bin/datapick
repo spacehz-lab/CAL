@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import csv
+import sys
+
+
+HELP = """datapick 2.1.0
+
+Enterprise delimited-data extraction tool.
+
+Commands:
+  emit --input FILE --delimiter SEP --field HEADER --output FILE
+      Read a delimited file with a header row and write the selected field
+      value for each data row, one value per line.
+"""
+
+
+def main() -> int:
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        print(HELP)
+        return 0
+    if "--version" in sys.argv[1:]:
+        print("datapick 2.1.0")
+        return 0
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    emit = subparsers.add_parser("emit", add_help=False)
+    emit.add_argument("--input", required=True)
+    emit.add_argument("--delimiter", required=True)
+    emit.add_argument("--field", required=True)
+    emit.add_argument("--output", required=True)
+    args = parser.parse_args()
+    if args.command != "emit":
+        return 2
+    with open(args.input, "r", encoding="utf-8", newline="") as source:
+        reader = csv.DictReader(source, delimiter=args.delimiter)
+        values = [row[args.field] for row in reader]
+    with open(args.output, "w", encoding="utf-8") as target:
+        for value in values:
+            target.write(value + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

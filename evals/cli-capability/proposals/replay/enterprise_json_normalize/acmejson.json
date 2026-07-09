@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "benchmark-replay-v2",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "json.normalize",
+      "description": "Normalize JSON with deterministic key ordering.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": [
+            "normalize",
+            "--input",
+            "{{source}}",
+            "--output",
+            "{{target}}"
+          ]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/normalized.json"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.json",
+          "content": "{\"z\":2,\"a\":{\"b\":1},\"items\":[3,1]}\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "json_equivalent",
+            "params": {
+              "source": "source"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

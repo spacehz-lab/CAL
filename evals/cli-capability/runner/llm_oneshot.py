@@ -31,12 +31,22 @@ CODE_COMMAND_FAILED = "command_failed"
 
 
 class OneShotRunner:
-    def __init__(self, repo: Path, bench: Path, home: Path, mode: str, oracle: OracleRunner, client: LLMClient | None = None) -> None:
+    def __init__(
+        self,
+        repo: Path,
+        bench: Path,
+        home: Path,
+        mode: str,
+        oracle: OracleRunner,
+        client: LLMClient | None = None,
+        env: dict[str, str] | None = None,
+    ) -> None:
         self.repo = repo
         self.bench = bench
         self.home = home
         self.mode = mode
         self.oracle = oracle
+        self.env = env
         self.client = client if client is not None else LLMClient.from_env()
         self.prompt = (bench / "baselines" / "llm_one_shot" / "prompt.md").read_text(encoding="utf-8")
 
@@ -93,7 +103,8 @@ class OneShotRunner:
         if platforms and current_platform() not in platforms:
             return failure("baseline_llm_oneshot", CODE_PLATFORM_UNAVAILABLE, f"provider is not configured for {current_platform()}")
         command = provider.get("command", "")
-        if not command or not shutil.which(command):
+        path = self.env.get("PATH") if self.env else None
+        if not command or not shutil.which(command, path=path):
             return failure("baseline_llm_oneshot", CODE_CLI_UNAVAILABLE, f"{command or 'command'} was not found on PATH")
         return None
 
@@ -108,7 +119,7 @@ class OneShotRunner:
             "provider": {
                 "id": provider.get("id", ""),
                 "command": provider.get("command", ""),
-                "help": provider_help(provider),
+                "help": provider_help(provider, self.env),
             },
             "fixture": {
                 "id": fixture.get("id", ""),
@@ -120,7 +131,7 @@ class OneShotRunner:
     def run_command(self, row: dict[str, Any], case: dict[str, Any], inputs: dict[str, Any], command: list[str], writes_target: bool, llm_duration: int) -> dict[str, Any]:
         started = time.monotonic()
         try:
-            completed = subprocess.run(command, cwd=self.repo, text=True, capture_output=True, timeout=COMMAND_TIMEOUT_SECONDS)
+            completed = subprocess.run(command, cwd=self.repo, env=self.env, text=True, capture_output=True, timeout=COMMAND_TIMEOUT_SECONDS)
         except subprocess.TimeoutExpired:
             return self.failed(row, failure("baseline_llm_oneshot", CODE_COMMAND_FAILED, "command timed out"), llm_duration)
         duration = elapsed_ms(started)
@@ -169,17 +180,18 @@ class OneShotRunner:
         return row
 
 
-def provider_help(provider: dict[str, Any]) -> str:
+def provider_help(provider: dict[str, Any], env: dict[str, str] | None = None) -> str:
     command = provider.get("command", "")
+    path = env.get("PATH") if env else None
     attempts = []
     if provider.get("version_command"):
         attempts.append(provider["version_command"])
     attempts.extend([[command, "--help"], [command, "-h"]])
     for attempt in attempts:
-        if not attempt or not shutil.which(str(attempt[0])):
+        if not attempt or not shutil.which(str(attempt[0]), path=path):
             continue
         try:
-            completed = subprocess.run(attempt, text=True, capture_output=True, timeout=HELP_TIMEOUT_SECONDS)
+            completed = subprocess.run(attempt, env=env, text=True, capture_output=True, timeout=HELP_TIMEOUT_SECONDS)
         except subprocess.TimeoutExpired:
             continue
         text = (completed.stdout + "\n" + completed.stderr).strip()

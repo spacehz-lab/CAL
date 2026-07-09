@@ -315,6 +315,96 @@
       ]
     },
     {
+      "id": "acmejson",
+      "kind": "cli",
+      "command": "acmejson",
+      "provider_class": "synthetic_enterprise",
+      "domains": [
+        "structured_data"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "acmejson",
+        "--version"
+      ],
+      "task_families": [
+        "enterprise_json_pluck",
+        "enterprise_json_normalize"
+      ]
+    },
+    {
+      "id": "corp_redact",
+      "kind": "cli",
+      "command": "corp-redact",
+      "provider_class": "synthetic_enterprise",
+      "domains": [
+        "privacy",
+        "text"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "corp-redact",
+        "--version"
+      ],
+      "task_families": [
+        "enterprise_pii_redact"
+      ]
+    },
+    {
+      "id": "datapick",
+      "kind": "cli",
+      "command": "datapick",
+      "provider_class": "synthetic_enterprise",
+      "domains": [
+        "tabular"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "datapick",
+        "--version"
+      ],
+      "task_families": [
+        "enterprise_table_field"
+      ]
+    },
+    {
+      "id": "packnote",
+      "kind": "cli",
+      "command": "packnote",
+      "provider_class": "synthetic_enterprise",
+      "domains": [
+        "metadata"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "packnote",
+        "--version"
+      ],
+      "task_families": [
+        "enterprise_manifest_create"
+      ]
+    },
+    {
       "id": "cal_missing_cli",
       "kind": "cli",
       "command": "cal-missing-cli-for-failure-gating",
