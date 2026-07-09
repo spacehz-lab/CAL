@@ -39,7 +39,7 @@ def main() -> int:
     if args.emails == "mask":
         text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[EMAIL]", text)
     if args.tokens == "mask":
-        text = re.sub(r"\btok_[A-Za-z0-9]+\b", "[TOKEN]", text)
+        text = re.sub(r"\btok_[A-Za-z0-9_]+\b", "[TOKEN]", text)
     with open(args.output, "w", encoding="utf-8") as handle:
         handle.write(text)
     return 0
