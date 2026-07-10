@@ -46,7 +46,7 @@ Paper reuse uses two profiles:
 
 - `--reuse-profile effectiveness`: all 17 reuse cases, one held-out round per
   case, no baseline. This is the broad reuse-validity table.
-- `--reuse-profile comparison`: 8 cases tagged `reuse_comparison`, 10 held-out
+- `--reuse-profile comparison`: 14 cases tagged `reuse_comparison`, 30 held-out
   rounds total, and one `llm_oneshot` baseline attempt per round using the
   case's configured `baseline_provider`.
 

@@ -1,0 +1,2 @@
+send tok_REUSE_ALPHA to alpha@example.invalid
+archive tok_REUSE_BETA for beta@example.invalid

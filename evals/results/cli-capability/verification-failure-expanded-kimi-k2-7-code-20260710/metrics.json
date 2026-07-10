@@ -1,0 +1,29 @@
+{
+  "schema_version": "cli-capability-public-result-v1",
+  "run_id": "20260710-113525-kimi-k2-7-code-bdce0a",
+  "model": "kimi-k2.7-code",
+  "experiment": "verification_failure",
+  "level": "full",
+  "case_count": 10,
+  "provider_count": 10,
+  "verification_gate": {
+    "metric": "blocked_invalid_candidate_rate",
+    "numerator": 10,
+    "denominator": 10,
+    "rate": 1.0,
+    "target": 0.95,
+    "passed": true
+  },
+  "blocked_invalid": 10,
+  "invalid_cases": 10,
+  "blocked_invalid_rate": 1.0,
+  "false_promotions": 0,
+  "candidate_count": 10,
+  "probe_fail_count": 10,
+  "probe_pass_count": 0,
+  "promoted_bindings": 0,
+  "negative_evidence_count": 10,
+  "avg_acquisition_ms": 54164,
+  "llm_calls": 40,
+  "total_tokens": 81231
+}

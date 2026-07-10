@@ -1,0 +1,2 @@
+send [TOKEN] to [EMAIL]
+archive [TOKEN] for [EMAIL]

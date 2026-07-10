@@ -16,6 +16,10 @@ from constants import (
 )
 
 
+REUSE_COMPARISON_REQUIRED_CASES = 14
+REUSE_COMPARISON_REQUIRED_ROUNDS = 30
+
+
 ROOT = Path(__file__).resolve().parents[1]
 IMPLEMENTED_BASELINES = {BASELINE_LLM_ONESHOT}
 
@@ -145,8 +149,12 @@ def check_reuse_comparison_design(cases: list[dict]) -> None:
     if not comparison:
         return
     rounds = sum(len((case.get("reuse") or {}).get("rounds") or []) for case in comparison)
-    if len(comparison) != 8 or rounds != 10:
-        raise SystemExit(f"reuse comparison design requires 8 cases and 10 rounds; got {len(comparison)} cases and {rounds} rounds")
+    if len(comparison) != REUSE_COMPARISON_REQUIRED_CASES or rounds != REUSE_COMPARISON_REQUIRED_ROUNDS:
+        raise SystemExit(
+            "reuse comparison design requires "
+            f"{REUSE_COMPARISON_REQUIRED_CASES} cases and {REUSE_COMPARISON_REQUIRED_ROUNDS} rounds; "
+            f"got {len(comparison)} cases and {rounds} rounds"
+        )
 
 
 def check_replay_proposal(path: Path) -> None:

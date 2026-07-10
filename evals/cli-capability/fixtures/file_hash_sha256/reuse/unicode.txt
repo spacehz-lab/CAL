@@ -1,0 +1,2 @@
+cal sha256 reuse fixture
+unicode-safe ascii content for repeat run
