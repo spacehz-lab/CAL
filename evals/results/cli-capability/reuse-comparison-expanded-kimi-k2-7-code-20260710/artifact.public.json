@@ -1,0 +1,3135 @@
+{
+  "schema_version": "cli-capability-public-result-v1",
+  "run": {
+    "id": "20260710-101711-kimi-k2-7-code-135910",
+    "mode": "live_llm",
+    "status": "completed",
+    "level": "full",
+    "selected_experiments": [
+      "repeated_reuse"
+    ],
+    "selected_cases": [
+      "repeated_reuse:file_hash_sha1",
+      "repeated_reuse:file_hash_sha256",
+      "repeated_reuse:text_base64_encode",
+      "repeated_reuse:text_base64_decode",
+      "repeated_reuse:text_line_count",
+      "repeated_reuse:text_search_matches",
+      "repeated_reuse:csv_column_extract",
+      "repeated_reuse:json_query",
+      "repeated_reuse:archive_create_zip",
+      "repeated_reuse:json_format",
+      "repeated_reuse:enterprise_json_pluck",
+      "repeated_reuse:enterprise_pii_redact",
+      "repeated_reuse:enterprise_table_field",
+      "repeated_reuse:enterprise_manifest_create"
+    ],
+    "jobs": 8,
+    "reuse_seed": "replay",
+    "reuse_profile": "comparison",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "llm": {
+      "api": "chat_completions",
+      "model": "kimi-k2.7-code",
+      "base_url_configured": true
+    }
+  },
+  "status": "completed",
+  "cases": [
+    {
+      "id": "archive_create_zip",
+      "case_key": "repeated_reuse:archive_create_zip",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "archive",
+      "intent": "Create a ZIP archive containing this source file.",
+      "description": "Create a ZIP archive containing at least one source file.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "zip",
+      "reuse_rounds": [
+        "held_out_file",
+        "second_file"
+      ],
+      "providers": [
+        {
+          "id": "zip",
+          "command": "zip",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_cf58dd86b42e",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "zip.create",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "zip.create",
+                "binding_id": "binding_251f78241761"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "ditto",
+          "command": "ditto",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_fc1e2dc33f5e",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "zip.create",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "zip.create",
+                "binding_id": "binding_10430470ee72"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "held_out_file",
+          "status": "passed",
+          "duration_ms": 21119,
+          "selection": {
+            "source": "llm",
+            "capability_id": "zip.create",
+            "provider_id": "provider_cf58dd86b42e",
+            "binding_id": "binding_251f78241761"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "second_file",
+          "status": "passed",
+          "duration_ms": 16323,
+          "selection": {
+            "source": "llm",
+            "capability_id": "zip.create",
+            "provider_id": "provider_cf58dd86b42e",
+            "binding_id": "binding_251f78241761"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "archive_create_zip:zip:held_out_file",
+            "provider": "zip",
+            "fixture_id": "held_out_file",
+            "status": "passed",
+            "duration_ms": 7537,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 7526,
+              "usage": {
+                "prompt_tokens": 775,
+                "completion_tokens": 338,
+                "total_tokens": 1113,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 226
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "archive_create_zip:zip:second_file",
+            "provider": "zip",
+            "fixture_id": "second_file",
+            "status": "passed",
+            "duration_ms": 4566,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 4561,
+              "usage": {
+                "prompt_tokens": 773,
+                "completion_tokens": 172,
+                "total_tokens": 945,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 67
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "csv_column_extract",
+      "case_key": "repeated_reuse:csv_column_extract",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "tabular",
+      "intent": "Extract the requested column from this delimited text file and write the values.",
+      "description": "Extract a one-based column from delimited text.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "cut",
+      "reuse_rounds": [
+        "scores_b",
+        "teams"
+      ],
+      "providers": [
+        {
+          "id": "cut",
+          "command": "cut",
+          "provider_class": "system",
+          "domains": [
+            "tabular",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_b4024e36e589",
+          "provider_register_duration_ms": 14,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "csv.extract",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "csv.extract",
+                "binding_id": "binding_39d5ae59b891"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "scores_b",
+          "status": "passed",
+          "duration_ms": 3803,
+          "selection": {
+            "source": "llm",
+            "capability_id": "csv.extract",
+            "provider_id": "provider_b4024e36e589",
+            "binding_id": "binding_39d5ae59b891"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "teams",
+          "status": "passed",
+          "duration_ms": 2782,
+          "selection": {
+            "source": "llm",
+            "capability_id": "csv.extract",
+            "provider_id": "provider_b4024e36e589",
+            "binding_id": "binding_39d5ae59b891"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "csv_column_extract:cut:scores_b",
+            "provider": "cut",
+            "fixture_id": "scores_b",
+            "status": "passed",
+            "duration_ms": 7698,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 7694,
+              "usage": {
+                "prompt_tokens": 484,
+                "completion_tokens": 358,
+                "total_tokens": 842,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 302
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "csv_column_extract:cut:teams",
+            "provider": "cut",
+            "fixture_id": "teams",
+            "status": "passed",
+            "duration_ms": 8759,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 8754,
+              "usage": {
+                "prompt_tokens": 482,
+                "completion_tokens": 295,
+                "total_tokens": 777,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 229
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "enterprise_json_pluck",
+      "case_key": "repeated_reuse:enterprise_json_pluck",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "structured_data",
+      "intent": "Using the enterprise acmejson provider, extract the requested dotted JSON path and write the scalar value.",
+      "description": "Extract a scalar value from JSON with an enterprise-specific pluck command.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "enterprise_json_normalize"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "acmejson",
+      "reuse_rounds": [
+        "owner_b",
+        "channel_c"
+      ],
+      "providers": [
+        {
+          "id": "acmejson",
+          "command": "acmejson",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_30c68c57f0ec",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.pluck",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.pluck",
+                "binding_id": "binding_c032e7705837"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "owner_b",
+          "status": "passed",
+          "duration_ms": 5475,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.pluck",
+            "provider_id": "provider_30c68c57f0ec",
+            "binding_id": "binding_c032e7705837"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "channel_c",
+          "status": "passed",
+          "duration_ms": 6001,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.pluck",
+            "provider_id": "provider_30c68c57f0ec",
+            "binding_id": "binding_c032e7705837"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "enterprise_json_pluck:acmejson:owner_b",
+            "provider": "acmejson",
+            "fixture_id": "owner_b",
+            "status": "failed",
+            "duration_ms": 25541,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 25410,
+              "usage": {
+                "prompt_tokens": 456,
+                "completion_tokens": 1101,
+                "total_tokens": 1557,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 1042
+                }
+              }
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "command_failed",
+              "message": "usage: acmejson {pluck,normalize} ...\nacmejson: error: argument command: invalid choice: 'project.owner' (choose from 'pluck', 'normalize')"
+            }
+          },
+          {
+            "id": "enterprise_json_pluck:acmejson:channel_c",
+            "provider": "acmejson",
+            "fixture_id": "channel_c",
+            "status": "failed",
+            "duration_ms": 21631,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 21498,
+              "usage": {
+                "prompt_tokens": 455,
+                "completion_tokens": 954,
+                "total_tokens": 1409,
+                "cached_tokens": 256,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 830
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 256
+                }
+              }
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "command_failed",
+              "message": "usage: acmejson {pluck,normalize} ...\nacmejson: error: argument command: invalid choice: 'project.release.channel' (choose from 'pluck', 'normalize')"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "enterprise_manifest_create",
+      "case_key": "repeated_reuse:enterprise_manifest_create",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "metadata",
+      "intent": "Using the enterprise packnote provider, create a JSON manifest for this source artifact with the requested label.",
+      "description": "Generate a deterministic JSON manifest with enterprise-specific metadata fields.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "packnote",
+      "reuse_rounds": [
+        "manifest_b",
+        "manifest_c"
+      ],
+      "providers": [
+        {
+          "id": "packnote",
+          "command": "packnote",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "metadata"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_afcc5dbf30e1",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "metadata.manifest",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 5
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "metadata.manifest",
+                "binding_id": "binding_44233d34ed83"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "manifest_b",
+          "status": "passed",
+          "duration_ms": 3125,
+          "selection": {
+            "source": "llm",
+            "capability_id": "metadata.manifest",
+            "provider_id": "provider_afcc5dbf30e1",
+            "binding_id": "binding_44233d34ed83"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "manifest_c",
+          "status": "passed",
+          "duration_ms": 5940,
+          "selection": {
+            "source": "llm",
+            "capability_id": "metadata.manifest",
+            "provider_id": "provider_afcc5dbf30e1",
+            "binding_id": "binding_44233d34ed83"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "enterprise_manifest_create:packnote:manifest_b",
+            "provider": "packnote",
+            "fixture_id": "manifest_b",
+            "status": "failed",
+            "duration_ms": 120154,
+            "llm": {
+              "model": "",
+              "duration_ms": 0,
+              "usage": {}
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "llm_failed",
+              "message": "The read operation timed out"
+            }
+          },
+          {
+            "id": "enterprise_manifest_create:packnote:manifest_c",
+            "provider": "packnote",
+            "fixture_id": "manifest_c",
+            "status": "failed",
+            "duration_ms": 120216,
+            "llm": {
+              "model": "",
+              "duration_ms": 0,
+              "usage": {}
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "llm_failed",
+              "message": "The read operation timed out"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "enterprise_pii_redact",
+      "case_key": "repeated_reuse:enterprise_pii_redact",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "privacy",
+      "intent": "Using the enterprise corp-redact provider, mask email addresses and token values in this file.",
+      "description": "Redact email and token-like identifiers with an enterprise-specific command surface.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "corp_redact",
+      "reuse_rounds": [
+        "pii_b",
+        "pii_c"
+      ],
+      "providers": [
+        {
+          "id": "corp_redact",
+          "command": "corp-redact",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "privacy",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_e88b1000685e",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.redactpii",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.redactpii",
+                "binding_id": "binding_dac60604cd0c"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "pii_b",
+          "status": "passed",
+          "duration_ms": 5377,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.redactpii",
+            "provider_id": "provider_e88b1000685e",
+            "binding_id": "binding_dac60604cd0c"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "pii_c",
+          "status": "passed",
+          "duration_ms": 5844,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.redactpii",
+            "provider_id": "provider_e88b1000685e",
+            "binding_id": "binding_dac60604cd0c"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "enterprise_pii_redact:corp_redact:pii_b",
+            "provider": "corp_redact",
+            "fixture_id": "pii_b",
+            "status": "failed",
+            "duration_ms": 67017,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 66885,
+              "usage": {
+                "prompt_tokens": 451,
+                "completion_tokens": 3241,
+                "total_tokens": 3692,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 3121
+                }
+              }
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "command_failed",
+              "message": "usage: corp-redact {apply,scan} ...\ncorp-redact: error: argument command: invalid choice: '<path>s/CULI/evals/cli-capability/fixtures/enterprise_pii_redact/reuse/b.txt' (choose from 'apply', 'scan')"
+            }
+          },
+          {
+            "id": "enterprise_pii_redact:corp_redact:pii_c",
+            "provider": "corp_redact",
+            "fixture_id": "pii_c",
+            "status": "failed",
+            "duration_ms": 120218,
+            "llm": {
+              "model": "",
+              "duration_ms": 0,
+              "usage": {}
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "llm_failed",
+              "message": "The read operation timed out"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "enterprise_table_field",
+      "case_key": "repeated_reuse:enterprise_table_field",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "tabular",
+      "intent": "Using the enterprise datapick provider, extract the requested header field from this delimited file.",
+      "description": "Extract a named field from delimited data with an enterprise-specific command surface.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "datapick",
+      "reuse_rounds": [
+        "score_b",
+        "team_c"
+      ],
+      "providers": [
+        {
+          "id": "datapick",
+          "command": "datapick",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "tabular"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1f634b8363da",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "table.fieldextract",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "table.fieldextract",
+                "binding_id": "binding_9dd7442266a6"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "score_b",
+          "status": "passed",
+          "duration_ms": 4148,
+          "selection": {
+            "source": "llm",
+            "capability_id": "table.fieldextract",
+            "provider_id": "provider_1f634b8363da",
+            "binding_id": "binding_9dd7442266a6"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "team_c",
+          "status": "passed",
+          "duration_ms": 4548,
+          "selection": {
+            "source": "llm",
+            "capability_id": "table.fieldextract",
+            "provider_id": "provider_1f634b8363da",
+            "binding_id": "binding_9dd7442266a6"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "enterprise_table_field:datapick:score_b",
+            "provider": "datapick",
+            "fixture_id": "score_b",
+            "status": "failed",
+            "duration_ms": 120161,
+            "llm": {
+              "model": "",
+              "duration_ms": 0,
+              "usage": {}
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "llm_failed",
+              "message": "The read operation timed out"
+            }
+          },
+          {
+            "id": "enterprise_table_field:datapick:team_c",
+            "provider": "datapick",
+            "fixture_id": "team_c",
+            "status": "failed",
+            "duration_ms": 120218,
+            "llm": {
+              "model": "",
+              "duration_ms": 0,
+              "usage": {}
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "llm_failed",
+              "message": "The read operation timed out"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "file_hash_sha1",
+      "case_key": "repeated_reuse:file_hash_sha1",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "checksum",
+      "intent": "Compute the SHA-1 digest of this file and write the digest artifact.",
+      "description": "Compute the SHA-1 digest of a file and write a textual digest artifact.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "shasum",
+      "reuse_rounds": [
+        "text_b",
+        "unicode"
+      ],
+      "providers": [
+        {
+          "id": "shasum",
+          "command": "shasum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_f77a60b18370",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha1.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha1.hash",
+                "binding_id": "binding_b84287552763"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "sha1sum",
+          "command": "sha1sum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_ffd0d6284658",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha1.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha1.hash",
+                "binding_id": "binding_0eb694e2e455"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 8685,
+          "selection": {
+            "source": "llm",
+            "capability_id": "sha1.hash",
+            "provider_id": "provider_ffd0d6284658",
+            "binding_id": "binding_0eb694e2e455"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "unicode",
+          "status": "passed",
+          "duration_ms": 7140,
+          "selection": {
+            "source": "llm",
+            "capability_id": "sha1.hash",
+            "provider_id": "provider_ffd0d6284658",
+            "binding_id": "binding_0eb694e2e455"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "file_hash_sha1:shasum:text_b",
+            "provider": "shasum",
+            "fixture_id": "text_b",
+            "status": "passed",
+            "duration_ms": 10474,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 10448,
+              "usage": {
+                "prompt_tokens": 434,
+                "completion_tokens": 415,
+                "total_tokens": 849,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 354
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "file_hash_sha1:shasum:unicode",
+            "provider": "shasum",
+            "fixture_id": "unicode",
+            "status": "passed",
+            "duration_ms": 8424,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 8410,
+              "usage": {
+                "prompt_tokens": 435,
+                "completion_tokens": 321,
+                "total_tokens": 756,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 266
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "file_hash_sha256",
+      "case_key": "repeated_reuse:file_hash_sha256",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "checksum",
+      "intent": "Compute the SHA-256 digest of this file and write the digest artifact.",
+      "description": "Compute the SHA-256 digest of a file and write a textual digest artifact.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "shasum",
+      "reuse_rounds": [
+        "text_b",
+        "unicode"
+      ],
+      "providers": [
+        {
+          "id": "shasum",
+          "command": "shasum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_f77a60b18370",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha256.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha256.hash",
+                "binding_id": "binding_5cb1026205e9"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "sha256sum",
+          "command": "sha256sum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_028958ccb92f",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha256.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha256.hash",
+                "binding_id": "binding_7caf7f5a4960"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 11183,
+          "selection": {
+            "source": "llm",
+            "capability_id": "sha256.hash",
+            "provider_id": "provider_028958ccb92f",
+            "binding_id": "binding_7caf7f5a4960"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "unicode",
+          "status": "passed",
+          "duration_ms": 9252,
+          "selection": {
+            "source": "llm",
+            "capability_id": "sha256.hash",
+            "provider_id": "provider_028958ccb92f",
+            "binding_id": "binding_7caf7f5a4960"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "file_hash_sha256:shasum:text_b",
+            "provider": "shasum",
+            "fixture_id": "text_b",
+            "status": "failed",
+            "duration_ms": 12378,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 12353,
+              "usage": {
+                "prompt_tokens": 434,
+                "completion_tokens": 520,
+                "total_tokens": 954,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 401
+                }
+              }
+            },
+            "oracle": {
+              "passed": false
+            },
+            "failure": {
+              "stage": "baseline_llm_oneshot",
+              "code": "command_failed",
+              "message": "Unknown option: o\nType shasum -h for help"
+            }
+          },
+          {
+            "id": "file_hash_sha256:shasum:unicode",
+            "provider": "shasum",
+            "fixture_id": "unicode",
+            "status": "passed",
+            "duration_ms": 34915,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 34894,
+              "usage": {
+                "prompt_tokens": 435,
+                "completion_tokens": 1619,
+                "total_tokens": 2054,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 1557
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "json_format",
+      "case_key": "repeated_reuse:json_format",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "repeated_reuse",
+        "third_party_cli",
+        "reuse_comparison"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "structured_data",
+      "intent": "format pretty print",
+      "description": "Format or pretty-print JSON while preserving its data.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2,
+        "expect_provider_multi_capability_with": "json_query"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "jq",
+      "reuse_rounds": [
+        "format_b",
+        "format_c"
+      ],
+      "providers": [
+        {
+          "id": "jq",
+          "command": "jq",
+          "provider_class": "third_party",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_c591fc101f5a",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.format",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.format",
+                "binding_id": "binding_1af8614f4779"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "python3",
+          "command": "python3",
+          "provider_class": "system",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1ddf08789797",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.format",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.format",
+                "binding_id": "binding_fb2750e74d23"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "format_b",
+          "status": "passed",
+          "duration_ms": 11210,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.format",
+            "provider_id": "provider_1ddf08789797",
+            "binding_id": "binding_fb2750e74d23"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "format_c",
+          "status": "passed",
+          "duration_ms": 6085,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.format",
+            "provider_id": "provider_1ddf08789797",
+            "binding_id": "binding_fb2750e74d23"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "json_format:jq:format_b",
+            "provider": "jq",
+            "fixture_id": "format_b",
+            "status": "passed",
+            "duration_ms": 7420,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 7413,
+              "usage": {
+                "prompt_tokens": 420,
+                "completion_tokens": 306,
+                "total_tokens": 726,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 260
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "json_format:jq:format_c",
+            "provider": "jq",
+            "fixture_id": "format_c",
+            "status": "passed",
+            "duration_ms": 6624,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 6618,
+              "usage": {
+                "prompt_tokens": 420,
+                "completion_tokens": 262,
+                "total_tokens": 682,
+                "cached_tokens": 256,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 216
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 256
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "json_query",
+      "case_key": "repeated_reuse:json_query",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "repeated_reuse",
+        "third_party_cli",
+        "reuse_comparison"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "structured_data",
+      "intent": "Apply the JSON query to this file and write the selected value.",
+      "description": "Apply a query/filter to JSON and write the selected value as text.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2,
+        "expect_provider_multi_capability_with": "json_format"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "jq",
+      "reuse_rounds": [
+        "version",
+        "owner",
+        "project_name"
+      ],
+      "providers": [
+        {
+          "id": "jq",
+          "command": "jq",
+          "provider_class": "third_party",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_c591fc101f5a",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.query",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.query",
+                "binding_id": "binding_ce67055a2181"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "python3",
+          "command": "python3",
+          "provider_class": "system",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1ddf08789797",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.query",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.query",
+                "binding_id": "binding_8e7ec55b04c7"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "version",
+          "status": "passed",
+          "duration_ms": 12427,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.query",
+            "provider_id": "provider_c591fc101f5a",
+            "binding_id": "binding_ce67055a2181"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "owner",
+          "status": "passed",
+          "duration_ms": 11859,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.query",
+            "provider_id": "provider_c591fc101f5a",
+            "binding_id": "binding_ce67055a2181"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "project_name",
+          "status": "passed",
+          "duration_ms": 6043,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.query",
+            "provider_id": "provider_c591fc101f5a",
+            "binding_id": "binding_ce67055a2181"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "json_query:jq:version",
+            "provider": "jq",
+            "fixture_id": "version",
+            "status": "passed",
+            "duration_ms": 9056,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 9051,
+              "usage": {
+                "prompt_tokens": 428,
+                "completion_tokens": 367,
+                "total_tokens": 795,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 309
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "json_query:jq:owner",
+            "provider": "jq",
+            "fixture_id": "owner",
+            "status": "passed",
+            "duration_ms": 13905,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 13900,
+              "usage": {
+                "prompt_tokens": 430,
+                "completion_tokens": 619,
+                "total_tokens": 1049,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 568
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "json_query:jq:project_name",
+            "provider": "jq",
+            "fixture_id": "project_name",
+            "status": "passed",
+            "duration_ms": 13693,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 13687,
+              "usage": {
+                "prompt_tokens": 430,
+                "completion_tokens": 604,
+                "total_tokens": 1034,
+                "cached_tokens": 256,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 553
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 256
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "text_base64_decode",
+      "case_key": "repeated_reuse:text_base64_decode",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "encoding",
+      "intent": "Decode this Base64 file and write the decoded artifact.",
+      "description": "Decode Base64 text into bytes or text and write the decoded artifact.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "text_base64_encode"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "base64",
+      "reuse_rounds": [
+        "text_b",
+        "multiline"
+      ],
+      "providers": [
+        {
+          "id": "base64",
+          "command": "base64",
+          "provider_class": "system",
+          "domains": [
+            "encoding"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_14300003a037",
+          "provider_register_duration_ms": 14,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "base64.decode",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "base64.decode",
+                "binding_id": "binding_df4398844eef"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 3267,
+          "selection": {
+            "source": "llm",
+            "capability_id": "base64.decode",
+            "provider_id": "provider_14300003a037",
+            "binding_id": "binding_df4398844eef"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "multiline",
+          "status": "passed",
+          "duration_ms": 4128,
+          "selection": {
+            "source": "llm",
+            "capability_id": "base64.decode",
+            "provider_id": "provider_14300003a037",
+            "binding_id": "binding_df4398844eef"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "text_base64_decode:base64:text_b",
+            "provider": "base64",
+            "fixture_id": "text_b",
+            "status": "passed",
+            "duration_ms": 4805,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 4800,
+              "usage": {
+                "prompt_tokens": 525,
+                "completion_tokens": 197,
+                "total_tokens": 722,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 78
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "text_base64_decode:base64:multiline",
+            "provider": "base64",
+            "fixture_id": "multiline",
+            "status": "passed",
+            "duration_ms": 5901,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 5896,
+              "usage": {
+                "prompt_tokens": 527,
+                "completion_tokens": 229,
+                "total_tokens": 756,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 108
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "text_base64_encode",
+      "case_key": "repeated_reuse:text_base64_encode",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "encoding",
+      "intent": "Encode this file as Base64 and write the encoded artifact.",
+      "description": "Encode text or bytes as Base64 and write a textual artifact.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "text_base64_decode"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "base64",
+      "reuse_rounds": [
+        "text_b",
+        "multiline"
+      ],
+      "providers": [
+        {
+          "id": "base64",
+          "command": "base64",
+          "provider_class": "system",
+          "domains": [
+            "encoding"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_14300003a037",
+          "provider_register_duration_ms": 13,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "base64.encode",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "base64.encode",
+                "binding_id": "binding_12b4c16a8363"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 3804,
+          "selection": {
+            "source": "llm",
+            "capability_id": "base64.encode",
+            "provider_id": "provider_14300003a037",
+            "binding_id": "binding_12b4c16a8363"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "multiline",
+          "status": "passed",
+          "duration_ms": 4285,
+          "selection": {
+            "source": "llm",
+            "capability_id": "base64.encode",
+            "provider_id": "provider_14300003a037",
+            "binding_id": "binding_12b4c16a8363"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "text_base64_encode:base64:text_b",
+            "provider": "base64",
+            "fixture_id": "text_b",
+            "status": "passed",
+            "duration_ms": 5380,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 5375,
+              "usage": {
+                "prompt_tokens": 525,
+                "completion_tokens": 182,
+                "total_tokens": 707,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 66
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "text_base64_encode:base64:multiline",
+            "provider": "base64",
+            "fixture_id": "multiline",
+            "status": "passed",
+            "duration_ms": 4642,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 4634,
+              "usage": {
+                "prompt_tokens": 527,
+                "completion_tokens": 193,
+                "total_tokens": 720,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 67
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "text_line_count",
+      "case_key": "repeated_reuse:text_line_count",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "text",
+      "intent": "Count the number of lines in this text file and write the count artifact.",
+      "description": "Count source text lines and write a textual count artifact.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "wc",
+      "reuse_rounds": [
+        "text_b",
+        "blankmix"
+      ],
+      "providers": [
+        {
+          "id": "wc",
+          "command": "wc",
+          "provider_class": "system",
+          "domains": [
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_d41ff252ed41",
+          "provider_register_duration_ms": 15,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.count",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.count",
+                "binding_id": "binding_9531b07486a4"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 4293,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.count",
+            "provider_id": "provider_d41ff252ed41",
+            "binding_id": "binding_9531b07486a4"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "blankmix",
+          "status": "passed",
+          "duration_ms": 5414,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.count",
+            "provider_id": "provider_d41ff252ed41",
+            "binding_id": "binding_9531b07486a4"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "text_line_count:wc:text_b",
+            "provider": "wc",
+            "fixture_id": "text_b",
+            "status": "passed",
+            "duration_ms": 3760,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 3753,
+              "usage": {
+                "prompt_tokens": 435,
+                "completion_tokens": 142,
+                "total_tokens": 577,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 94
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "text_line_count:wc:blankmix",
+            "provider": "wc",
+            "fixture_id": "blankmix",
+            "status": "passed",
+            "duration_ms": 63356,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 63351,
+              "usage": {
+                "prompt_tokens": 440,
+                "completion_tokens": 2714,
+                "total_tokens": 3154,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 2664
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    },
+    {
+      "id": "text_search_matches",
+      "case_key": "repeated_reuse:text_search_matches",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "repeated_reuse",
+        "third_party_cli",
+        "reuse_comparison"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "search",
+      "intent": "Search this text file for the requested pattern and write matching lines.",
+      "description": "Filter source lines that contain a requested literal pattern.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "comparison",
+      "baseline_provider": "rg",
+      "reuse_rounds": [
+        "text_b",
+        "warn",
+        "critical"
+      ],
+      "providers": [
+        {
+          "id": "grep",
+          "command": "grep",
+          "provider_class": "system",
+          "domains": [
+            "search",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_e270a3213499",
+          "provider_register_duration_ms": 13,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.search",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.search",
+                "binding_id": "binding_86e1cdcb20a8"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "rg",
+          "command": "rg",
+          "provider_class": "third_party",
+          "domains": [
+            "search",
+            "text"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_b1d506523975",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.search",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.search",
+                "binding_id": "binding_d3c6f9fdb600"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 10283,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.search",
+            "provider_id": "provider_e270a3213499",
+            "binding_id": "binding_86e1cdcb20a8"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "warn",
+          "status": "passed",
+          "duration_ms": 8591,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.search",
+            "provider_id": "provider_e270a3213499",
+            "binding_id": "binding_86e1cdcb20a8"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        },
+        {
+          "fixture_id": "critical",
+          "status": "passed",
+          "duration_ms": 6672,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.search",
+            "provider_id": "provider_e270a3213499",
+            "binding_id": "binding_86e1cdcb20a8"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {
+        "llm_oneshot": [
+          {
+            "id": "text_search_matches:rg:text_b",
+            "provider": "rg",
+            "fixture_id": "text_b",
+            "status": "passed",
+            "duration_ms": 29910,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 29901,
+              "usage": {
+                "prompt_tokens": 477,
+                "completion_tokens": 1324,
+                "total_tokens": 1801,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 1270
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "text_search_matches:rg:warn",
+            "provider": "rg",
+            "fixture_id": "warn",
+            "status": "passed",
+            "duration_ms": 13901,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 13894,
+              "usage": {
+                "prompt_tokens": 478,
+                "completion_tokens": 521,
+                "total_tokens": 999,
+                "cached_tokens": 256,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 458
+                },
+                "prompt_tokens_details": {
+                  "cached_tokens": 256
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          },
+          {
+            "id": "text_search_matches:rg:critical",
+            "provider": "rg",
+            "fixture_id": "critical",
+            "status": "passed",
+            "duration_ms": 22577,
+            "llm": {
+              "model": "kimi-k2.7-code",
+              "duration_ms": 22570,
+              "usage": {
+                "prompt_tokens": 478,
+                "completion_tokens": 1014,
+                "total_tokens": 1492,
+                "completion_tokens_details": {
+                  "reasoning_tokens": 941
+                }
+              }
+            },
+            "oracle": {
+              "passed": true
+            },
+            "failure": {}
+          }
+        ]
+      }
+    }
+  ],
+  "summary": {
+    "total": {
+      "case_attempted": 14,
+      "planned_reuse_rounds": 30,
+      "provider_attempted": 20,
+      "provider_available": 20,
+      "providers_with_promoted_bindings": 20,
+      "candidate_count": 20,
+      "probe_pass_count": 0,
+      "probe_fail_count": 0,
+      "promoted_bindings": 20,
+      "held_out_reuses": 0,
+      "skipped_reuses": 0,
+      "held_out_uses": 30,
+      "eligible_held_out_uses": 30,
+      "oracle_pass_count": 0,
+      "oracle_fail_count": 0,
+      "use_oracle_pass_count": 30,
+      "conditional_use_oracle_pass_count": 30,
+      "use_oracle_fail_count": 0,
+      "failed": 0,
+      "provider_failures": 0,
+      "candidate_negative_evidence": 0,
+      "direct_reuse_failures": 0,
+      "intent_use_failures": 0,
+      "upstream_acquisition_failure_count": 0,
+      "upstream_acquisition_failed_cases": [],
+      "acquisition_duration_ms": 0,
+      "reuse_duration_ms": 0,
+      "use_duration_ms": 219106,
+      "llm_duration_ms": 0,
+      "acquisition_llm_calls": 0,
+      "run_stage_llm_calls": 30,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "avg_acquisition_ms": 0,
+      "avg_reuse_ms": 0,
+      "avg_use_ms": 7303,
+      "avg_llm_ms": 0,
+      "oracle_reuse_success_rate": 0.0,
+      "oracle_use_success_rate": 1.0,
+      "conditional_oracle_use_success_rate": 1.0
+    },
+    "experiments": {
+      "acquisition": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "verification_failure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "repeated_reuse": {
+        "case_attempted": 14,
+        "planned_reuse_rounds": 30,
+        "provider_attempted": 20,
+        "provider_available": 20,
+        "providers_with_promoted_bindings": 20,
+        "candidate_count": 20,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 20,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 30,
+        "eligible_held_out_uses": 30,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 30,
+        "conditional_use_oracle_pass_count": 30,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 219106,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 30,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 7303,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 1.0,
+        "conditional_oracle_use_success_rate": 1.0
+      },
+      "capability_structure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      }
+    },
+    "acquisition_modes": {},
+    "baselines": {
+      "llm_oneshot": {
+        "attempted": 30,
+        "passed": 21,
+        "failed": 9,
+        "duration_ms": 1014837,
+        "llm_calls": 25,
+        "prompt_tokens": 12154,
+        "completion_tokens": 18008,
+        "total_tokens": 30162,
+        "success_rate": 0.7,
+        "avg_duration_ms": 33827,
+        "avg_tokens": 1206
+      }
+    }
+  },
+  "scores": {
+    "profile": "live_llm",
+    "closed_loop_success_rate": 1.0,
+    "intent_use_success_rate": 1.0,
+    "conditional_reuse_success_rate": 1.0,
+    "provider_yield_rate": 1.0,
+    "probe_pass_rate": 0.0,
+    "promotion_yield": 0.0,
+    "negative_evidence_count": 0,
+    "failed_count": 0,
+    "provider_acquisition_total_ms": 0,
+    "provider_acquisition_avg_ms": 0,
+    "proposal_llm_total_ms": 0,
+    "proposal_llm_avg_ms": 0,
+    "proposal_llm_calls": 0,
+    "proposal_prompt_tokens": 0,
+    "proposal_completion_tokens": 0,
+    "proposal_total_tokens": 0,
+    "acquisition_local_overhead_total_ms": 0
+  },
+  "coverage": {
+    "distinct_case_count": 14,
+    "distinct_provider_case_pair_count": 20,
+    "distinct_provider_count": 16,
+    "levels": {
+      "full": 2,
+      "focus": 12
+    },
+    "domains": [
+      "archive",
+      "checksum",
+      "encoding",
+      "metadata",
+      "privacy",
+      "search",
+      "structured_data",
+      "tabular",
+      "text"
+    ],
+    "provider_classes": [
+      "known_cli",
+      "synthetic_enterprise",
+      "system",
+      "third_party",
+      "third_party_cli",
+      "uncommon_cli"
+    ],
+    "paper_experiments": [
+      "repeated_reuse"
+    ]
+  },
+  "capability_model": {
+    "providers": {
+      "acmejson": [
+        "json.pluck"
+      ],
+      "base64": [
+        "base64.decode",
+        "base64.encode"
+      ],
+      "corp_redact": [
+        "text.redactpii"
+      ],
+      "cut": [
+        "csv.extract"
+      ],
+      "datapick": [
+        "table.fieldextract"
+      ],
+      "ditto": [
+        "zip.create"
+      ],
+      "grep": [
+        "text.search"
+      ],
+      "jq": [
+        "json.format",
+        "json.query"
+      ],
+      "packnote": [
+        "metadata.manifest"
+      ],
+      "python3": [
+        "json.format",
+        "json.query"
+      ],
+      "rg": [
+        "text.search"
+      ],
+      "sha1sum": [
+        "sha1.hash"
+      ],
+      "sha256sum": [
+        "sha256.hash"
+      ],
+      "shasum": [
+        "sha1.hash",
+        "sha256.hash"
+      ],
+      "wc": [
+        "text.count"
+      ],
+      "zip": [
+        "zip.create"
+      ]
+    },
+    "capabilities": {
+      "base64.decode": [
+        "base64"
+      ],
+      "base64.encode": [
+        "base64"
+      ],
+      "csv.extract": [
+        "cut"
+      ],
+      "json.format": [
+        "jq",
+        "python3"
+      ],
+      "json.pluck": [
+        "acmejson"
+      ],
+      "json.query": [
+        "jq",
+        "python3"
+      ],
+      "metadata.manifest": [
+        "packnote"
+      ],
+      "sha1.hash": [
+        "sha1sum",
+        "shasum"
+      ],
+      "sha256.hash": [
+        "sha256sum",
+        "shasum"
+      ],
+      "table.fieldextract": [
+        "datapick"
+      ],
+      "text.count": [
+        "wc"
+      ],
+      "text.redactpii": [
+        "corp_redact"
+      ],
+      "text.search": [
+        "grep",
+        "rg"
+      ],
+      "zip.create": [
+        "ditto",
+        "zip"
+      ]
+    },
+    "multi_capability_providers": 4,
+    "multi_binding_capabilities": 6,
+    "checks": [],
+    "check_passed": 0,
+    "check_failed": 0,
+    "check_skipped": 0
+  },
+  "discovery_coverage": {
+    "case_count": 0,
+    "provider_case_count": 0,
+    "multi_cap_design_cases": 0,
+    "multi_cap_promoted_cases": 0,
+    "expected_capabilities": 0,
+    "promoted_expected_capabilities": 0,
+    "missing_expected_capabilities": 0,
+    "extra_promoted_capabilities": 0,
+    "multi_cap_design_rate": 0.0,
+    "multi_cap_promoted_rate": 0.0,
+    "capability_coverage_rate": 0.0,
+    "cases": []
+  },
+  "failure_taxonomy": [
+    {
+      "stage": "baseline_llm_oneshot",
+      "code": "command_failed",
+      "count": 4
+    },
+    {
+      "stage": "baseline_llm_oneshot",
+      "code": "llm_failed",
+      "count": 5
+    }
+  ],
+  "experiment_gates": {
+    "repeated_reuse": {
+      "metric": "held_out_use_oracle_pass_rate",
+      "numerator": 30,
+      "denominator": 30,
+      "actual": 1.0,
+      "target": 0.9,
+      "passed": true
+    }
+  }
+}

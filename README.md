@@ -158,9 +158,9 @@ Current committed Kimi `kimi-k2.7-code` live LLM result bundles:
 | Result | Headline |
 | --- | --- |
 | Acquisition | `21 / 22` provider acquisitions promoted verified bindings. |
-| Verification failure | `5 / 5` invalid or drifted candidates were blocked. |
+| Verification failure | `10 / 10` invalid or drifted candidates were blocked; false promotions `0`. |
 | Reuse effectiveness | CAL reuse passed `17 / 17` held-out uses. |
-| Reuse comparison | CAL reuse passed `10 / 10`; LLM one-shot passed `7 / 10`. |
+| Reuse comparison | CAL reuse passed `30 / 30`; LLM one-shot passed `21 / 30`. |
 | Capability structure | Structure checks passed `10 / 10`; supporting acquisition passed `14 / 14`. |
 
 The sanitized artifacts and per-run metrics are in

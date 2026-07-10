@@ -40,8 +40,8 @@ provider cases; the runner prepends this directory to worker `PATH`.
 Current scenario surface:
 
 - `acquisition`: 16 cases, including 4 uncommon provider-suite full-acquisition cases.
-- `verification_failure`: 5 synthetic provider-drift cases.
-- `repeated_reuse`: 17 cases with held-out reuse rounds.
+- `verification_failure`: 10 synthetic provider-drift cases.
+- `repeated_reuse`: 17 effectiveness cases, including 14 comparison-profile cases with 30 held-out rounds.
 - `capability_structure`: structure checks attached to acquisition cases.
 
 The uncommon provider slice uses `acmejson`, `corp-redact`, `datapick`, and
@@ -82,7 +82,7 @@ two paper profiles:
 
 - `--reuse-profile effectiveness`: 17 cases, first held-out round only, no
   one-shot baseline.
-- `--reuse-profile comparison`: 8 cases tagged `reuse_comparison`, 10 held-out
+- `--reuse-profile comparison`: 14 cases tagged `reuse_comparison`, 30 held-out
   rounds total, one `llm_oneshot` baseline attempt per round using the case's
   configured `baseline_provider`.
 

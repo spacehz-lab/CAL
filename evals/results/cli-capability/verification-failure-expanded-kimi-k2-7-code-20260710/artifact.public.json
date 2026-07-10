@@ -1,0 +1,1233 @@
+{
+  "schema_version": "cli-capability-public-result-v1",
+  "run": {
+    "id": "20260710-113525-kimi-k2-7-code-bdce0a",
+    "mode": "live_llm",
+    "status": "completed",
+    "level": "full",
+    "selected_experiments": [
+      "verification_failure"
+    ],
+    "selected_cases": [
+      "failure_gating:drift_hash_sha256",
+      "failure_gating:drift_json_normalize",
+      "failure_gating:drift_table_extract",
+      "failure_gating:drift_redact_tokens",
+      "failure_gating:drift_archive_pack",
+      "failure_gating:drift_hash_sha256_large",
+      "failure_gating:drift_json_nested_drop",
+      "failure_gating:drift_table_name_extract",
+      "failure_gating:drift_redact_multiline_tokens",
+      "failure_gating:drift_archive_second_file"
+    ],
+    "jobs": 8,
+    "reuse_seed": "replay",
+    "reuse_profile": "all",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "llm": {
+      "api": "chat_completions",
+      "model": "kimi-k2.7-code",
+      "base_url_configured": true
+    }
+  },
+  "status": "completed",
+  "cases": [
+    {
+      "id": "drift_archive_pack",
+      "case_key": "failure_gating:drift_archive_pack",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "archive"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_invalid_archive",
+      "level": "focus",
+      "domain": "failure",
+      "intent": "Create a TAR archive containing this source file.",
+      "description": "Provider help advertises TAR archive creation, but the implementation writes plain text while exiting successfully.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_archive",
+          "command": "drift-archive",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "archive",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_1747e5b73cc6",
+          "provider_register_duration_ms": 13,
+          "acquisition_duration_ms": 38508,
+          "proposal_duration_ms": 38227,
+          "llm_duration_ms": 38227,
+          "llm_call_count": 4,
+          "prompt_tokens": 5554,
+          "completion_tokens": 1572,
+          "total_tokens": 7126,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "archive.create",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "read tar entry: unexpected EOF"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_archive_second_file",
+      "case_key": "failure_gating:drift_archive_second_file",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "archive",
+        "expanded_failure"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_invalid_archive_second_input",
+      "level": "full",
+      "domain": "failure",
+      "intent": "Create a TAR archive containing this second source file.",
+      "description": "Provider help advertises TAR archive creation, but the implementation writes plain text while exiting successfully.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_archive",
+          "command": "drift-archive",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "archive",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_1747e5b73cc6",
+          "provider_register_duration_ms": 7,
+          "acquisition_duration_ms": 37431,
+          "proposal_duration_ms": 37171,
+          "llm_duration_ms": 37171,
+          "llm_call_count": 4,
+          "prompt_tokens": 5556,
+          "completion_tokens": 1572,
+          "total_tokens": 7128,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "archive.create",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "read tar entry: unexpected EOF"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_hash_sha256",
+      "case_key": "failure_gating:drift_hash_sha256",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "checksum"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_wrong_hash",
+      "level": "focus",
+      "domain": "failure",
+      "intent": "Compute the SHA-256 digest of this file and write the digest artifact.",
+      "description": "Provider help advertises SHA-256, but the implementation emits SHA-1.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_hash",
+          "command": "drift-hash",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "checksum",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_d008ebc08ac0",
+          "provider_register_duration_ms": 13,
+          "acquisition_duration_ms": 38111,
+          "proposal_duration_ms": 37794,
+          "llm_duration_ms": 37794,
+          "llm_call_count": 4,
+          "prompt_tokens": 5596,
+          "completion_tokens": 1648,
+          "total_tokens": 7244,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify hash_line_matches failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_hash_sha256_large",
+      "case_key": "failure_gating:drift_hash_sha256_large",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "checksum",
+        "expanded_failure"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_wrong_hash_large_input",
+      "level": "full",
+      "domain": "failure",
+      "intent": "Compute the SHA-256 digest of this larger file and write the digest artifact.",
+      "description": "Provider help advertises SHA-256, but a larger input still emits SHA-1.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_hash",
+          "command": "drift-hash",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "checksum",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_d008ebc08ac0",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 79724,
+          "proposal_duration_ms": 79416,
+          "llm_duration_ms": 79416,
+          "llm_call_count": 4,
+          "prompt_tokens": 5612,
+          "completion_tokens": 3646,
+          "total_tokens": 9258,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify hash_line_matches failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_json_nested_drop",
+      "case_key": "failure_gating:drift_json_nested_drop",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "structured_data",
+        "expanded_failure"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_json_nested_loss",
+      "level": "full",
+      "domain": "failure",
+      "intent": "Normalize this nested JSON file while preserving semantically equivalent data.",
+      "description": "Provider help advertises semantic JSON normalization, but the implementation drops the first top-level field.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_json",
+          "command": "drift-json",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "structured_data",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_cc1e15a9612a",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 39243,
+          "proposal_duration_ms": 38950,
+          "llm_duration_ms": 38950,
+          "llm_call_count": 4,
+          "prompt_tokens": 5583,
+          "completion_tokens": 1684,
+          "total_tokens": 7267,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "json.transform",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify json_equivalent failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_json_normalize",
+      "case_key": "failure_gating:drift_json_normalize",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "structured_data"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_json_semantics",
+      "level": "focus",
+      "domain": "failure",
+      "intent": "Normalize this JSON file while preserving semantically equivalent data.",
+      "description": "Provider help advertises semantic JSON normalization, but the implementation drops a field.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_json",
+          "command": "drift-json",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "structured_data",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_cc1e15a9612a",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 47880,
+          "proposal_duration_ms": 47562,
+          "llm_duration_ms": 47562,
+          "llm_call_count": 4,
+          "prompt_tokens": 5574,
+          "completion_tokens": 2092,
+          "total_tokens": 7666,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "json.normalize",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify json_equivalent failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_redact_multiline_tokens",
+      "case_key": "failure_gating:drift_redact_multiline_tokens",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "privacy",
+        "expanded_failure"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_multiline_token_leak",
+      "level": "full",
+      "domain": "failure",
+      "intent": "Mask email addresses and token values in this multi-line file.",
+      "description": "Provider help advertises email and token masking, but multi-line token values remain visible.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_redact",
+          "command": "drift-redact",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "privacy",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_3fe0dfc74ec8",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 64103,
+          "proposal_duration_ms": 63842,
+          "llm_duration_ms": 63842,
+          "llm_call_count": 4,
+          "prompt_tokens": 5697,
+          "completion_tokens": 3897,
+          "total_tokens": 9594,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "text.transform",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify target contains failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 5
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_redact_tokens",
+      "case_key": "failure_gating:drift_redact_tokens",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "privacy"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_incomplete_redaction",
+      "level": "focus",
+      "domain": "failure",
+      "intent": "Mask email addresses and token values in this file.",
+      "description": "Provider help advertises email and token masking, but the implementation leaves token values intact.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_redact",
+          "command": "drift-redact",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "privacy",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_3fe0dfc74ec8",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 60396,
+          "proposal_duration_ms": 60108,
+          "llm_duration_ms": 60108,
+          "llm_call_count": 4,
+          "prompt_tokens": 5677,
+          "completion_tokens": 2648,
+          "total_tokens": 8325,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "text.transform",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify target contains failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 5
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_table_extract",
+      "case_key": "failure_gating:drift_table_extract",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "tabular"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_wrong_column",
+      "level": "focus",
+      "domain": "failure",
+      "intent": "Extract the requested header field from this delimited file and write the values.",
+      "description": "Provider help advertises named-field extraction, but the implementation emits the adjacent column.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_table",
+          "command": "drift-table",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "tabular",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_f3fcab9fc0e1",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 77182,
+          "proposal_duration_ms": 76887,
+          "llm_duration_ms": 76887,
+          "llm_call_count": 4,
+          "prompt_tokens": 5914,
+          "completion_tokens": 3452,
+          "total_tokens": 9366,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "csv.extract",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify delimited_column_matches failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "drift_table_name_extract",
+      "case_key": "failure_gating:drift_table_name_extract",
+      "scenario_group": "failure_gating",
+      "paper_experiments": [
+        "verification_failure"
+      ],
+      "scenario_tags": [
+        "failure_gating",
+        "provider_drift",
+        "tabular",
+        "expanded_failure"
+      ],
+      "provider_class": "drift_provider",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "provider_drift_wrong_named_field_name",
+      "level": "full",
+      "domain": "failure",
+      "intent": "Extract the requested name field from this delimited file and write the values.",
+      "description": "Provider help advertises named-field extraction, but the implementation emits the adjacent score column.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "",
+      "baseline_provider": "",
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "drift_table",
+          "command": "drift-table",
+          "provider_class": "synthetic_drift",
+          "domains": [
+            "tabular",
+            "failure"
+          ],
+          "optional": false,
+          "status": "failed",
+          "provider_id": "provider_f3fcab9fc0e1",
+          "provider_register_duration_ms": 19,
+          "acquisition_duration_ms": 59070,
+          "proposal_duration_ms": 58775,
+          "llm_duration_ms": 58775,
+          "llm_call_count": 4,
+          "prompt_tokens": 5674,
+          "completion_tokens": 2583,
+          "total_tokens": 8257,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "csv.extract",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify delimited_column_matches failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    }
+  ],
+  "summary": {
+    "total": {
+      "case_attempted": 10,
+      "planned_reuse_rounds": 0,
+      "provider_attempted": 10,
+      "provider_available": 10,
+      "providers_with_promoted_bindings": 0,
+      "candidate_count": 10,
+      "probe_pass_count": 0,
+      "probe_fail_count": 10,
+      "promoted_bindings": 0,
+      "held_out_reuses": 0,
+      "skipped_reuses": 0,
+      "held_out_uses": 0,
+      "eligible_held_out_uses": 0,
+      "oracle_pass_count": 0,
+      "oracle_fail_count": 0,
+      "use_oracle_pass_count": 0,
+      "conditional_use_oracle_pass_count": 0,
+      "use_oracle_fail_count": 0,
+      "failed": 0,
+      "provider_failures": 10,
+      "candidate_negative_evidence": 10,
+      "direct_reuse_failures": 0,
+      "intent_use_failures": 0,
+      "upstream_acquisition_failure_count": 0,
+      "upstream_acquisition_failed_cases": [],
+      "acquisition_duration_ms": 541648,
+      "reuse_duration_ms": 0,
+      "use_duration_ms": 0,
+      "llm_duration_ms": 538732,
+      "acquisition_llm_calls": 40,
+      "run_stage_llm_calls": 0,
+      "prompt_tokens": 56437,
+      "completion_tokens": 24794,
+      "total_tokens": 81231,
+      "avg_acquisition_ms": 54164,
+      "avg_reuse_ms": 0,
+      "avg_use_ms": 0,
+      "avg_llm_ms": 13468,
+      "oracle_reuse_success_rate": 0.0,
+      "oracle_use_success_rate": 0.0,
+      "conditional_oracle_use_success_rate": 0.0
+    },
+    "experiments": {
+      "acquisition": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "verification_failure": {
+        "case_attempted": 10,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 10,
+        "provider_available": 10,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 10,
+        "probe_pass_count": 0,
+        "probe_fail_count": 10,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 10,
+        "candidate_negative_evidence": 10,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 541648,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 538732,
+        "acquisition_llm_calls": 40,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 56437,
+        "completion_tokens": 24794,
+        "total_tokens": 81231,
+        "avg_acquisition_ms": 54164,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 13468,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "repeated_reuse": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "capability_structure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      }
+    },
+    "acquisition_modes": {},
+    "baselines": {
+      "llm_oneshot": {
+        "attempted": 0,
+        "passed": 0,
+        "failed": 0,
+        "duration_ms": 0,
+        "llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "success_rate": 0.0,
+        "avg_duration_ms": 0,
+        "avg_tokens": 0
+      }
+    }
+  },
+  "scores": {
+    "profile": "live_llm",
+    "closed_loop_success_rate": 0.0,
+    "intent_use_success_rate": 0.0,
+    "conditional_reuse_success_rate": 0.0,
+    "provider_yield_rate": 0.0,
+    "probe_pass_rate": 0.0,
+    "promotion_yield": 0.0,
+    "negative_evidence_count": 10,
+    "failed_count": 0,
+    "provider_acquisition_total_ms": 541648,
+    "provider_acquisition_avg_ms": 54164,
+    "proposal_llm_total_ms": 538732,
+    "proposal_llm_avg_ms": 13468,
+    "proposal_llm_calls": 40,
+    "proposal_prompt_tokens": 56437,
+    "proposal_completion_tokens": 24794,
+    "proposal_total_tokens": 81231,
+    "acquisition_local_overhead_total_ms": 2916
+  },
+  "coverage": {
+    "distinct_case_count": 10,
+    "distinct_provider_case_pair_count": 10,
+    "distinct_provider_count": 5,
+    "levels": {
+      "focus": 5,
+      "full": 5
+    },
+    "domains": [
+      "failure"
+    ],
+    "provider_classes": [
+      "drift_provider",
+      "synthetic_drift"
+    ],
+    "paper_experiments": [
+      "verification_failure"
+    ]
+  },
+  "capability_model": {
+    "providers": {},
+    "capabilities": {},
+    "multi_capability_providers": 0,
+    "multi_binding_capabilities": 0,
+    "checks": [],
+    "check_passed": 0,
+    "check_failed": 0,
+    "check_skipped": 0
+  },
+  "discovery_coverage": {
+    "case_count": 0,
+    "provider_case_count": 0,
+    "multi_cap_design_cases": 0,
+    "multi_cap_promoted_cases": 0,
+    "expected_capabilities": 0,
+    "promoted_expected_capabilities": 0,
+    "missing_expected_capabilities": 0,
+    "extra_promoted_capabilities": 0,
+    "multi_cap_design_rate": 0.0,
+    "multi_cap_promoted_rate": 0.0,
+    "capability_coverage_rate": 0.0,
+    "cases": []
+  },
+  "failure_taxonomy": [
+    {
+      "stage": "acquisition_failed",
+      "code": "no_promoted_binding",
+      "count": 10
+    },
+    {
+      "stage": "probe_failed",
+      "code": "verification_failed",
+      "count": 10
+    }
+  ],
+  "experiment_gates": {
+    "verification_failure": {
+      "metric": "blocked_invalid_candidate_rate",
+      "numerator": 10,
+      "denominator": 10,
+      "actual": 1.0,
+      "target": 0.95,
+      "passed": true,
+      "false_promotions": 0
+    }
+  }
+}

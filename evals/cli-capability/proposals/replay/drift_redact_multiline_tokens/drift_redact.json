@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "source": "cli-capability-benchmark",
+    "prompt_version": "drift-gating-v1",
+    "model": "fixture",
+    "schema_version": "proposal.v1"
+  },
+  "candidates": [
+    {
+      "capability_id": "text.redact",
+      "description": "Mask email addresses and token-like values in text.",
+      "execution": {
+        "kind": "cli",
+        "spec": {
+          "args": ["apply", "--input", "{{source}}", "--output", "{{target}}", "--emails", "mask", "--tokens", "mask"]
+        }
+      }
+    }
+  ],
+  "probe_plans": [
+    {
+      "candidate_index": 0,
+      "inputs": {
+        "target": "{{workdir}}/redacted.txt"
+      },
+      "fixtures": [
+        {
+          "input": "source",
+          "filename": "input.txt",
+          "content": "owner user1@example.invalid token tok_DEMO_ALPHA\nbackup user2@example.invalid token tok_DEMO_BETA\n"
+        }
+      ],
+      "verify": {
+        "level": "L3",
+        "method": "execute",
+        "checks": [
+          {
+            "subject": {"type": "file", "input": "target"},
+            "predicate": "equals",
+            "params": {"value": "owner [EMAIL] token [TOKEN]\nbackup [EMAIL] token [TOKEN]\n"}
+          }
+        ]
+      }
+    }
+  ]
+}

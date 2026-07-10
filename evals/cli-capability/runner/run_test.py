@@ -527,7 +527,7 @@ class ValidateTest(unittest.TestCase):
         cases[0]["expected_capabilities"].append({"key": "two", "surface": "two", "min_promoted_bindings": 1})
         validate.check_full_acquisition_design(cases)
 
-    def test_reuse_comparison_design_requires_eight_cases_and_ten_rounds(self) -> None:
+    def test_reuse_comparison_design_requires_fourteen_cases_and_thirty_rounds(self) -> None:
         cases = [
             {"paper_experiments": ["repeated_reuse"], "scenario_tags": ["reuse_comparison"], "reuse": {"rounds": [{"id": "a"}]}}
         ]
@@ -539,9 +539,9 @@ class ValidateTest(unittest.TestCase):
             {
                 "paper_experiments": ["repeated_reuse"],
                 "scenario_tags": ["reuse_comparison"],
-                "reuse": {"rounds": [{"id": f"r{round_index}"} for round_index in range(2 if case_index < 2 else 1)]},
+                "reuse": {"rounds": [{"id": f"r{round_index}"} for round_index in range(3 if case_index < 2 else 2)]},
             }
-            for case_index in range(8)
+            for case_index in range(14)
         ]
 
         validate.check_reuse_comparison_design(cases)
