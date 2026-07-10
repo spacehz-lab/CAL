@@ -237,6 +237,8 @@ def sanitize_message(message: str) -> str:
 
 def build_metrics(public: dict[str, Any]) -> dict[str, Any]:
     experiment = primary_experiment(public)
+    if experiment == "capability_structure":
+        return build_capability_structure_metrics(public)
     if experiment == "verification_failure":
         return build_verification_metrics(public)
     if experiment == "repeated_reuse":
@@ -333,6 +335,43 @@ def build_reuse_metrics(public: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_capability_structure_metrics(public: dict[str, Any]) -> dict[str, Any]:
+    run = public.get("run") or {}
+    summary = public.get("summary") or {}
+    acquisition = (summary.get("experiments") or {}).get("acquisition") or {}
+    gates = public.get("experiment_gates") or {}
+    model = public.get("capability_model") or {}
+    providers = model.get("providers") or {}
+    capabilities = model.get("capabilities") or {}
+    return {
+        "schema_version": PUBLIC_SCHEMA_VERSION,
+        "run_id": run.get("id", ""),
+        "model": ((run.get("llm") or {}).get("model", "")),
+        "experiment": "capability_structure",
+        "level": run.get("level", ""),
+        "case_count": len(public.get("cases") or []),
+        "provider_count": acquisition.get("provider_attempted", 0),
+        "capability_structure_gate": compact_gate(gates.get("capability_structure") or {}),
+        "acquisition_gate": compact_gate(gates.get("acquisition") or {}),
+        "structure_checks": {
+            "passed": model.get("check_passed", 0),
+            "failed": model.get("check_failed", 0),
+            "skipped": model.get("check_skipped", 0),
+        },
+        "multi_capability_providers": model.get("multi_capability_providers", 0),
+        "multi_binding_capabilities": model.get("multi_binding_capabilities", 0),
+        "provider_records": len(providers),
+        "capability_records": len(capabilities),
+        "candidate_count": acquisition.get("candidate_count", 0),
+        "probe_pass_count": acquisition.get("probe_pass_count", 0),
+        "probe_fail_count": acquisition.get("probe_fail_count", 0),
+        "promoted_bindings": acquisition.get("promoted_bindings", 0),
+        "avg_acquisition_ms": acquisition.get("avg_acquisition_ms", 0),
+        "llm_calls": acquisition.get("acquisition_llm_calls", 0),
+        "total_tokens": acquisition.get("total_tokens", 0),
+    }
+
+
 def compact_gate(gate: dict[str, Any]) -> dict[str, Any]:
     return {
         "metric": gate.get("metric", ""),
@@ -402,6 +441,8 @@ def git_metadata() -> dict[str, Any]:
 
 
 def render_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
+    if metrics.get("experiment") == "capability_structure":
+        return render_capability_structure_readme(public, metrics, provenance)
     if metrics.get("experiment") == "verification_failure":
         return render_verification_readme(public, metrics, provenance)
     if metrics.get("experiment") == "repeated_reuse":
@@ -557,11 +598,58 @@ responses, and credentials are intentionally excluded.
 """
 
 
+def render_capability_structure_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
+    structure_gate = metrics["capability_structure_gate"]
+    acquisition_gate = metrics["acquisition_gate"]
+    checks = metrics["structure_checks"]
+    run = public.get("run") or {}
+    return f"""# CLI Capability Structure Result
+
+This is a sanitized, commit-ready result selected from a local live LLM run.
+Raw traces, local paths, provider paths, shard directories, prompts, raw model
+responses, and credentials are intentionally excluded.
+
+## Source
+
+- Source run id: `{provenance.get('source_run_id', '')}`
+- Mode: `{run.get('mode', '')}`
+- Experiment: `capability_structure`
+- Level: `{run.get('level', '')}`
+- Model: `{((run.get('llm') or {}).get('model', ''))}`
+- Jobs: `{run.get('jobs', 0)}`
+
+## Headline Metrics
+
+- Capability-structure gate: `{structure_gate['numerator']} / {structure_gate['denominator']} = {structure_gate['rate'] * 100:.2f}%`
+- Structure checks: `{checks['passed']}` passed, `{checks['failed']}` failed, `{checks['skipped']}` skipped
+- Acquisition support gate: `{acquisition_gate['numerator']} / {acquisition_gate['denominator']} = {acquisition_gate['rate'] * 100:.2f}%`
+- Multi-capability providers: `{metrics['multi_capability_providers']}`
+- Multi-binding capabilities: `{metrics['multi_binding_capabilities']}`
+- Provider records: `{metrics['provider_records']}`
+- Capability records: `{metrics['capability_records']}`
+
+## Files
+
+- `metrics.json`: compact paper-facing metrics.
+- `artifact.public.json`: sanitized machine-readable result.
+- `report.html`: sanitized HTML report generated from `artifact.public.json`.
+- `provenance.json`: non-secret reproduction metadata.
+
+## Timing And Cost Signals
+
+- Average acquisition latency: `{format_duration_value(metrics['avg_acquisition_ms'])}`
+- LLM calls: `{metrics['llm_calls']}`
+- Total proposal tokens: `{metrics['total_tokens']}`
+"""
+
+
 def primary_experiment(public: dict[str, Any]) -> str:
     selected = ((public.get("run") or {}).get("selected_experiments") or [])
     if len(selected) == 1:
         return selected[0]
     gates = public.get("experiment_gates") or {}
+    if "capability_structure" in gates:
+        return "capability_structure"
     if "verification_failure" in gates:
         return "verification_failure"
     if "acquisition" in gates:

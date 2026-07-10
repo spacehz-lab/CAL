@@ -438,6 +438,64 @@ class ExportResultTest(unittest.TestCase):
         self.assertIn("Verification gate", readme)
         self.assertNotIn("/Users/", json.dumps(public))
 
+    def test_capability_structure_metrics_are_experiment_specific(self) -> None:
+        raw = {
+            "run": {
+                "id": "run_s",
+                "mode": constants.MODE_LIVE_LLM,
+                "status": "completed",
+                "level": "full",
+                "selected_experiments": ["acquisition", "capability_structure"],
+                "selected_cases": ["acquisition:file_hash_sha1"],
+                "jobs": 8,
+                "llm": {"api": "chat_completions", "model": "model_s", "base_url_configured": True},
+            },
+            "status": "completed",
+            "cases": [case_result("file_hash_sha1", ["acquisition", "capability_structure"], "shasum", "sha1.hash", "binding_a")],
+            "summary": {
+                "experiments": {
+                    "acquisition": {
+                        "provider_attempted": 1,
+                        "candidate_count": 1,
+                        "probe_pass_count": 1,
+                        "probe_fail_count": 0,
+                        "promoted_bindings": 1,
+                        "avg_acquisition_ms": 123,
+                        "acquisition_llm_calls": 4,
+                        "total_tokens": 456,
+                    }
+                }
+            },
+            "scores": {},
+            "coverage": {},
+            "capability_model": {
+                "providers": {"shasum": ["sha1.hash", "sha256.hash"]},
+                "capabilities": {"sha1.hash": ["shasum", "sha1sum"]},
+                "multi_capability_providers": 1,
+                "multi_binding_capabilities": 1,
+                "check_passed": 2,
+                "check_failed": 0,
+                "check_skipped": 0,
+            },
+            "discovery_coverage": {},
+            "failure_taxonomy": [],
+            "experiment_gates": {
+                "acquisition": {"metric": "yield", "numerator": 1, "denominator": 1, "actual": 1.0, "target": 0.85, "passed": True},
+                "capability_structure": {"metric": "structure", "numerator": 2, "denominator": 2, "actual": 1.0, "target": 0.9, "passed": True, "skipped": 0},
+            },
+        }
+
+        public = export_result.build_public_artifact(raw)
+        metrics = export_result.build_metrics(public)
+        readme = export_result.render_readme(public, metrics, {"source_run_id": "run_s"})
+
+        self.assertEqual(metrics["experiment"], "capability_structure")
+        self.assertEqual(metrics["capability_structure_gate"]["numerator"], 2)
+        self.assertEqual(metrics["acquisition_gate"]["numerator"], 1)
+        self.assertEqual(metrics["multi_capability_providers"], 1)
+        self.assertEqual(metrics["multi_binding_capabilities"], 1)
+        self.assertIn("Capability-structure gate", readme)
+
 
 class ValidateTest(unittest.TestCase):
     def test_check_baselines_restricts_to_repeated_reuse(self) -> None:

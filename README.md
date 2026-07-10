@@ -136,3 +136,48 @@ make e2e
 
 Generated binaries under `build/bin/`, eval outputs, and the local `backup/`
 tree are ignored by git.
+
+## Evaluation
+
+Executable evaluation assets live under `evals/cli-capability/`. Generated
+local runs are written to ignored `evals/out/cli-capability/`; selected,
+sanitized paper-facing summaries are committed under
+`evals/results/cli-capability/`.
+
+The current CLI capability benchmark is organized by paper experiment:
+
+| Experiment | Purpose |
+| --- | --- |
+| `acquisition` | Acquire verified bindings from known, third-party, and uncommon CLI providers. |
+| `verification_failure` | Check that invalid or drifted candidates are blocked before promotion. |
+| `repeated_reuse` | Reuse verified capability records through `calctl use` on held-out tasks. |
+| `capability_structure` | Measure provider-to-capability and capability-to-binding structure evidence. |
+
+Current committed Kimi `kimi-k2.7-code` live LLM result bundles:
+
+| Result | Headline |
+| --- | --- |
+| Acquisition | `21 / 22` provider acquisitions promoted verified bindings. |
+| Verification failure | `5 / 5` invalid or drifted candidates were blocked. |
+| Reuse effectiveness | CAL reuse passed `17 / 17` held-out uses. |
+| Reuse comparison | CAL reuse passed `10 / 10`; LLM one-shot passed `7 / 10`. |
+| Capability structure | Structure checks passed `10 / 10`; supporting acquisition passed `14 / 14`. |
+
+The sanitized artifacts and per-run metrics are in
+`evals/results/cli-capability/`.
+
+Run a deterministic replay check:
+
+```sh
+make build
+python3 evals/cli-capability/runner/run.py \
+  --mode replay \
+  --experiment acquisition,verification_failure,repeated_reuse,capability_structure \
+  --level focus \
+  --jobs 8 \
+  --calctl build/bin/calctl \
+  --cald build/bin/cald
+```
+
+See [evals/README.md](evals/README.md) for live LLM commands, reuse profiles,
+and result-curation instructions.

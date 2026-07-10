@@ -21,3 +21,19 @@ The exporter writes `artifact.public.json`, `metrics.json`, `provenance.json`,
 `README.md`, and `report.html`, then fails if the public directory still
 contains local paths, raw model responses, trace ids, provider paths, shard
 paths, or secret-like values.
+
+## Committed Result Bundles
+
+The current checked-in result bundles are sanitized summaries from Kimi
+`kimi-k2.7-code` live LLM runs on 2026-07-10.
+
+| Directory | Experiment | Headline |
+| --- | --- | --- |
+| `acquisition-full-kimi-k2-7-code-20260710` | `acquisition` | Acquisition gate `21 / 22`. |
+| `verification-failure-kimi-k2-7-code-20260710` | `verification_failure` | Invalid candidates blocked `5 / 5`. |
+| `reuse-effectiveness-kimi-k2-7-code-20260710` | `repeated_reuse` effectiveness profile | CAL reuse passed `17 / 17`. |
+| `reuse-comparison-kimi-k2-7-code-20260710` | `repeated_reuse` comparison profile | CAL reuse passed `10 / 10`; LLM one-shot passed `7 / 10`. |
+| `capability-structure-kimi-k2-7-code-20260710` | `capability_structure` | Structure checks passed `10 / 10`; acquisition support gate `14 / 14`. |
+
+Each bundle has its own `README.md` and `metrics.json` with the exact run id,
+model, gate metrics, and cost/timing counters.

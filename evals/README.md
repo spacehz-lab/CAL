@@ -52,13 +52,14 @@ Replay CLI capability eval:
 make build
 python3 evals/cli-capability/runner/run.py \
   --mode replay \
-  --suite acquisition,capability_model,reuse \
+  --experiment acquisition,verification_failure,repeated_reuse,capability_structure \
   --level focus \
+  --jobs 8 \
   --calctl build/bin/calctl \
   --cald build/bin/cald
 ```
 
-Live LLM CLI capability eval:
+Live LLM acquisition eval:
 
 ```sh
 CAL_LLM_API=chat_completions \
@@ -67,8 +68,34 @@ CAL_LLM_MODEL=<model> \
 CAL_LLM_API_KEY=<api key> \
   python3 evals/cli-capability/runner/run.py \
     --mode live_llm \
-    --suite acquisition,reuse \
-    --level focus \
+    --experiment acquisition \
+    --level full \
+    --jobs 8 \
+    --llm-jobs 8 \
     --calctl build/bin/calctl \
     --cald build/bin/cald
 ```
+
+Live LLM capability-structure eval should include acquisition in the selected
+experiments so it performs real acquisition instead of seed-only structure
+calculation:
+
+```sh
+CAL_LLM_API=chat_completions \
+CAL_LLM_BASE_URL=<openai-compatible base url> \
+CAL_LLM_MODEL=<model> \
+CAL_LLM_API_KEY=<api key> \
+  python3 evals/cli-capability/runner/run.py \
+    --mode live_llm \
+    --experiment acquisition,capability_structure \
+    --tag capability_structure \
+    --level full \
+    --jobs 8 \
+    --llm-jobs 8 \
+    --calctl build/bin/calctl \
+    --cald build/bin/cald
+```
+
+Curated public result bundles are indexed in
+`evals/results/cli-capability/README.md`. Those committed bundles are sanitized
+summaries only; raw local runs remain under ignored `evals/out/cli-capability/`.
