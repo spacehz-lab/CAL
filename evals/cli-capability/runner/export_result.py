@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
@@ -14,6 +15,7 @@ from util import format_duration_value, ratio, write_json
 
 PUBLIC_SCHEMA_VERSION = "cli-capability-public-result-v1"
 RESULTS_ROOT = Path("evals/results/cli-capability")
+ABSOLUTE_PATH_PATTERN = re.compile(r"(?<![A-Za-z0-9_.-])/(?:Users|private|tmp|var|Volumes)/[^\\s\"'`<>),;]+")
 SENSITIVE_PATTERNS = [
     "/Users/",
     "sk-",
@@ -85,6 +87,7 @@ def public_run(run: dict[str, Any]) -> dict[str, Any]:
         "selected_cases": run.get("selected_cases") or [],
         "jobs": run.get("jobs", 0),
         "reuse_seed": run.get("reuse_seed", ""),
+        "reuse_profile": run.get("reuse_profile", ""),
         "goos": run.get("goos", ""),
         "goarch": run.get("goarch", ""),
         "llm": {
@@ -111,6 +114,8 @@ def public_case(case: dict[str, Any]) -> dict[str, Any]:
         "description": case.get("description", ""),
         "capability_layer_checks": case.get("capability_layer_checks") or {},
         "expected_capabilities": case.get("expected_capabilities") or [],
+        "reuse_profile": case.get("reuse_profile", ""),
+        "baseline_provider": case.get("baseline_provider", ""),
         "reuse_rounds": case.get("reuse_rounds") or [],
         "providers": [public_provider(provider) for provider in case.get("providers") or []],
         "use": public_uses(case.get("use") or []),
@@ -182,6 +187,8 @@ def public_uses(uses: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "duration_ms": item.get("duration_ms", 0),
                 "selection": {
                     "source": (item.get("selection") or {}).get("source", ""),
+                    "capability_id": (item.get("selection") or {}).get("capability_id", ""),
+                    "provider_id": (item.get("selection") or {}).get("provider_id", ""),
                     "binding_id": (item.get("selection") or {}).get("binding_id", ""),
                 },
                 "oracle": {"passed": bool((item.get("oracle") or {}).get("passed"))},
@@ -196,8 +203,16 @@ def public_baselines(baselines: dict[str, Any]) -> dict[str, Any]:
     for name, rows in baselines.items():
         result[name] = [
             {
+                "id": row.get("id", ""),
+                "provider": row.get("provider", ""),
+                "fixture_id": row.get("fixture_id", ""),
                 "status": row.get("status", ""),
                 "duration_ms": row.get("duration_ms", 0),
+                "llm": {
+                    "model": ((row.get("llm") or {}).get("model", "")),
+                    "duration_ms": ((row.get("llm") or {}).get("duration_ms", 0)),
+                    "usage": ((row.get("llm") or {}).get("usage", {})),
+                },
                 "oracle": {"passed": bool((row.get("oracle") or {}).get("passed"))},
                 "failure": public_failure(row.get("failure") or {}),
             }
@@ -212,14 +227,20 @@ def public_failure(failure: dict[str, Any]) -> dict[str, str]:
     return {
         "stage": str(failure.get("stage", "")),
         "code": str(failure.get("code", "")),
-        "message": str(failure.get("message", ""))[:240],
+        "message": sanitize_message(str(failure.get("message", "")))[:240],
     }
+
+
+def sanitize_message(message: str) -> str:
+    return ABSOLUTE_PATH_PATTERN.sub("<path>", message)
 
 
 def build_metrics(public: dict[str, Any]) -> dict[str, Any]:
     experiment = primary_experiment(public)
     if experiment == "verification_failure":
         return build_verification_metrics(public)
+    if experiment == "repeated_reuse":
+        return build_reuse_metrics(public)
     return build_acquisition_metrics(public)
 
 
@@ -279,6 +300,39 @@ def build_verification_metrics(public: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_reuse_metrics(public: dict[str, Any]) -> dict[str, Any]:
+    summary = public.get("summary") or {}
+    reuse = (summary.get("experiments") or {}).get("repeated_reuse") or {}
+    one_shot = (summary.get("baselines") or {}).get("llm_oneshot") or {}
+    gate = (public.get("experiment_gates") or {}).get("repeated_reuse") or {}
+    run = public.get("run") or {}
+    return {
+        "schema_version": PUBLIC_SCHEMA_VERSION,
+        "run_id": run.get("id", ""),
+        "model": ((run.get("llm") or {}).get("model", "")),
+        "experiment": "repeated_reuse",
+        "reuse_profile": run.get("reuse_profile", ""),
+        "level": run.get("level", ""),
+        "case_count": len(public.get("cases") or []),
+        "planned_reuse_rounds": reuse.get("planned_reuse_rounds", 0),
+        "held_out_uses": reuse.get("held_out_uses", 0),
+        "reuse_gate": compact_gate(gate),
+        "cal_use_passed": reuse.get("use_oracle_pass_count", 0),
+        "cal_use_failed": reuse.get("use_oracle_fail_count", 0),
+        "cal_success_rate": reuse.get("oracle_use_success_rate", 0),
+        "conditional_cal_success_rate": reuse.get("conditional_oracle_use_success_rate", 0),
+        "promoted_bindings": reuse.get("promoted_bindings", 0),
+        "provider_attempted": reuse.get("provider_attempted", 0),
+        "avg_use_ms": reuse.get("avg_use_ms", 0),
+        "one_shot_attempted": one_shot.get("attempted", 0),
+        "one_shot_passed": one_shot.get("passed", 0),
+        "one_shot_success_rate": one_shot.get("success_rate", 0),
+        "one_shot_llm_calls": one_shot.get("llm_calls", 0),
+        "one_shot_total_tokens": one_shot.get("total_tokens", 0),
+        "one_shot_avg_duration_ms": one_shot.get("avg_duration_ms", 0),
+    }
+
+
 def compact_gate(gate: dict[str, Any]) -> dict[str, Any]:
     return {
         "metric": gate.get("metric", ""),
@@ -311,6 +365,8 @@ def build_provenance(raw: dict[str, Any], run_dir: Path) -> dict[str, Any]:
     experiment = ",".join(run.get("selected_experiments") or [])
     level = run.get("level", "")
     jobs = run.get("jobs", 0)
+    reuse_profile = run.get("reuse_profile", "all")
+    mode = run.get("mode", "")
     return {
         "schema_version": PUBLIC_SCHEMA_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -323,12 +379,14 @@ def build_provenance(raw: dict[str, Any], run_dir: Path) -> dict[str, Any]:
             "mode": run.get("mode", ""),
             "experiment": experiment,
             "level": level,
+            "reuse_profile": reuse_profile,
             "jobs": jobs,
             "llm_jobs": jobs,
             "model": (run.get("llm") or {}).get("model", ""),
             "command": (
-                "python3 evals/cli-capability/runner/run.py --mode live_llm "
+                f"python3 evals/cli-capability/runner/run.py --mode {mode} "
                 f"--experiment {experiment} --level {level} --jobs {jobs} --llm-jobs {jobs} "
+                f"--reuse-profile {reuse_profile} "
                 "--calctl build/bin/calctl --cald build/bin/cald"
             ),
             "llm_environment": "Set required LLM provider environment variables outside the repository.",
@@ -346,6 +404,8 @@ def git_metadata() -> dict[str, Any]:
 def render_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
     if metrics.get("experiment") == "verification_failure":
         return render_verification_readme(public, metrics, provenance)
+    if metrics.get("experiment") == "repeated_reuse":
+        return render_reuse_readme(public, metrics, provenance)
     return render_acquisition_readme(public, metrics, provenance)
 
 
@@ -459,6 +519,44 @@ responses, and credentials are intentionally excluded.
 """
 
 
+def render_reuse_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
+    gate = metrics["reuse_gate"]
+    run = public.get("run") or {}
+    return f"""# CLI Capability Reuse Result
+
+This is a sanitized, commit-ready result selected from a local benchmark run.
+Raw traces, local paths, provider paths, shard directories, prompts, raw model
+responses, and credentials are intentionally excluded.
+
+## Source
+
+- Source run id: `{provenance.get('source_run_id', '')}`
+- Mode: `{run.get('mode', '')}`
+- Experiment: `repeated_reuse`
+- Reuse profile: `{run.get('reuse_profile', '')}`
+- Level: `{run.get('level', '')}`
+- Model: `{((run.get('llm') or {}).get('model', ''))}`
+- Jobs: `{run.get('jobs', 0)}`
+
+## Headline Metrics
+
+- Reuse gate: `{gate['numerator']} / {gate['denominator']} = {gate['rate'] * 100:.2f}%`
+- CAL use passed: `{metrics['cal_use_passed']} / {metrics['held_out_uses']}`
+- Promoted bindings available: `{metrics['promoted_bindings']}`
+- Average CAL use latency: `{format_duration_value(metrics['avg_use_ms'])}`
+- One-shot attempted: `{metrics['one_shot_attempted']}`
+- One-shot passed: `{metrics['one_shot_passed']}`
+- One-shot total tokens: `{metrics['one_shot_total_tokens']}`
+
+## Files
+
+- `metrics.json`: compact paper-facing metrics.
+- `artifact.public.json`: sanitized machine-readable result.
+- `report.html`: sanitized HTML report generated from `artifact.public.json`.
+- `provenance.json`: non-secret reproduction metadata.
+"""
+
+
 def primary_experiment(public: dict[str, Any]) -> str:
     selected = ((public.get("run") or {}).get("selected_experiments") or [])
     if len(selected) == 1:
@@ -468,6 +566,8 @@ def primary_experiment(public: dict[str, Any]) -> str:
         return "verification_failure"
     if "acquisition" in gates:
         return "acquisition"
+    if "repeated_reuse" in gates:
+        return "repeated_reuse"
     return selected[0] if selected else ""
 
 

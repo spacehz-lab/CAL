@@ -1,0 +1,2418 @@
+{
+  "schema_version": "cli-capability-public-result-v1",
+  "run": {
+    "id": "20260710-071823-kimi-k2-7-code-d569b1",
+    "mode": "live_llm",
+    "status": "completed",
+    "level": "full",
+    "selected_experiments": [
+      "repeated_reuse"
+    ],
+    "selected_cases": [
+      "repeated_reuse:file_hash_sha1",
+      "repeated_reuse:file_hash_sha256",
+      "repeated_reuse:text_base64_encode",
+      "repeated_reuse:text_base64_decode",
+      "repeated_reuse:text_uppercase",
+      "repeated_reuse:text_line_count",
+      "repeated_reuse:text_search_matches",
+      "repeated_reuse:csv_column_extract",
+      "repeated_reuse:json_query",
+      "repeated_reuse:archive_create_zip",
+      "repeated_reuse:archive_create_tar",
+      "repeated_reuse:json_format",
+      "repeated_reuse:enterprise_json_pluck",
+      "repeated_reuse:enterprise_json_normalize",
+      "repeated_reuse:enterprise_pii_redact",
+      "repeated_reuse:enterprise_table_field",
+      "repeated_reuse:enterprise_manifest_create"
+    ],
+    "jobs": 8,
+    "reuse_seed": "replay",
+    "reuse_profile": "effectiveness",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "llm": {
+      "api": "chat_completions",
+      "model": "kimi-k2.7-code",
+      "base_url_configured": true
+    }
+  },
+  "status": "completed",
+  "cases": [
+    {
+      "id": "archive_create_tar",
+      "case_key": "repeated_reuse:archive_create_tar",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "archive",
+      "intent": "Create a TAR archive containing this source file.",
+      "description": "Create a TAR archive containing at least one source file.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "held_out_file"
+      ],
+      "providers": [
+        {
+          "id": "tar",
+          "command": "tar",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_79419cf0eeb4",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "tar.create",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "tar.create",
+                "binding_id": "binding_2e0262c6d9ed"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "held_out_file",
+          "status": "passed",
+          "duration_ms": 5653,
+          "selection": {
+            "source": "llm",
+            "capability_id": "tar.create",
+            "provider_id": "provider_79419cf0eeb4",
+            "binding_id": "binding_2e0262c6d9ed"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "archive_create_zip",
+      "case_key": "repeated_reuse:archive_create_zip",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "archive",
+      "intent": "Create a ZIP archive containing this source file.",
+      "description": "Create a ZIP archive containing at least one source file.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "zip",
+      "reuse_rounds": [
+        "held_out_file"
+      ],
+      "providers": [
+        {
+          "id": "zip",
+          "command": "zip",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_cf58dd86b42e",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "zip.create",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "zip.create",
+                "binding_id": "binding_251f78241761"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "ditto",
+          "command": "ditto",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_fc1e2dc33f5e",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "zip.create",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "zip.create",
+                "binding_id": "binding_10430470ee72"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "held_out_file",
+          "status": "passed",
+          "duration_ms": 12589,
+          "selection": {
+            "source": "llm",
+            "capability_id": "zip.create",
+            "provider_id": "provider_cf58dd86b42e",
+            "binding_id": "binding_251f78241761"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "csv_column_extract",
+      "case_key": "repeated_reuse:csv_column_extract",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "tabular",
+      "intent": "Extract the requested column from this delimited text file and write the values.",
+      "description": "Extract a one-based column from delimited text.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "scores_b"
+      ],
+      "providers": [
+        {
+          "id": "cut",
+          "command": "cut",
+          "provider_class": "system",
+          "domains": [
+            "tabular",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_b4024e36e589",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "csv.extract",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "csv.extract",
+                "binding_id": "binding_39d5ae59b891"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "scores_b",
+          "status": "passed",
+          "duration_ms": 8434,
+          "selection": {
+            "source": "llm",
+            "capability_id": "csv.extract",
+            "provider_id": "provider_b4024e36e589",
+            "binding_id": "binding_39d5ae59b891"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_json_normalize",
+      "case_key": "repeated_reuse:enterprise_json_normalize",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "structured_data",
+      "intent": "Using the enterprise acmejson provider, normalize this JSON file with deterministic key ordering.",
+      "description": "Normalize JSON with an enterprise-specific command surface.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "enterprise_json_pluck"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "normalize_b"
+      ],
+      "providers": [
+        {
+          "id": "acmejson",
+          "command": "acmejson",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_30c68c57f0ec",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.normalize",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.normalize",
+                "binding_id": "binding_fa9590723157"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "normalize_b",
+          "status": "passed",
+          "duration_ms": 5209,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.normalize",
+            "provider_id": "provider_30c68c57f0ec",
+            "binding_id": "binding_fa9590723157"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_json_pluck",
+      "case_key": "repeated_reuse:enterprise_json_pluck",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "structured_data",
+      "intent": "Using the enterprise acmejson provider, extract the requested dotted JSON path and write the scalar value.",
+      "description": "Extract a scalar value from JSON with an enterprise-specific pluck command.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "enterprise_json_normalize"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "acmejson",
+      "reuse_rounds": [
+        "owner_b"
+      ],
+      "providers": [
+        {
+          "id": "acmejson",
+          "command": "acmejson",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_30c68c57f0ec",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.pluck",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.pluck",
+                "binding_id": "binding_c032e7705837"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "owner_b",
+          "status": "passed",
+          "duration_ms": 4567,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.pluck",
+            "provider_id": "provider_30c68c57f0ec",
+            "binding_id": "binding_c032e7705837"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_manifest_create",
+      "case_key": "repeated_reuse:enterprise_manifest_create",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "metadata",
+      "intent": "Using the enterprise packnote provider, create a JSON manifest for this source artifact with the requested label.",
+      "description": "Generate a deterministic JSON manifest with enterprise-specific metadata fields.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "packnote",
+      "reuse_rounds": [
+        "manifest_b"
+      ],
+      "providers": [
+        {
+          "id": "packnote",
+          "command": "packnote",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "metadata"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_afcc5dbf30e1",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "metadata.manifest",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 5
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "metadata.manifest",
+                "binding_id": "binding_44233d34ed83"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "manifest_b",
+          "status": "passed",
+          "duration_ms": 9307,
+          "selection": {
+            "source": "llm",
+            "capability_id": "metadata.manifest",
+            "provider_id": "provider_afcc5dbf30e1",
+            "binding_id": "binding_44233d34ed83"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_pii_redact",
+      "case_key": "repeated_reuse:enterprise_pii_redact",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "reuse_comparison"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "privacy",
+      "intent": "Using the enterprise corp-redact provider, mask email addresses and token values in this file.",
+      "description": "Redact email and token-like identifiers with an enterprise-specific command surface.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "corp_redact",
+      "reuse_rounds": [
+        "pii_b"
+      ],
+      "providers": [
+        {
+          "id": "corp_redact",
+          "command": "corp-redact",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "privacy",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_e88b1000685e",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.redactpii",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.redactpii",
+                "binding_id": "binding_dac60604cd0c"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "pii_b",
+          "status": "passed",
+          "duration_ms": 4717,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.redactpii",
+            "provider_id": "provider_e88b1000685e",
+            "binding_id": "binding_dac60604cd0c"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_table_field",
+      "case_key": "repeated_reuse:enterprise_table_field",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "repeated_reuse",
+        "uncommon_cli",
+        "synthetic_enterprise"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "tabular",
+      "intent": "Using the enterprise datapick provider, extract the requested header field from this delimited file.",
+      "description": "Extract a named field from delimited data with an enterprise-specific command surface.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "score_b"
+      ],
+      "providers": [
+        {
+          "id": "datapick",
+          "command": "datapick",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "tabular"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1f634b8363da",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "table.fieldextract",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "table.fieldextract",
+                "binding_id": "binding_9dd7442266a6"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "score_b",
+          "status": "passed",
+          "duration_ms": 7756,
+          "selection": {
+            "source": "llm",
+            "capability_id": "table.fieldextract",
+            "provider_id": "provider_1f634b8363da",
+            "binding_id": "binding_9dd7442266a6"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "file_hash_sha1",
+      "case_key": "repeated_reuse:file_hash_sha1",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "checksum",
+      "intent": "Compute the SHA-1 digest of this file and write the digest artifact.",
+      "description": "Compute the SHA-1 digest of a file and write a textual digest artifact.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "shasum",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "shasum",
+          "command": "shasum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_f77a60b18370",
+          "provider_register_duration_ms": 14,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha1.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha1.hash",
+                "binding_id": "binding_b84287552763"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "sha1sum",
+          "command": "sha1sum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_ffd0d6284658",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha1.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha1.hash",
+                "binding_id": "binding_0eb694e2e455"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 10310,
+          "selection": {
+            "source": "llm",
+            "capability_id": "sha1.hash",
+            "provider_id": "provider_ffd0d6284658",
+            "binding_id": "binding_0eb694e2e455"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "file_hash_sha256",
+      "case_key": "repeated_reuse:file_hash_sha256",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "checksum",
+      "intent": "Compute the SHA-256 digest of this file and write the digest artifact.",
+      "description": "Compute the SHA-256 digest of a file and write a textual digest artifact.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "shasum",
+          "command": "shasum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_f77a60b18370",
+          "provider_register_duration_ms": 16,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha256.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha256.hash",
+                "binding_id": "binding_5cb1026205e9"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "sha256sum",
+          "command": "sha256sum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_028958ccb92f",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "sha256.hash",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "sha256.hash",
+                "binding_id": "binding_7caf7f5a4960"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 10983,
+          "selection": {
+            "source": "llm",
+            "capability_id": "sha256.hash",
+            "provider_id": "provider_028958ccb92f",
+            "binding_id": "binding_7caf7f5a4960"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "json_format",
+      "case_key": "repeated_reuse:json_format",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "repeated_reuse",
+        "third_party_cli"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "structured_data",
+      "intent": "format pretty print",
+      "description": "Format or pretty-print JSON while preserving its data.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2,
+        "expect_provider_multi_capability_with": "json_query"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "format_b"
+      ],
+      "providers": [
+        {
+          "id": "jq",
+          "command": "jq",
+          "provider_class": "third_party",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_c591fc101f5a",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.format",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.format",
+                "binding_id": "binding_1af8614f4779"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "python3",
+          "command": "python3",
+          "provider_class": "system",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1ddf08789797",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.format",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.format",
+                "binding_id": "binding_fb2750e74d23"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "format_b",
+          "status": "passed",
+          "duration_ms": 9432,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.format",
+            "provider_id": "provider_1ddf08789797",
+            "binding_id": "binding_fb2750e74d23"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "json_query",
+      "case_key": "repeated_reuse:json_query",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "repeated_reuse",
+        "third_party_cli",
+        "reuse_comparison"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "structured_data",
+      "intent": "Apply the JSON query to this file and write the selected value.",
+      "description": "Apply a query/filter to JSON and write the selected value as text.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2,
+        "expect_provider_multi_capability_with": "json_format"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "jq",
+      "reuse_rounds": [
+        "version"
+      ],
+      "providers": [
+        {
+          "id": "jq",
+          "command": "jq",
+          "provider_class": "third_party",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_c591fc101f5a",
+          "provider_register_duration_ms": 16,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.query",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.query",
+                "binding_id": "binding_ce67055a2181"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "python3",
+          "command": "python3",
+          "provider_class": "system",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1ddf08789797",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.query",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "json.query",
+                "binding_id": "binding_8e7ec55b04c7"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "version",
+          "status": "passed",
+          "duration_ms": 8144,
+          "selection": {
+            "source": "llm",
+            "capability_id": "json.query",
+            "provider_id": "provider_c591fc101f5a",
+            "binding_id": "binding_ce67055a2181"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "text_base64_decode",
+      "case_key": "repeated_reuse:text_base64_decode",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "encoding",
+      "intent": "Decode this Base64 file and write the decoded artifact.",
+      "description": "Decode Base64 text into bytes or text and write the decoded artifact.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "text_base64_encode"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "base64",
+          "command": "base64",
+          "provider_class": "system",
+          "domains": [
+            "encoding"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_14300003a037",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "base64.decode",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "base64.decode",
+                "binding_id": "binding_df4398844eef"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 6440,
+          "selection": {
+            "source": "llm",
+            "capability_id": "base64.decode",
+            "provider_id": "provider_14300003a037",
+            "binding_id": "binding_df4398844eef"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "text_base64_encode",
+      "case_key": "repeated_reuse:text_base64_encode",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse",
+        "reuse_comparison"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "encoding",
+      "intent": "Encode this file as Base64 and write the encoded artifact.",
+      "description": "Encode text or bytes as Base64 and write a textual artifact.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "text_base64_decode"
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "base64",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "base64",
+          "command": "base64",
+          "provider_class": "system",
+          "domains": [
+            "encoding"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_14300003a037",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "base64.encode",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "base64.encode",
+                "binding_id": "binding_12b4c16a8363"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 4652,
+          "selection": {
+            "source": "llm",
+            "capability_id": "base64.encode",
+            "provider_id": "provider_14300003a037",
+            "binding_id": "binding_12b4c16a8363"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "text_line_count",
+      "case_key": "repeated_reuse:text_line_count",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "text",
+      "intent": "Count the number of lines in this text file and write the count artifact.",
+      "description": "Count source text lines and write a textual count artifact.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "wc",
+          "command": "wc",
+          "provider_class": "system",
+          "domains": [
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_d41ff252ed41",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.count",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.count",
+                "binding_id": "binding_9531b07486a4"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 4932,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.count",
+            "provider_id": "provider_d41ff252ed41",
+            "binding_id": "binding_9531b07486a4"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "text_search_matches",
+      "case_key": "repeated_reuse:text_search_matches",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "repeated_reuse",
+        "third_party_cli",
+        "reuse_comparison"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "search",
+      "intent": "Search this text file for the requested pattern and write matching lines.",
+      "description": "Filter source lines that contain a requested literal pattern.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "rg",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "grep",
+          "command": "grep",
+          "provider_class": "system",
+          "domains": [
+            "search",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_e270a3213499",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.search",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.search",
+                "binding_id": "binding_86e1cdcb20a8"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "rg",
+          "command": "rg",
+          "provider_class": "third_party",
+          "domains": [
+            "search",
+            "text"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_b1d506523975",
+          "provider_register_duration_ms": 7,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.search",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.search",
+                "binding_id": "binding_d3c6f9fdb600"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 24942,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.search",
+            "provider_id": "provider_e270a3213499",
+            "binding_id": "binding_86e1cdcb20a8"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    },
+    {
+      "id": "text_uppercase",
+      "case_key": "repeated_reuse:text_uppercase",
+      "scenario_group": "repeated_reuse",
+      "paper_experiments": [
+        "repeated_reuse"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli",
+        "repeated_reuse"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "text",
+      "intent": "Convert this text file to uppercase and write the transformed artifact.",
+      "description": "Convert text to uppercase and write the output file.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_profile": "effectiveness",
+      "baseline_provider": "",
+      "reuse_rounds": [
+        "text_b"
+      ],
+      "providers": [
+        {
+          "id": "dd",
+          "command": "dd",
+          "provider_class": "system",
+          "domains": [
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_0774c982e17f",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 0,
+          "proposal_duration_ms": 0,
+          "llm_duration_ms": 0,
+          "llm_call_count": 0,
+          "prompt_tokens": 0,
+          "completion_tokens": 0,
+          "total_tokens": 0,
+          "observation_sources": [],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.uppercase",
+              "probe": {
+                "status": "skipped",
+                "passed": false,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 1
+              },
+              "promotion": {
+                "capability_action": "seeded",
+                "binding_action": "seeded",
+                "capability_id": "text.uppercase",
+                "binding_id": "binding_67f523960da1"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [
+        {
+          "fixture_id": "text_b",
+          "status": "passed",
+          "duration_ms": 12167,
+          "selection": {
+            "source": "llm",
+            "capability_id": "text.uppercase",
+            "provider_id": "provider_0774c982e17f",
+            "binding_id": "binding_67f523960da1"
+          },
+          "oracle": {
+            "passed": true
+          },
+          "failure": {}
+        }
+      ],
+      "baselines": {}
+    }
+  ],
+  "summary": {
+    "total": {
+      "case_attempted": 17,
+      "planned_reuse_rounds": 17,
+      "provider_attempted": 23,
+      "provider_available": 23,
+      "providers_with_promoted_bindings": 23,
+      "candidate_count": 23,
+      "probe_pass_count": 0,
+      "probe_fail_count": 0,
+      "promoted_bindings": 23,
+      "held_out_reuses": 0,
+      "skipped_reuses": 0,
+      "held_out_uses": 17,
+      "eligible_held_out_uses": 17,
+      "oracle_pass_count": 0,
+      "oracle_fail_count": 0,
+      "use_oracle_pass_count": 17,
+      "conditional_use_oracle_pass_count": 17,
+      "use_oracle_fail_count": 0,
+      "failed": 0,
+      "provider_failures": 0,
+      "candidate_negative_evidence": 0,
+      "direct_reuse_failures": 0,
+      "intent_use_failures": 0,
+      "upstream_acquisition_failure_count": 0,
+      "upstream_acquisition_failed_cases": [],
+      "acquisition_duration_ms": 0,
+      "reuse_duration_ms": 0,
+      "use_duration_ms": 150234,
+      "llm_duration_ms": 0,
+      "acquisition_llm_calls": 0,
+      "run_stage_llm_calls": 17,
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "avg_acquisition_ms": 0,
+      "avg_reuse_ms": 0,
+      "avg_use_ms": 8837,
+      "avg_llm_ms": 0,
+      "oracle_reuse_success_rate": 0.0,
+      "oracle_use_success_rate": 1.0,
+      "conditional_oracle_use_success_rate": 1.0
+    },
+    "experiments": {
+      "acquisition": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "verification_failure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "repeated_reuse": {
+        "case_attempted": 17,
+        "planned_reuse_rounds": 17,
+        "provider_attempted": 23,
+        "provider_available": 23,
+        "providers_with_promoted_bindings": 23,
+        "candidate_count": 23,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 23,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 17,
+        "eligible_held_out_uses": 17,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 17,
+        "conditional_use_oracle_pass_count": 17,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 150234,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 17,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 8837,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 1.0,
+        "conditional_oracle_use_success_rate": 1.0
+      },
+      "capability_structure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      }
+    },
+    "acquisition_modes": {},
+    "baselines": {
+      "llm_oneshot": {
+        "attempted": 0,
+        "passed": 0,
+        "failed": 0,
+        "duration_ms": 0,
+        "llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "success_rate": 0.0,
+        "avg_duration_ms": 0,
+        "avg_tokens": 0
+      }
+    }
+  },
+  "scores": {
+    "profile": "live_llm",
+    "closed_loop_success_rate": 1.0,
+    "intent_use_success_rate": 1.0,
+    "conditional_reuse_success_rate": 1.0,
+    "provider_yield_rate": 1.0,
+    "probe_pass_rate": 0.0,
+    "promotion_yield": 0.0,
+    "negative_evidence_count": 0,
+    "failed_count": 0,
+    "provider_acquisition_total_ms": 0,
+    "provider_acquisition_avg_ms": 0,
+    "proposal_llm_total_ms": 0,
+    "proposal_llm_avg_ms": 0,
+    "proposal_llm_calls": 0,
+    "proposal_prompt_tokens": 0,
+    "proposal_completion_tokens": 0,
+    "proposal_total_tokens": 0,
+    "acquisition_local_overhead_total_ms": 0
+  },
+  "coverage": {
+    "distinct_case_count": 17,
+    "distinct_provider_case_pair_count": 23,
+    "distinct_provider_count": 18,
+    "levels": {
+      "full": 3,
+      "focus": 14
+    },
+    "domains": [
+      "archive",
+      "checksum",
+      "encoding",
+      "metadata",
+      "privacy",
+      "search",
+      "structured_data",
+      "tabular",
+      "text"
+    ],
+    "provider_classes": [
+      "known_cli",
+      "synthetic_enterprise",
+      "system",
+      "third_party",
+      "third_party_cli",
+      "uncommon_cli"
+    ],
+    "paper_experiments": [
+      "repeated_reuse"
+    ]
+  },
+  "capability_model": {
+    "providers": {
+      "acmejson": [
+        "json.normalize",
+        "json.pluck"
+      ],
+      "base64": [
+        "base64.decode",
+        "base64.encode"
+      ],
+      "corp_redact": [
+        "text.redactpii"
+      ],
+      "cut": [
+        "csv.extract"
+      ],
+      "datapick": [
+        "table.fieldextract"
+      ],
+      "dd": [
+        "text.uppercase"
+      ],
+      "ditto": [
+        "zip.create"
+      ],
+      "grep": [
+        "text.search"
+      ],
+      "jq": [
+        "json.format",
+        "json.query"
+      ],
+      "packnote": [
+        "metadata.manifest"
+      ],
+      "python3": [
+        "json.format",
+        "json.query"
+      ],
+      "rg": [
+        "text.search"
+      ],
+      "sha1sum": [
+        "sha1.hash"
+      ],
+      "sha256sum": [
+        "sha256.hash"
+      ],
+      "shasum": [
+        "sha1.hash",
+        "sha256.hash"
+      ],
+      "tar": [
+        "tar.create"
+      ],
+      "wc": [
+        "text.count"
+      ],
+      "zip": [
+        "zip.create"
+      ]
+    },
+    "capabilities": {
+      "base64.decode": [
+        "base64"
+      ],
+      "base64.encode": [
+        "base64"
+      ],
+      "csv.extract": [
+        "cut"
+      ],
+      "json.format": [
+        "jq",
+        "python3"
+      ],
+      "json.normalize": [
+        "acmejson"
+      ],
+      "json.pluck": [
+        "acmejson"
+      ],
+      "json.query": [
+        "jq",
+        "python3"
+      ],
+      "metadata.manifest": [
+        "packnote"
+      ],
+      "sha1.hash": [
+        "sha1sum",
+        "shasum"
+      ],
+      "sha256.hash": [
+        "sha256sum",
+        "shasum"
+      ],
+      "table.fieldextract": [
+        "datapick"
+      ],
+      "tar.create": [
+        "tar"
+      ],
+      "text.count": [
+        "wc"
+      ],
+      "text.redactpii": [
+        "corp_redact"
+      ],
+      "text.search": [
+        "grep",
+        "rg"
+      ],
+      "text.uppercase": [
+        "dd"
+      ],
+      "zip.create": [
+        "ditto",
+        "zip"
+      ]
+    },
+    "multi_capability_providers": 5,
+    "multi_binding_capabilities": 6,
+    "checks": [],
+    "check_passed": 0,
+    "check_failed": 0,
+    "check_skipped": 0
+  },
+  "discovery_coverage": {
+    "case_count": 0,
+    "provider_case_count": 0,
+    "multi_cap_design_cases": 0,
+    "multi_cap_promoted_cases": 0,
+    "expected_capabilities": 0,
+    "promoted_expected_capabilities": 0,
+    "missing_expected_capabilities": 0,
+    "extra_promoted_capabilities": 0,
+    "multi_cap_design_rate": 0.0,
+    "multi_cap_promoted_rate": 0.0,
+    "capability_coverage_rate": 0.0,
+    "cases": []
+  },
+  "failure_taxonomy": [],
+  "experiment_gates": {
+    "repeated_reuse": {
+      "metric": "held_out_use_oracle_pass_rate",
+      "numerator": 17,
+      "denominator": 17,
+      "actual": 1.0,
+      "target": 0.9,
+      "passed": true
+    }
+  }
+}

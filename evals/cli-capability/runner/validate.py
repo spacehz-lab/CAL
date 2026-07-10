@@ -7,17 +7,17 @@ from pathlib import Path
 
 from constants import (
     ACQUISITION_FULL,
-    BASELINE_DIRECT_CLI,
     BASELINE_LLM_ONESHOT,
     EXPERIMENTS,
     EXPERIMENT_ACQUISITION,
     EXPERIMENT_REPEATED_REUSE,
     SCENARIO_GROUPS,
+    TAG_REUSE_COMPARISON,
 )
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IMPLEMENTED_BASELINES = {BASELINE_DIRECT_CLI, BASELINE_LLM_ONESHOT}
+IMPLEMENTED_BASELINES = {BASELINE_LLM_ONESHOT}
 
 
 def main() -> int:
@@ -58,6 +58,7 @@ def main() -> int:
         check_expected_capabilities(group, case_id, case)
         if EXPERIMENT_REPEATED_REUSE in experiments:
             check_fixture_group(group, case_id, case.get("reuse") or {}, "rounds")
+            check_reuse_comparison_case(group, case_id, case)
         if case.get("level") == "focus":
             for provider in case["provider_candidates"]:
                 proposal_path = ROOT / "proposals" / "replay" / case_id / f"{provider}.json"
@@ -69,8 +70,8 @@ def main() -> int:
         py_compile.compile(str(path), doraise=True)
     for path in (ROOT / "proposals" / "replay").glob("*/*.json"):
         check_replay_proposal(path)
-    read_jsonl(ROOT / "baselines" / "oracle" / "commands.jsonl")
     check_full_acquisition_design(cases)
+    check_reuse_comparison_design(cases)
     print(f"validated {len(cases)} scenario cases and {len(provider_ids)} providers")
     return 0
 
@@ -120,6 +121,32 @@ def check_full_acquisition_design(cases: list[dict]) -> None:
             "full_acquisition design requires at least 80% provider-suite cases "
             f"with multiple expected capabilities; got {len(multi_cap_cases)}/{len(full_cases)}"
         )
+
+
+def check_reuse_comparison_case(group: str, case_id: str, case: dict) -> None:
+    if TAG_REUSE_COMPARISON not in (case.get("scenario_tags") or []):
+        return
+    if BASELINE_LLM_ONESHOT not in (case.get("baselines") or []):
+        raise SystemExit(f"{group}:{case_id}: reuse comparison cases must include llm_oneshot baseline")
+    provider = case.get("baseline_provider", "")
+    if not provider:
+        raise SystemExit(f"{group}:{case_id}: reuse comparison cases require baseline_provider")
+    if provider not in (case.get("provider_candidates") or []):
+        raise SystemExit(f"{group}:{case_id}: baseline_provider {provider!r} is not a provider candidate")
+
+
+def check_reuse_comparison_design(cases: list[dict]) -> None:
+    comparison = [
+        case
+        for case in cases
+        if EXPERIMENT_REPEATED_REUSE in (case.get("paper_experiments") or [])
+        and TAG_REUSE_COMPARISON in (case.get("scenario_tags") or [])
+    ]
+    if not comparison:
+        return
+    rounds = sum(len((case.get("reuse") or {}).get("rounds") or []) for case in comparison)
+    if len(comparison) != 8 or rounds != 10:
+        raise SystemExit(f"reuse comparison design requires 8 cases and 10 rounds; got {len(comparison)} cases and {rounds} rounds")
 
 
 def check_replay_proposal(path: Path) -> None:

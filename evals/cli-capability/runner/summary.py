@@ -4,7 +4,6 @@ from typing import Any
 
 from constants import (
     ACQUISITION_FULL,
-    BASELINE_DIRECT_CLI,
     BASELINE_LLM_ONESHOT,
     EXPERIMENT_ACQUISITION,
     EXPERIMENT_CAPABILITY_STRUCTURE,
@@ -216,7 +215,6 @@ def finalize_summary(summary: dict[str, Any]) -> dict[str, Any]:
 
 def summarize_baselines(cases: list[dict[str, Any]]) -> dict[str, Any]:
     summaries = {
-        BASELINE_DIRECT_CLI: new_baseline_summary(),
         BASELINE_LLM_ONESHOT: new_baseline_summary(),
     }
     for case in cases:

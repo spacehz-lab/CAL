@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import platform
 import shutil
@@ -19,8 +20,14 @@ from constants import (
     EXPERIMENT_CAPABILITY_STRUCTURE,
     EXPERIMENT_REPEATED_REUSE,
     EXPERIMENT_VERIFICATION_FAILURE,
+    BASELINE_LLM_ONESHOT,
     MODE_LIVE_LLM,
     MODE_REPLAY,
+    REUSE_PROFILE_ALL,
+    REUSE_PROFILE_COMPARISON,
+    REUSE_PROFILE_EFFECTIVENESS,
+    REUSE_PROFILES,
+    TAG_REUSE_COMPARISON,
 )
 from oracle import OracleRunner
 from report import ArtifactWriter
@@ -38,6 +45,7 @@ def main() -> int:
     catalog = ScenarioCatalog(bench)
     selected_cases = catalog.select(args.experiment, args.level, args.case, args.provider_class, args.tag, args.failure_type)
     selected_cases = restrict_cases_to_selected_experiments(selected_cases, args.experiment)
+    selected_cases = apply_reuse_profile(selected_cases, args.reuse_profile)
     selected_experiments = selected_experiment_names(selected_cases)
     model = os.environ.get("CAL_LLM_MODEL", "") if args.mode == MODE_LIVE_LLM else ""
     run_id = new_run_id(args.mode, model)
@@ -132,6 +140,8 @@ class BenchmarkRunner:
             "description": case.get("description", ""),
             "capability_layer_checks": case.get("capability_layer_checks") or {},
             "expected_capabilities": case.get("expected_capabilities") or [],
+            "reuse_profile": case.get("reuse_profile", ""),
+            "baseline_provider": case.get("baseline_provider", ""),
             "reuse_rounds": [round_value.get("id", "") for round_value in (case.get("reuse") or {}).get("rounds") or []],
             "providers": [],
             "use": [],
@@ -205,6 +215,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--jobs", type=int, default=1, help="parallel case workers")
     parser.add_argument("--llm-jobs", type=int, default=2, help="parallel live LLM case workers")
     parser.add_argument("--reuse-seed", choices=REUSE_SEEDS, default=REUSE_SEED_REPLAY, help="seed repeated reuse from replay records or acquire in each reuse shard")
+    parser.add_argument("--reuse-profile", choices=REUSE_PROFILES, default=REUSE_PROFILE_ALL, help="reuse report profile: all rounds, 17-case effectiveness, or 8-case comparison")
     parser.add_argument("--calctl", default="calctl")
     parser.add_argument("--cald", default="cald")
     parser.add_argument("--home", default="")
@@ -231,6 +242,7 @@ def new_artifact(
             "selected_cases": [case.get("case_key", case["id"]) for case in cases],
             "jobs": jobs,
             "reuse_seed": args.reuse_seed,
+            "reuse_profile": args.reuse_profile,
             "goos": sys.platform,
             "goarch": platform.machine(),
             "llm": {
@@ -278,6 +290,32 @@ def restrict_cases_to_selected_experiments(cases: list[dict[str, Any]], experime
         copied["paper_experiments"] = [experiment for experiment in case.get("paper_experiments") or [] if experiment in wanted]
         restricted.append(copied)
     return restricted
+
+
+def apply_reuse_profile(cases: list[dict[str, Any]], profile: str) -> list[dict[str, Any]]:
+    if profile == REUSE_PROFILE_ALL:
+        return cases
+    profiled: list[dict[str, Any]] = []
+    for case in cases:
+        experiments = set(case.get("paper_experiments") or [])
+        if EXPERIMENT_REPEATED_REUSE not in experiments:
+            profiled.append(case)
+            continue
+        if profile == REUSE_PROFILE_COMPARISON and TAG_REUSE_COMPARISON not in set(case.get("scenario_tags") or []):
+            continue
+        copied = copy.deepcopy(case)
+        copied["reuse_profile"] = profile
+        if profile == REUSE_PROFILE_EFFECTIVENESS:
+            rounds = (copied.get("reuse") or {}).get("rounds") or []
+            copied["reuse"] = dict(copied.get("reuse") or {})
+            copied["reuse"]["rounds"] = rounds[:1]
+            copied["baselines"] = []
+        elif profile == REUSE_PROFILE_COMPARISON:
+            copied["baselines"] = [BASELINE_LLM_ONESHOT] if BASELINE_LLM_ONESHOT in (copied.get("baselines") or []) else []
+        profiled.append(copied)
+    if not profiled:
+        raise SystemExit(f"no scenario cases selected for reuse profile {profile}")
+    return profiled
 
 
 def selected_experiment_names(cases: list[dict[str, Any]]) -> list[str]:

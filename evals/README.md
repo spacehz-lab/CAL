@@ -30,18 +30,19 @@ evals/
   out/                 # local generated outputs, ignored by git
 ```
 
-`evals/cli-capability/suites/` physically separates the paper questions:
+`evals/cli-capability/scenarios/` defines the paper questions:
 
 ```text
-acquisition.jsonl       # acquire verified bindings from real CLI surfaces
-capability_model.jsonl  # prove Provider -> Capability* and Capability -> Binding*
-reuse.jsonl             # held-out use/run plus independent oracle scoring
+acquisition.jsonl           # acquire verified bindings from real CLI surfaces
+failure_gating.jsonl        # block invalid candidate bindings
+repeated_reuse.jsonl        # held-out use plus independent oracle scoring
+capability_structure.jsonl  # prove Provider -> Capability* and Capability -> Binding*
 ```
 
-Benchmark reports should compare CAL with direct CLI oracle, LLM one-shot CLI,
-and provider-tool baselines. The primary comparison is repeated-case
-amortization: LLM calls, tokens, latency, and oracle-verified successes across
-held-out reuse cases.
+Benchmark reports should include a broad reuse-effectiveness profile and a
+focused CAL reuse vs LLM one-shot comparison profile. The primary comparison is
+repeated-case amortization: LLM calls, tokens, latency, and oracle-verified
+successes across held-out reuse cases.
 
 ## Current Eval
 

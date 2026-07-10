@@ -13,6 +13,8 @@ from constants import (
     EXPERIMENT_REPEATED_REUSE,
     EXPERIMENT_VERIFICATION_FAILURE,
     FLOW_SCHEMA_VERSION,
+    REUSE_PROFILE_COMPARISON,
+    REUSE_PROFILE_EFFECTIVENESS,
 )
 from util import escape, format_duration_value, fraction, ratio, strip_private_fields, write_json
 
@@ -50,6 +52,8 @@ def build_flow_artifact(artifact: dict[str, Any]) -> dict[str, Any]:
                 "intent": case.get("intent", ""),
                 "domain": case.get("domain", ""),
                 "expected_capabilities": case.get("expected_capabilities") or [],
+                "reuse_profile": case.get("reuse_profile", ""),
+                "baseline_provider": case.get("baseline_provider", ""),
                 "providers": provider_flows(case),
                 "use": case.get("use") or [],
                 "baselines": case.get("baselines") or {},
@@ -185,8 +189,8 @@ def selected_experiments(flow: dict[str, Any]) -> list[str]:
     for experiment in [
         EXPERIMENT_ACQUISITION,
         EXPERIMENT_VERIFICATION_FAILURE,
-        EXPERIMENT_CAPABILITY_STRUCTURE,
         EXPERIMENT_REPEATED_REUSE,
+        EXPERIMENT_CAPABILITY_STRUCTURE,
     ]:
         if experiment in gates or experiment_cases(flow, experiment):
             experiments.append(experiment)
@@ -236,15 +240,31 @@ def render_failure_section(flow: dict[str, Any]) -> str:
 
 def render_capability_structure_section(flow: dict[str, Any]) -> str:
     return f"""<section class="section">
-<h2>Experiment 3: Capability Structure Evidence</h2>
+<h2>Experiment 4: Capability Structure Evidence</h2>
 {render_gate(flow, EXPERIMENT_CAPABILITY_STRUCTURE)}
 {render_capability_model_tables(flow)}
 </section>"""
 
 
 def render_repeated_reuse_section(flow: dict[str, Any]) -> str:
+    profile = (flow.get("run") or {}).get("reuse_profile", "")
+    if profile == REUSE_PROFILE_EFFECTIVENESS:
+        return f"""<section class="section primary">
+<h2>Experiment 3A: Reuse Effectiveness</h2>
+{render_gate(flow, EXPERIMENT_REPEATED_REUSE)}
+{render_reuse_summary(flow)}
+{render_reuse_effectiveness_table(flow)}
+</section>"""
+    if profile == REUSE_PROFILE_COMPARISON:
+        return f"""<section class="section primary">
+<h2>Experiment 3B: CAL Reuse vs LLM One-shot</h2>
+{render_gate(flow, EXPERIMENT_REPEATED_REUSE)}
+{render_reuse_summary(flow)}
+{render_reuse_round_comparison_table(flow)}
+{render_reuse_comparison(flow)}
+</section>"""
     return f"""<section class="section primary">
-<h2>Experiment 4: Repeated Held-Out Reuse</h2>
+<h2>Experiment 3: Repeated Held-Out Reuse</h2>
 {render_gate(flow, EXPERIMENT_REPEATED_REUSE)}
 {render_reuse_summary(flow)}
 {render_reuse_table(flow)}
@@ -442,6 +462,65 @@ def render_reuse_table(flow: dict[str, Any]) -> str:
     return table_or_empty("<tr><th>Case</th><th>Round</th><th>Provider class</th><th>CAL result</th><th>Binding</th><th>Latency</th></tr>", rows)
 
 
+def render_reuse_effectiveness_table(flow: dict[str, Any]) -> str:
+    rows = []
+    for case in experiment_cases(flow, EXPERIMENT_REPEATED_REUSE):
+        uses = case.get("use") or []
+        passed = sum(1 for use in uses if (use.get("oracle") or {}).get("passed"))
+        promoted = sum(count_promoted(provider.get("candidates") or []) for provider in case.get("providers") or [])
+        bindings = sorted(
+            {
+                (use.get("selection") or {}).get("binding_id", "")
+                for use in uses
+                if (use.get("selection") or {}).get("binding_id", "")
+            }
+        )
+        rows.append(
+            f"<tr class='{row_class(passed == len(uses) and len(uses) > 0)}'>"
+            f"<td><code>{escape(case.get('case_key', ''))}</code></td>"
+            f"<td>{escape(case.get('provider_class', ''))}</td>"
+            f"<td>{promoted}</td>"
+            f"<td>{fraction(passed, len(uses))}</td>"
+            f"<td>{escape(', '.join(bindings))}</td>"
+            f"<td>{format_duration_value(avg_use_duration(uses))}</td>"
+            "</tr>"
+        )
+    return "<h3>Reuse Effectiveness Cases</h3>" + table_or_empty(
+        "<tr><th>Case</th><th>Provider class</th><th>Seeded bindings</th><th>CAL uses passed</th><th>Selected binding</th><th>Avg latency</th></tr>",
+        rows,
+    )
+
+
+def render_reuse_round_comparison_table(flow: dict[str, Any]) -> str:
+    rows = []
+    for case in experiment_cases(flow, EXPERIMENT_REPEATED_REUSE):
+        one_shot = one_shot_by_round(case)
+        for use in case.get("use") or []:
+            baseline = one_shot.get(use.get("fixture_id", ""), {})
+            baseline_llm = baseline.get("llm") or {}
+            baseline_usage = baseline_llm.get("usage") or {}
+            rows.append(
+                f"<tr class='{row_class((use.get('oracle') or {}).get('passed') and (baseline.get('oracle') or {}).get('passed'))}'>"
+                f"<td><code>{escape(case.get('case_key', ''))}</code></td>"
+                f"<td><code>{escape(use.get('fixture_id', ''))}</code></td>"
+                f"<td>{escape(case.get('provider_class', ''))}</td>"
+                f"<td><code>{escape((use.get('selection') or {}).get('provider_id', ''))}</code></td>"
+                f"<td><code>{escape((use.get('selection') or {}).get('binding_id', ''))}</code></td>"
+                f"<td>{status(use.get('status'))}</td>"
+                f"<td>{format_duration_value(use.get('duration_ms'))}</td>"
+                f"<td><code>{escape(baseline.get('provider', ''))}</code></td>"
+                f"<td>{status(baseline.get('status'))}</td>"
+                f"<td>{format_duration_value(baseline.get('duration_ms'))}</td>"
+                f"<td>{escape(baseline_usage.get('total_tokens', 0))}</td>"
+                f"<td>{escape((baseline.get('failure') or {}).get('code', ''))}</td>"
+                "</tr>"
+            )
+    return "<h3>Round-level Comparison</h3>" + table_or_empty(
+        "<tr><th>Case</th><th>Round</th><th>Provider class</th><th>CAL provider</th><th>CAL binding</th><th>CAL result</th><th>CAL latency</th><th>One-shot provider</th><th>One-shot result</th><th>One-shot latency</th><th>One-shot tokens</th><th>One-shot failure</th></tr>",
+        rows,
+    )
+
+
 def render_reuse_comparison(flow: dict[str, Any]) -> str:
     reuse = ((flow.get("summary") or {}).get("experiments") or {}).get(EXPERIMENT_REPEATED_REUSE) or {}
     baselines = ((flow.get("summary") or {}).get("baselines") or {})
@@ -466,6 +545,15 @@ def render_reuse_comparison(flow: dict[str, Any]) -> str:
         "<tr><th>Method</th><th>Attempted</th><th>Passed</th><th>Success</th><th>Avg latency</th><th>LLM calls</th><th>Tokens</th><th>Reusable binding</th></tr>",
         rows,
     )
+
+
+def one_shot_by_round(case: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    rows = ((case.get("baselines") or {}).get(BASELINE_LLM_ONESHOT) or [])
+    return {row.get("fixture_id", ""): row for row in rows}
+
+
+def avg_use_duration(uses: list[dict[str, Any]]) -> int:
+    return int(sum(use.get("duration_ms", 0) for use in uses) / len(uses)) if uses else 0
 
 
 def method_row(name: str, attempted: Any, passed: Any, success_rate: Any, avg_latency_ms: Any, llm_calls: Any, tokens: Any, reusable: Any) -> str:

@@ -11,8 +11,8 @@ for the paper experiments:
 ```text
 Experiment 1: Acquiring Capabilities From Provider Surfaces
 Experiment 2: Verification And Failure Gating
-Experiment 3: Capability Structure Evidence
-Experiment 4: Repeated Held-Out Reuse
+Experiment 3: Repeated Held-Out Reuse
+Experiment 4: Capability Structure Evidence
 ```
 
 ## Layout
@@ -41,8 +41,8 @@ Current scenario surface:
 
 - `acquisition`: 16 cases, including 4 uncommon provider-suite full-acquisition cases.
 - `verification_failure`: 5 synthetic provider-drift cases.
-- `capability_structure`: structure checks attached to acquisition cases.
 - `repeated_reuse`: 17 cases with held-out reuse rounds.
+- `capability_structure`: structure checks attached to acquisition cases.
 
 The uncommon provider slice uses `acmejson`, `corp-redact`, `datapick`, and
 `packnote`. These are intentionally small eval-local command surfaces whose
@@ -77,8 +77,14 @@ Each scenario case declares the paper experiments it contributes to:
 }
 ```
 
-Held-out reuse uses `reuse.rounds`, not `reuse.fixtures`. Repeated one-shot
-baselines run once per held-out round.
+Held-out reuse uses `reuse.rounds`, not `reuse.fixtures`. Reuse reporting has
+two paper profiles:
+
+- `--reuse-profile effectiveness`: 17 cases, first held-out round only, no
+  one-shot baseline.
+- `--reuse-profile comparison`: 8 cases tagged `reuse_comparison`, 10 held-out
+  rounds total, one `llm_oneshot` baseline attempt per round using the case's
+  configured `baseline_provider`.
 
 Full-acquisition cases may declare `expected_capabilities`. The summary and
 HTML report use those expected command surfaces to compute discovery coverage
@@ -113,6 +119,9 @@ Reuse reports both:
 
 - end-to-end reuse rate over all planned reuse rounds
 - conditional reuse rate over rounds whose case produced a promoted binding
+
+The effectiveness profile is the broad reuse-validity table. The comparison
+profile is the focused CAL reuse vs LLM one-shot table.
 
 `--experiment` also controls the experiment labels written to the artifact and
 HTML report. Running one group, such as `--experiment capability_structure`,

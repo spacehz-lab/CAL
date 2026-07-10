@@ -42,6 +42,14 @@ passes `--strategy best`, so live runs use LLM-assisted selection over the
 seeded or acquired local shortlist. Use `--reuse-seed self` for the older
 end-to-end diagnostic mode that reacquires in each reuse shard.
 
+Paper reuse uses two profiles:
+
+- `--reuse-profile effectiveness`: all 17 reuse cases, one held-out round per
+  case, no baseline. This is the broad reuse-validity table.
+- `--reuse-profile comparison`: 8 cases tagged `reuse_comparison`, 10 held-out
+  rounds total, and one `llm_oneshot` baseline attempt per round using the
+  case's configured `baseline_provider`.
+
 Seeded records are merged by capability id, so cases with two providers for the
 same capability become one capability with multiple promoted bindings.
 
@@ -67,6 +75,7 @@ expected promoted command surfaces.
 - `--llm-jobs`: maximum live LLM worker count
 - `--reuse-seed`: `replay` for seeded pure reuse, or `self` for acquisition
   inside each reuse shard
+- `--reuse-profile`: `all`, `effectiveness`, or `comparison`
 
 ## Execution Model
 

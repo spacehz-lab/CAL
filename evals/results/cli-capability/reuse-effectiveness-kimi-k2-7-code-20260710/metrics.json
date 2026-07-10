@@ -1,0 +1,32 @@
+{
+  "schema_version": "cli-capability-public-result-v1",
+  "run_id": "20260710-071823-kimi-k2-7-code-d569b1",
+  "model": "kimi-k2.7-code",
+  "experiment": "repeated_reuse",
+  "reuse_profile": "effectiveness",
+  "level": "full",
+  "case_count": 17,
+  "planned_reuse_rounds": 17,
+  "held_out_uses": 17,
+  "reuse_gate": {
+    "metric": "held_out_use_oracle_pass_rate",
+    "numerator": 17,
+    "denominator": 17,
+    "rate": 1.0,
+    "target": 0.9,
+    "passed": true
+  },
+  "cal_use_passed": 17,
+  "cal_use_failed": 0,
+  "cal_success_rate": 1.0,
+  "conditional_cal_success_rate": 1.0,
+  "promoted_bindings": 23,
+  "provider_attempted": 23,
+  "avg_use_ms": 8837,
+  "one_shot_attempted": 0,
+  "one_shot_passed": 0,
+  "one_shot_success_rate": 0.0,
+  "one_shot_llm_calls": 0,
+  "one_shot_total_tokens": 0,
+  "one_shot_avg_duration_ms": 0
+}

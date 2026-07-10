@@ -12,10 +12,10 @@ experiments:
   blocked records were stored.
 - `verification_failure`: a controlled invalid candidate was blocked, with no
   false promotion.
-- `capability_structure`: promoted records were analyzed for
-  `Provider -> Capability*` and `Capability -> Binding* -> Provider` structure.
 - `repeated_reuse`: promoted bindings were reused on held-out rounds and scored
   by benchmark oracles.
+- `capability_structure`: promoted records were analyzed for
+  `Provider -> Capability*` and `Capability -> Binding* -> Provider` structure.
 
 CAL internal verify specs decide promotion. Benchmark oracles decide held-out
 task success. These are separate trust boundaries.
@@ -39,7 +39,6 @@ Aggregate output should report:
 - held-out reuse rounds
 - end-to-end reuse success rate
 - conditional reuse success rate after promotion
-- direct CLI oracle results
 - repeated one-shot LLM baseline results
 - acquisition, use, and baseline latency
 - LLM calls and tokens when available
@@ -66,11 +65,10 @@ conditional_reuse = passed held-out rounds with promoted upstream binding / elig
 The paper must report both rates so acquisition failures are not hidden by a
 conditional denominator.
 
-## Baselines
+## Baseline
 
-Baselines are attached to repeated held-out reuse:
+The baseline is attached only to the focused reuse comparison profile:
 
-- `direct_cli`: hand-authored feasibility oracle and latency reference.
 - `llm_oneshot`: repeated model command generation for each held-out round.
 
 CAL may be slower on the first case because acquisition has upfront cost. The

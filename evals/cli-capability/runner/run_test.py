@@ -30,7 +30,6 @@ constants = load_module("constants")
 reuse = load_module("reuse")
 acquisition = load_module("acquisition")
 oracle = load_module("oracle")
-baseline = load_module("baseline")
 llm_oneshot = load_module("llm_oneshot")
 llm_client = load_module("llm_client")
 summary = load_module("summary")
@@ -140,14 +139,14 @@ class SummaryTest(unittest.TestCase):
 
     def test_summarize_baselines_counts_repeated_reuse_only(self) -> None:
         cases = [
-            {"paper_experiments": ["acquisition"], "baselines": {"direct_cli": [{"duration_ms": 3, "oracle": {"passed": True}}]}},
-            {"paper_experiments": ["repeated_reuse"], "baselines": {"direct_cli": [{"duration_ms": 11, "oracle": {"passed": True}}]}},
+            {"paper_experiments": ["acquisition"], "baselines": {"llm_oneshot": [{"duration_ms": 3, "oracle": {"passed": True}}]}},
+            {"paper_experiments": ["repeated_reuse"], "baselines": {"llm_oneshot": [{"duration_ms": 11, "oracle": {"passed": True}}]}},
         ]
 
         result = summary.summarize(cases, constants.MODE_REPLAY)
 
-        self.assertEqual(result["baselines"]["direct_cli"]["attempted"], 1)
-        self.assertEqual(result["baselines"]["direct_cli"]["duration_ms"], 11)
+        self.assertEqual(result["baselines"]["llm_oneshot"]["attempted"], 1)
+        self.assertEqual(result["baselines"]["llm_oneshot"]["duration_ms"], 11)
 
     def test_discovery_coverage_matches_promoted_expected_surfaces(self) -> None:
         cases = [
@@ -229,9 +228,9 @@ class ReportTest(unittest.TestCase):
         html = report.render_html(artifact)
 
         self.assertIn("Experiment 1: Acquiring Capabilities From Provider Surfaces", html)
-        self.assertIn("Experiment 4: Repeated Held-Out Reuse", html)
+        self.assertIn("Experiment 3: Repeated Held-Out Reuse", html)
         self.assertNotIn("Experiment 2: Verification And Failure Gating", html)
-        self.assertNotIn("Experiment 3: Capability Structure Evidence", html)
+        self.assertNotIn("Experiment 4: Capability Structure Evidence", html)
         self.assertIn("Selected experiments and cases", html)
         self.assertIn("Repeated Reuse Method Comparison", html)
 
@@ -291,8 +290,8 @@ class ReportTest(unittest.TestCase):
 
         self.assertIn("Experiment 1: Acquiring Capabilities From Provider Surfaces", html)
         self.assertNotIn("Experiment 2: Verification And Failure Gating", html)
-        self.assertNotIn("Experiment 3: Capability Structure Evidence", html)
-        self.assertNotIn("Experiment 4: Repeated Held-Out Reuse", html)
+        self.assertNotIn("Experiment 3: Repeated Held-Out Reuse", html)
+        self.assertNotIn("Experiment 4: Capability Structure Evidence", html)
 
 
 class ExportResultTest(unittest.TestCase):
@@ -340,6 +339,18 @@ class ExportResultTest(unittest.TestCase):
         self.assertNotIn("raw_response", text)
         self.assertEqual(metrics["acquisition_gate"]["numerator"], 1)
         self.assertEqual(public["cases"][0]["providers"][0]["promoted_bindings"], 1)
+
+    def test_public_failure_messages_redact_absolute_paths(self) -> None:
+        failure = {
+            "stage": "baseline_llm_oneshot",
+            "code": "command_failed",
+            "message": "invalid choice: '/Users/example/project/fixtures/input.txt'",
+        }
+
+        public = export_result.public_failure(failure)
+
+        self.assertNotIn("/Users/", public["message"])
+        self.assertIn("<path>", public["message"])
 
     def test_export_run_writes_sanitized_files(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -431,11 +442,12 @@ class ExportResultTest(unittest.TestCase):
 class ValidateTest(unittest.TestCase):
     def test_check_baselines_restricts_to_repeated_reuse(self) -> None:
         with self.assertRaises(SystemExit):
-            validate.check_baselines("case_a", ["acquisition"], ["direct_cli"])
+            validate.check_baselines("case_a", ["acquisition"], ["llm_oneshot"])
         with self.assertRaises(SystemExit):
             validate.check_baselines("case_a", ["repeated_reuse"], ["provider_tool"])
+        with self.assertRaises(SystemExit):
+            validate.check_baselines("case_a", ["repeated_reuse"], ["removed_baseline"])
 
-        validate.check_baselines("case_a", ["repeated_reuse"], ["direct_cli"])
         validate.check_baselines("case_a", ["repeated_reuse"], ["llm_oneshot"])
 
     def test_full_acquisition_design_requires_mostly_multi_cap_cases(self) -> None:
@@ -456,6 +468,25 @@ class ValidateTest(unittest.TestCase):
 
         cases[0]["expected_capabilities"].append({"key": "two", "surface": "two", "min_promoted_bindings": 1})
         validate.check_full_acquisition_design(cases)
+
+    def test_reuse_comparison_design_requires_eight_cases_and_ten_rounds(self) -> None:
+        cases = [
+            {"paper_experiments": ["repeated_reuse"], "scenario_tags": ["reuse_comparison"], "reuse": {"rounds": [{"id": "a"}]}}
+        ]
+
+        with self.assertRaises(SystemExit):
+            validate.check_reuse_comparison_design(cases)
+
+        cases = [
+            {
+                "paper_experiments": ["repeated_reuse"],
+                "scenario_tags": ["reuse_comparison"],
+                "reuse": {"rounds": [{"id": f"r{round_index}"} for round_index in range(2 if case_index < 2 else 1)]},
+            }
+            for case_index in range(8)
+        ]
+
+        validate.check_reuse_comparison_design(cases)
 
 
 class LLMOneShotTest(unittest.TestCase):
@@ -490,6 +521,15 @@ class LLMOneShotTest(unittest.TestCase):
             self.assertEqual(result["status"], constants.STATUS_PASSED)
             self.assertTrue(result["oracle"]["passed"])
             self.assertEqual(result["llm"]["usage"]["total_tokens"], 3)
+
+    def test_runner_uses_baseline_provider_when_configured(self) -> None:
+        case = oneshot_case()
+        case["baseline_provider"] = "cp"
+        case["providers"].append({"id": "cat", "command": "cat", "platforms": []})
+
+        providers = llm_oneshot.baseline_providers(case)
+
+        self.assertEqual([provider["id"] for provider in providers], ["cp"])
 
 
 class RunContractTest(unittest.TestCase):
@@ -526,6 +566,33 @@ class RunContractTest(unittest.TestCase):
         restricted = run.restrict_cases_to_selected_experiments(cases, "capability_structure")
 
         self.assertEqual(restricted[0]["paper_experiments"], ["capability_structure"])
+
+    def test_reuse_effectiveness_profile_limits_rounds_and_disables_baselines(self) -> None:
+        cases = [
+            {
+                "id": "case_a",
+                "paper_experiments": ["repeated_reuse"],
+                "reuse": {"rounds": [{"id": "a"}, {"id": "b"}]},
+                "baselines": ["llm_oneshot"],
+            }
+        ]
+
+        profiled = run.apply_reuse_profile(cases, constants.REUSE_PROFILE_EFFECTIVENESS)
+
+        self.assertEqual([round_value["id"] for round_value in profiled[0]["reuse"]["rounds"]], ["a"])
+        self.assertEqual(profiled[0]["baselines"], [])
+        self.assertEqual(profiled[0]["reuse_profile"], constants.REUSE_PROFILE_EFFECTIVENESS)
+
+    def test_reuse_comparison_profile_selects_tagged_cases(self) -> None:
+        cases = [
+            {"id": "case_a", "paper_experiments": ["repeated_reuse"], "scenario_tags": ["reuse_comparison"], "baselines": ["llm_oneshot"]},
+            {"id": "case_b", "paper_experiments": ["repeated_reuse"], "scenario_tags": [], "baselines": ["llm_oneshot"]},
+        ]
+
+        profiled = run.apply_reuse_profile(cases, constants.REUSE_PROFILE_COMPARISON)
+
+        self.assertEqual([case["id"] for case in profiled], ["case_a"])
+        self.assertEqual(profiled[0]["baselines"], ["llm_oneshot"])
 
     def test_intent_reuse_does_not_pin_provider(self) -> None:
         workspace = RecordingWorkspace()
@@ -594,18 +661,6 @@ class RunContractTest(unittest.TestCase):
             env = run.benchmark_env({"PATH": "/usr/bin"}, bench)
 
             self.assertTrue(env["PATH"].startswith(str(bench / "tools" / "bin")))
-
-
-class BaselineEnvTest(unittest.TestCase):
-    def test_unavailable_command_uses_runner_env_path(self) -> None:
-        with tempfile.TemporaryDirectory() as temp:
-            tool = Path(temp) / "fake-tool"
-            tool.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
-            tool.chmod(0o755)
-
-            err = baseline.unavailable_command({}, ["fake-tool"], {"PATH": temp})
-
-            self.assertIsNone(err)
 
 
 def write_catalog_fixture(bench: Path) -> None:

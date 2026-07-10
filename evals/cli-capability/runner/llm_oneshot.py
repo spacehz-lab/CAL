@@ -52,7 +52,7 @@ class OneShotRunner:
 
     def run_case(self, case: dict[str, Any]) -> list[dict[str, Any]]:
         rows = []
-        for provider in case.get("providers") or []:
+        for provider in baseline_providers(case):
             for fixture in reuse_rounds(case):
                 rows.append(self.run_fixture(case, provider, fixture))
         return rows
@@ -198,6 +198,14 @@ def provider_help(provider: dict[str, Any], env: dict[str, str] | None = None) -
         if text:
             return text[:HELP_TEXT_LIMIT]
     return f"{command} command help unavailable"
+
+
+def baseline_providers(case: dict[str, Any]) -> list[dict[str, Any]]:
+    provider_id = case.get("baseline_provider", "")
+    providers = case.get("providers") or []
+    if not provider_id:
+        return providers
+    return [provider for provider in providers if provider.get("id") == provider_id]
 
 
 def parse_llm_command(content: str) -> dict[str, Any] | None:

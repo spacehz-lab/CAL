@@ -18,7 +18,7 @@ Return exactly one JSON object:
 Rules:
 
 - Do not use CAL capabilities, bindings, traces, or verify specs.
-- Produce a direct CLI command for the requested provider.
+- Produce a standalone CLI command for the requested provider.
 - Return `command` as argv only. Do not return shell strings, pipes, command
   substitution, or wrapper scripts.
 - The first argv item must be the requested provider command.
