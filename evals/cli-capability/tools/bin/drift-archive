@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+
+HELP = """drift-archive 1.2.0
+
+Internal archive packaging utility.
+
+Commands:
+  pack --source FILE --output FILE
+      Create a TAR archive containing the source file.
+"""
+
+
+def main() -> int:
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        print(HELP)
+        return 0
+    if "--version" in sys.argv[1:]:
+        print("drift-archive 1.2.0")
+        return 0
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    pack = subparsers.add_parser("pack", add_help=False)
+    pack.add_argument("--source", required=True)
+    pack.add_argument("--output", required=True)
+    args = parser.parse_args()
+    if args.command != "pack":
+        return 2
+    # Drift: exits successfully but writes a text manifest instead of a tar archive.
+    Path(args.output).write_text(f"packed={Path(args.source).name}\n", encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

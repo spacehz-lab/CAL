@@ -217,6 +217,13 @@ def public_failure(failure: dict[str, Any]) -> dict[str, str]:
 
 
 def build_metrics(public: dict[str, Any]) -> dict[str, Any]:
+    experiment = primary_experiment(public)
+    if experiment == "verification_failure":
+        return build_verification_metrics(public)
+    return build_acquisition_metrics(public)
+
+
+def build_acquisition_metrics(public: dict[str, Any]) -> dict[str, Any]:
     summary = public.get("summary") or {}
     modes = summary.get("acquisition_modes") or {}
     gate = (public.get("experiment_gates") or {}).get("acquisition") or {}
@@ -241,6 +248,34 @@ def build_metrics(public: dict[str, Any]) -> dict[str, Any]:
             "multi_cap_promoted_rate": discovery.get("multi_cap_promoted_rate", 0),
             "missing_expected_capabilities": discovery.get("missing_expected_capabilities", 0),
         },
+    }
+
+
+def build_verification_metrics(public: dict[str, Any]) -> dict[str, Any]:
+    summary = public.get("summary") or {}
+    verification = (summary.get("experiments") or {}).get("verification_failure") or {}
+    gate = (public.get("experiment_gates") or {}).get("verification_failure") or {}
+    return {
+        "schema_version": PUBLIC_SCHEMA_VERSION,
+        "run_id": (public.get("run") or {}).get("id", ""),
+        "model": ((public.get("run") or {}).get("llm") or {}).get("model", ""),
+        "experiment": "verification_failure",
+        "level": (public.get("run") or {}).get("level", ""),
+        "case_count": len(public.get("cases") or []),
+        "provider_count": verification.get("provider_attempted", 0),
+        "verification_gate": compact_gate(gate),
+        "blocked_invalid": gate.get("numerator", 0),
+        "invalid_cases": gate.get("denominator", 0),
+        "blocked_invalid_rate": gate.get("actual", 0),
+        "false_promotions": gate.get("false_promotions", 0),
+        "candidate_count": verification.get("candidate_count", 0),
+        "probe_fail_count": verification.get("probe_fail_count", 0),
+        "probe_pass_count": verification.get("probe_pass_count", 0),
+        "promoted_bindings": verification.get("promoted_bindings", 0),
+        "negative_evidence_count": verification.get("candidate_negative_evidence", 0),
+        "avg_acquisition_ms": verification.get("avg_acquisition_ms", 0),
+        "llm_calls": verification.get("acquisition_llm_calls", 0),
+        "total_tokens": verification.get("total_tokens", 0),
     }
 
 
@@ -273,6 +308,9 @@ def compact_mode(mode: dict[str, Any]) -> dict[str, Any]:
 
 def build_provenance(raw: dict[str, Any], run_dir: Path) -> dict[str, Any]:
     run = raw.get("run") or {}
+    experiment = ",".join(run.get("selected_experiments") or [])
+    level = run.get("level", "")
+    jobs = run.get("jobs", 0)
     return {
         "schema_version": PUBLIC_SCHEMA_VERSION,
         "exported_at": datetime.now(timezone.utc).isoformat(),
@@ -283,14 +321,14 @@ def build_provenance(raw: dict[str, Any], run_dir: Path) -> dict[str, Any]:
         "git": git_metadata(),
         "reproduction": {
             "mode": run.get("mode", ""),
-            "experiment": ",".join(run.get("selected_experiments") or []),
-            "level": run.get("level", ""),
-            "jobs": run.get("jobs", 0),
-            "llm_jobs": run.get("jobs", 0),
+            "experiment": experiment,
+            "level": level,
+            "jobs": jobs,
+            "llm_jobs": jobs,
             "model": (run.get("llm") or {}).get("model", ""),
             "command": (
                 "python3 evals/cli-capability/runner/run.py --mode live_llm "
-                "--experiment acquisition --level full --jobs 8 --llm-jobs 8 "
+                f"--experiment {experiment} --level {level} --jobs {jobs} --llm-jobs {jobs} "
                 "--calctl build/bin/calctl --cald build/bin/cald"
             ),
             "llm_environment": "Set required LLM provider environment variables outside the repository.",
@@ -306,6 +344,12 @@ def git_metadata() -> dict[str, Any]:
 
 
 def render_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
+    if metrics.get("experiment") == "verification_failure":
+        return render_verification_readme(public, metrics, provenance)
+    return render_acquisition_readme(public, metrics, provenance)
+
+
+def render_acquisition_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
     gate = metrics["acquisition_gate"]
     intent = metrics["intent_guided"]
     full = metrics["full_acquisition"]
@@ -357,6 +401,74 @@ responses, and credentials are intentionally excluded.
 - Average full-acquisition latency: `{format_duration_value(full['avg_acquisition_ms'])}`
 - Total proposal tokens: `{(public.get('scores') or {}).get('proposal_total_tokens', 0)}`
 """
+
+
+def render_verification_readme(public: dict[str, Any], metrics: dict[str, Any], provenance: dict[str, Any]) -> str:
+    gate = metrics["verification_gate"]
+    run = public.get("run") or {}
+    failures = []
+    for case in public.get("cases") or []:
+        for provider in case.get("providers") or []:
+            for candidate in provider.get("candidates") or []:
+                probe = candidate.get("probe") or {}
+                if probe.get("status") != "failed":
+                    continue
+                error = probe.get("error") or {}
+                failures.append(f"- `{case.get('case_key')}`: `{error.get('code', '')}`")
+    failure_text = "\n".join(failures) or "- none"
+    return f"""# CLI Capability Verification-Failure Result
+
+This is a sanitized, commit-ready result selected from a local live LLM run.
+Raw traces, local paths, provider paths, shard directories, prompts, raw model
+responses, and credentials are intentionally excluded.
+
+## Source
+
+- Source run id: `{provenance.get('source_run_id', '')}`
+- Mode: `{run.get('mode', '')}`
+- Experiment: `verification_failure`
+- Level: `{run.get('level', '')}`
+- Model: `{((run.get('llm') or {}).get('model', ''))}`
+- Jobs: `{run.get('jobs', 0)}`
+
+## Headline Metrics
+
+- Verification gate: `{gate['numerator']} / {gate['denominator']} = {gate['rate'] * 100:.2f}%`
+- False promotions: `{metrics['false_promotions']}`
+- Generated candidates: `{metrics['candidate_count']}`
+- Failed probes: `{metrics['probe_fail_count']}`
+- Promoted bindings: `{metrics['promoted_bindings']}`
+- Negative evidence count: `{metrics['negative_evidence_count']}`
+
+## Blocked Drift Cases
+
+{failure_text}
+
+## Files
+
+- `metrics.json`: compact paper-facing metrics.
+- `artifact.public.json`: sanitized machine-readable result.
+- `report.html`: sanitized HTML report generated from `artifact.public.json`.
+- `provenance.json`: non-secret reproduction metadata.
+
+## Timing And Cost Signals
+
+- Average verification-failure acquisition latency: `{format_duration_value(metrics['avg_acquisition_ms'])}`
+- LLM calls: `{metrics['llm_calls']}`
+- Total proposal tokens: `{metrics['total_tokens']}`
+"""
+
+
+def primary_experiment(public: dict[str, Any]) -> str:
+    selected = ((public.get("run") or {}).get("selected_experiments") or [])
+    if len(selected) == 1:
+        return selected[0]
+    gates = public.get("experiment_gates") or {}
+    if "verification_failure" in gates:
+        return "verification_failure"
+    if "acquisition" in gates:
+        return "acquisition"
+    return selected[0] if selected else ""
 
 
 def assert_public_directory(output_dir: Path) -> None:

@@ -368,6 +368,65 @@ class ExportResultTest(unittest.TestCase):
             self.assertTrue((out_dir / "report.html").exists())
             export_result.assert_public_directory(out_dir)
 
+    def test_verification_failure_metrics_are_experiment_specific(self) -> None:
+        raw = {
+            "run": {
+                "id": "run_v",
+                "mode": constants.MODE_LIVE_LLM,
+                "status": "completed",
+                "level": "full",
+                "selected_experiments": ["verification_failure"],
+                "selected_cases": ["failure_gating:drift_hash_sha256"],
+                "jobs": 8,
+                "llm": {"api": "chat_completions", "model": "model_v", "base_url_configured": True},
+            },
+            "status": "completed",
+            "cases": [case_result("drift_hash_sha256", ["verification_failure"], "drift_hash", "file.checksum", "")],
+            "summary": {
+                "experiments": {
+                    "verification_failure": {
+                        "provider_attempted": 1,
+                        "candidate_count": 1,
+                        "probe_fail_count": 1,
+                        "probe_pass_count": 0,
+                        "promoted_bindings": 0,
+                        "candidate_negative_evidence": 1,
+                        "avg_acquisition_ms": 12,
+                        "acquisition_llm_calls": 4,
+                        "total_tokens": 99,
+                    }
+                }
+            },
+            "scores": {},
+            "coverage": {},
+            "capability_model": {},
+            "discovery_coverage": {},
+            "failure_taxonomy": [],
+            "experiment_gates": {
+                "verification_failure": {
+                    "metric": "blocked_invalid_candidate_rate",
+                    "numerator": 1,
+                    "denominator": 1,
+                    "actual": 1.0,
+                    "target": 0.95,
+                    "passed": True,
+                    "false_promotions": 0,
+                }
+            },
+        }
+        raw["cases"][0]["providers"][0]["provider_path"] = "/Users/example/drift-hash"
+
+        public = export_result.build_public_artifact(raw)
+        metrics = export_result.build_metrics(public)
+        readme = export_result.render_readme(public, metrics, {"source_run_id": "run_v"})
+
+        self.assertEqual(metrics["experiment"], "verification_failure")
+        self.assertEqual(metrics["blocked_invalid"], 1)
+        self.assertEqual(metrics["false_promotions"], 0)
+        self.assertNotIn("acquisition_gate", metrics)
+        self.assertIn("Verification gate", readme)
+        self.assertNotIn("/Users/", json.dumps(public))
+
 
 class ValidateTest(unittest.TestCase):
     def test_check_baselines_restricts_to_repeated_reuse(self) -> None:

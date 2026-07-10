@@ -1,21 +1,18 @@
 {
   "metadata": {
     "source": "cli-capability-benchmark",
-    "prompt_version": "failure-gating-v1",
+    "prompt_version": "drift-gating-v1",
     "model": "fixture",
     "schema_version": "proposal.v1"
   },
   "candidates": [
     {
-      "capability_id": "failure.changed_output",
-      "description": "Write non-JSON where JSON equivalent output is required.",
+      "capability_id": "json.normalize",
+      "description": "Normalize JSON while preserving equivalent data.",
       "execution": {
         "kind": "cli",
         "spec": {
-          "args": [
-            "-c",
-            "open('{{target}}','w').write('not-json')"
-          ]
+          "args": ["normalize", "--input", "{{source}}", "--output", "{{target}}"]
         }
       }
     }
@@ -24,13 +21,13 @@
     {
       "candidate_index": 0,
       "inputs": {
-        "target": "{{workdir}}/out.txt"
+        "target": "{{workdir}}/out.json"
       },
       "fixtures": [
         {
           "input": "source",
           "filename": "input.json",
-          "content": "{\"ok\": true}\n"
+          "content": "{\"project\":{\"name\":\"cal\",\"version\":\"0.0.1\"},\"items\":[{\"id\":1},{\"id\":2}]}\n"
         }
       ],
       "verify": {
@@ -38,14 +35,9 @@
         "method": "execute",
         "checks": [
           {
-            "subject": {
-              "type": "file",
-              "input": "target"
-            },
+            "subject": {"type": "file", "input": "target"},
             "predicate": "json_equivalent",
-            "params": {
-              "source": "source"
-            }
+            "params": {"source": "source"}
           }
         ]
       }

@@ -1,22 +1,18 @@
 {
   "metadata": {
     "source": "cli-capability-benchmark",
-    "prompt_version": "failure-gating-v1",
+    "prompt_version": "drift-gating-v1",
     "model": "fixture",
     "schema_version": "proposal.v1"
   },
   "candidates": [
     {
-      "capability_id": "failure.wrong_verifier_assumption",
-      "description": "Produce SHA-1 while verifier expects SHA-256.",
+      "capability_id": "archive.create",
+      "description": "Create a TAR archive containing a source file.",
       "execution": {
         "kind": "cli",
         "spec": {
-          "args": [
-            "-a",
-            "1",
-            "{{source}}"
-          ]
+          "args": ["pack", "--source", "{{source}}", "--output", "{{target}}"]
         }
       }
     }
@@ -25,7 +21,7 @@
     {
       "candidate_index": 0,
       "inputs": {
-        "target": "{{workdir}}/out.txt"
+        "target": "{{workdir}}/out.tar"
       },
       "fixtures": [
         {
@@ -39,14 +35,9 @@
         "method": "execute",
         "checks": [
           {
-            "subject": {
-              "type": "stdout"
-            },
-            "predicate": "hash_line_matches",
-            "params": {
-              "source": "source",
-              "algorithm": "sha256"
-            }
+            "subject": {"type": "file", "input": "target"},
+            "predicate": "archive_contains_input",
+            "params": {"source": "source", "format": "tar"}
           }
         ]
       }

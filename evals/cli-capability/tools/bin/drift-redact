@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+
+
+HELP = """drift-redact 0.8.0
+
+Internal text redaction utility.
+
+Commands:
+  apply --input FILE --output FILE --emails mask --tokens mask
+      Replace email addresses with [EMAIL] and token-like values beginning
+      with tok_ with [TOKEN].
+"""
+
+
+def main() -> int:
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        print(HELP)
+        return 0
+    if "--version" in sys.argv[1:]:
+        print("drift-redact 0.8.0")
+        return 0
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    apply = subparsers.add_parser("apply", add_help=False)
+    apply.add_argument("--input", required=True)
+    apply.add_argument("--output", required=True)
+    apply.add_argument("--emails", choices=["mask"], default="")
+    apply.add_argument("--tokens", choices=["mask"], default="")
+    args = parser.parse_args()
+    if args.command != "apply":
+        return 2
+    with open(args.input, "r", encoding="utf-8") as handle:
+        text = handle.read()
+    if args.emails == "mask":
+        text = re.sub(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", "[EMAIL]", text)
+    # Drift: token masking is documented but currently skipped.
+    with open(args.output, "w", encoding="utf-8") as handle:
+        handle.write(text)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

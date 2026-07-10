@@ -1,21 +1,18 @@
 {
   "metadata": {
     "source": "cli-capability-benchmark",
-    "prompt_version": "failure-gating-v1",
+    "prompt_version": "drift-gating-v1",
     "model": "fixture",
     "schema_version": "proposal.v1"
   },
   "candidates": [
     {
-      "capability_id": "failure.unavailable_function",
-      "description": "Use a nonexistent tar subcommand.",
+      "capability_id": "file.hash",
+      "description": "Compute a SHA-256 digest for a file.",
       "execution": {
         "kind": "cli",
         "spec": {
-          "args": [
-            "--cal-missing-subcommand",
-            "{{source}}"
-          ]
+          "args": ["digest", "--algorithm", "sha256", "--input", "{{source}}", "--output", "{{target}}"]
         }
       }
     }
@@ -24,7 +21,7 @@
     {
       "candidate_index": 0,
       "inputs": {
-        "target": "{{workdir}}/out.tar"
+        "target": "{{workdir}}/out.sha256"
       },
       "fixtures": [
         {
@@ -38,15 +35,9 @@
         "method": "execute",
         "checks": [
           {
-            "subject": {
-              "type": "file",
-              "input": "target"
-            },
-            "predicate": "archive_contains_input",
-            "params": {
-              "source": "source",
-              "format": "tar"
-            }
+            "subject": {"type": "file", "input": "target"},
+            "predicate": "hash_line_matches",
+            "params": {"source": "source", "algorithm": "sha256"}
           }
         ]
       }

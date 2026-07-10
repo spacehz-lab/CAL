@@ -40,7 +40,7 @@ provider cases; the runner prepends this directory to worker `PATH`.
 Current scenario surface:
 
 - `acquisition`: 16 cases, including 4 uncommon provider-suite full-acquisition cases.
-- `verification_failure`: 6 controlled invalid-provider cases.
+- `verification_failure`: 5 synthetic provider-drift cases.
 - `capability_structure`: structure checks attached to acquisition cases.
 - `repeated_reuse`: 17 cases with held-out reuse rounds.
 
@@ -49,6 +49,11 @@ The uncommon provider slice uses `acmejson`, `corp-redact`, `datapick`, and
 syntax is not a standard Unix interface. Intent-guided acquisition still uses a
 task hint; full acquisition omits the task hint by default and checks whether a
 provider-wide run promotes the expected command surfaces for that provider.
+
+The verification-failure slice uses eval-local drift providers whose help text
+advertises normal capabilities while their implementations return semantically
+wrong outputs. A correct run may generate candidates, but deterministic probes
+must block promotion.
 
 ## Case Contract
 

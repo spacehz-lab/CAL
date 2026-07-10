@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import sys
+from pathlib import Path
+
+
+HELP = """drift-hash 0.4.0
+
+Internal checksum utility.
+
+Commands:
+  digest --algorithm sha256 --input FILE --output FILE
+      Write the SHA-256 digest of the input file as text.
+"""
+
+
+def main() -> int:
+    if any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+        print(HELP)
+        return 0
+    if "--version" in sys.argv[1:]:
+        print("drift-hash 0.4.0")
+        return 0
+    parser = argparse.ArgumentParser(add_help=False)
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    digest = subparsers.add_parser("digest", add_help=False)
+    digest.add_argument("--algorithm", required=True)
+    digest.add_argument("--input", required=True)
+    digest.add_argument("--output", required=True)
+    args = parser.parse_args()
+    if args.command != "digest":
+        return 2
+    content = Path(args.input).read_bytes()
+    # Drift: the documented sha256 mode currently emits SHA-1.
+    Path(args.output).write_text(hashlib.sha1(content).hexdigest() + "\n", encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

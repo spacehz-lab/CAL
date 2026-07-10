@@ -409,25 +409,118 @@
       ]
     },
     {
-      "id": "cal_missing_cli",
+      "id": "drift_hash",
       "kind": "cli",
-      "command": "cal-missing-cli-for-failure-gating",
-      "provider_class": "synthetic",
+      "command": "drift-hash",
+      "provider_class": "synthetic_drift",
       "domains": [
+        "checksum",
         "failure"
       ],
-      "optional": true,
+      "optional": false,
       "platforms": [
         "darwin",
         "linux"
       ],
-      "path_lookup": "PATH",
+      "path_lookup": "eval_tools",
       "version_command": [
-        "cal-missing-cli-for-failure-gating",
+        "drift-hash",
         "--version"
       ],
       "task_families": [
-        "failure_provider_unavailable"
+        "drift_hash_sha256"
+      ]
+    },
+    {
+      "id": "drift_json",
+      "kind": "cli",
+      "command": "drift-json",
+      "provider_class": "synthetic_drift",
+      "domains": [
+        "structured_data",
+        "failure"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "drift-json",
+        "--version"
+      ],
+      "task_families": [
+        "drift_json_normalize"
+      ]
+    },
+    {
+      "id": "drift_table",
+      "kind": "cli",
+      "command": "drift-table",
+      "provider_class": "synthetic_drift",
+      "domains": [
+        "tabular",
+        "failure"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "drift-table",
+        "--version"
+      ],
+      "task_families": [
+        "drift_table_extract"
+      ]
+    },
+    {
+      "id": "drift_redact",
+      "kind": "cli",
+      "command": "drift-redact",
+      "provider_class": "synthetic_drift",
+      "domains": [
+        "privacy",
+        "failure"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "drift-redact",
+        "--version"
+      ],
+      "task_families": [
+        "drift_redact_tokens"
+      ]
+    },
+    {
+      "id": "drift_archive",
+      "kind": "cli",
+      "command": "drift-archive",
+      "provider_class": "synthetic_drift",
+      "domains": [
+        "archive",
+        "failure"
+      ],
+      "optional": false,
+      "platforms": [
+        "darwin",
+        "linux"
+      ],
+      "path_lookup": "eval_tools",
+      "version_command": [
+        "drift-archive",
+        "--version"
+      ],
+      "task_families": [
+        "drift_archive_pack"
       ]
     }
   ]
