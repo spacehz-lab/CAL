@@ -77,6 +77,26 @@ func TestDelimitedColumnMatches(t *testing.T) {
 	}
 }
 
+func TestDelimitedColumnMatchesHeaderName(t *testing.T) {
+	source := writeTempFile(t, "source.csv", "id,name,email\n1,alice,alice@example.com\n2,bob,bob@example.com\n")
+	target := writeTempFile(t, "target.txt", "alice@example.com\nbob@example.com\n")
+	check := fileCheck(model.VerifyPredicateDelimitedColumnMatch, map[string]any{paramSource: "source", paramDelimiter: ",", paramColumn: "email"})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target}, "", "", 0); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+}
+
+func TestDelimitedColumnMatchesHeaderNameMissing(t *testing.T) {
+	source := writeTempFile(t, "source.csv", "id,name\n1,alice\n")
+	target := writeTempFile(t, "target.txt", "alice@example.com\n")
+	check := fileCheck(model.VerifyPredicateDelimitedColumnMatch, map[string]any{paramSource: "source", paramDelimiter: ",", paramColumn: "email"})
+
+	if err := runOneCheck(check, map[string]any{"source": source, "target": target}, "", "", 0); err == nil {
+		t.Fatal("Run() error = nil, want missing header error")
+	}
+}
+
 func stdoutCheck(predicate model.VerifyPredicate, params map[string]any) model.VerifyCheck {
 	return model.VerifyCheck{
 		Subject:   model.VerifySubject{Type: model.VerifySubjectStdout},

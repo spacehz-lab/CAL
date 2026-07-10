@@ -27,6 +27,7 @@ EXPERIMENTS = [
 ]
 
 ACQUISITION_INTENT_GUIDED = "intent_guided"
+ACQUISITION_FULL = "full_acquisition"
 ACQUISITION_PROVIDER_WIDE = "provider_wide"
 
 FAILURE_NONE = ""

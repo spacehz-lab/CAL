@@ -28,13 +28,16 @@ def load_module(name: str):
 catalog = load_module("catalog")
 constants = load_module("constants")
 reuse = load_module("reuse")
+acquisition = load_module("acquisition")
 oracle = load_module("oracle")
 baseline = load_module("baseline")
 llm_oneshot = load_module("llm_oneshot")
 llm_client = load_module("llm_client")
 summary = load_module("summary")
 report = load_module("report")
+export_result = load_module("export_result")
 run = load_module("run")
+seed = load_module("seed")
 validate = load_module("validate")
 
 
@@ -122,6 +125,19 @@ class SummaryTest(unittest.TestCase):
         self.assertTrue(artifact["experiment_gates"]["verification_failure"]["passed"])
         self.assertEqual(artifact["experiment_gates"]["verification_failure"]["false_promotions"], 0)
 
+    def test_summarize_splits_acquisition_modes(self) -> None:
+        cases = [
+            case_result("case_a", ["acquisition"], "provider_a", "cap_a", "binding_a", acquisition_mode="intent_guided"),
+            case_result("case_b", ["acquisition"], "provider_b", "cap_b", "", acquisition_mode="full_acquisition"),
+        ]
+
+        result = summary.summarize(cases, constants.MODE_LIVE_LLM)
+
+        self.assertEqual(result["acquisition_modes"]["intent_guided"]["case_attempted"], 1)
+        self.assertEqual(result["acquisition_modes"]["intent_guided"]["providers_with_promoted_bindings"], 1)
+        self.assertEqual(result["acquisition_modes"]["full_acquisition"]["case_attempted"], 1)
+        self.assertEqual(result["acquisition_modes"]["full_acquisition"]["providers_with_promoted_bindings"], 0)
+
     def test_summarize_baselines_counts_repeated_reuse_only(self) -> None:
         cases = [
             {"paper_experiments": ["acquisition"], "baselines": {"direct_cli": [{"duration_ms": 3, "oracle": {"passed": True}}]}},
@@ -132,6 +148,36 @@ class SummaryTest(unittest.TestCase):
 
         self.assertEqual(result["baselines"]["direct_cli"]["attempted"], 1)
         self.assertEqual(result["baselines"]["direct_cli"]["duration_ms"], 11)
+
+    def test_discovery_coverage_matches_promoted_expected_surfaces(self) -> None:
+        cases = [
+            case_result(
+                "suite_a",
+                ["acquisition"],
+                "provider_a",
+                "cap_a",
+                "binding_a",
+                acquisition_mode="full_acquisition",
+                expected_capabilities=[
+                    {"key": "alpha", "surface": "alpha", "min_promoted_bindings": 1},
+                    {"key": "beta", "surface": "beta", "min_promoted_bindings": 1},
+                ],
+                candidates=[
+                    candidate_result("cap.alpha", "binding_alpha", ["alpha", "--input", "{{source}}"]),
+                    candidate_result("cap.beta", "binding_beta", ["beta", "--input", "{{source}}"]),
+                    candidate_result("cap.gamma", "", ["gamma", "--input", "{{source}}"]),
+                ],
+            )
+        ]
+
+        result = summary.discovery_coverage(cases)
+
+        self.assertEqual(result["expected_capabilities"], 2)
+        self.assertEqual(result["promoted_expected_capabilities"], 2)
+        self.assertEqual(result["multi_cap_design_rate"], 1.0)
+        self.assertEqual(result["multi_cap_promoted_rate"], 1.0)
+        self.assertEqual(result["cases"][0]["matched_surfaces"], ["alpha", "beta"])
+        self.assertEqual(result["cases"][0]["extra_promoted_surfaces"], [])
 
 
 class ReportTest(unittest.TestCase):
@@ -147,6 +193,7 @@ class ReportTest(unittest.TestCase):
 
         self.assertEqual(flow["schema_version"], constants.FLOW_SCHEMA_VERSION)
         self.assertEqual(flow["cases"][0]["id"], "case_a")
+        self.assertEqual(flow["cases"][0]["providers"][0]["acquisition_duration_ms"], 10)
 
     def test_render_html_shows_paper_sections(self) -> None:
         artifact = {
@@ -183,8 +230,143 @@ class ReportTest(unittest.TestCase):
 
         self.assertIn("Experiment 1: Acquiring Capabilities From Provider Surfaces", html)
         self.assertIn("Experiment 4: Repeated Held-Out Reuse", html)
+        self.assertNotIn("Experiment 2: Verification And Failure Gating", html)
+        self.assertNotIn("Experiment 3: Capability Structure Evidence", html)
         self.assertIn("Selected experiments and cases", html)
         self.assertIn("Repeated Reuse Method Comparison", html)
+
+    def test_render_html_splits_acquisition_modes_and_shows_discovery_coverage(self) -> None:
+        artifact = {
+            "run": {"id": "run_1", "mode": constants.MODE_LIVE_LLM, "selected_experiments": ["acquisition"], "selected_cases": [], "jobs": 1},
+            "status": "completed",
+            "cases": [
+                case_result("intent_case", ["acquisition"], "provider_a", "alpha", "binding_a"),
+                case_result(
+                    "suite_case",
+                    ["acquisition"],
+                    "provider_b",
+                    "beta",
+                    "binding_b",
+                    acquisition_mode="full_acquisition",
+                    expected_capabilities=[
+                        {"key": "alpha", "surface": "alpha", "min_promoted_bindings": 1},
+                        {"key": "beta", "surface": "beta", "min_promoted_bindings": 1},
+                    ],
+                    candidates=[
+                        candidate_result("cap.alpha", "binding_alpha", ["alpha", "--input", "{{source}}"]),
+                        candidate_result("cap.beta", "binding_beta", ["beta", "--input", "{{source}}"]),
+                    ],
+                ),
+            ],
+        }
+        summary.update_artifact_metrics(artifact, constants.MODE_LIVE_LLM)
+
+        html = report.render_html(artifact)
+
+        self.assertIn("Intent-guided Acquisition Runs", html)
+        self.assertIn("Full Acquisition Runs", html)
+        self.assertIn("Full Acquisition Discovery Coverage", html)
+        self.assertIn("alpha, beta", html)
+        self.assertIn("10 ms / 0", html)
+
+    def test_render_html_uses_selected_experiments_for_single_group(self) -> None:
+        artifact = {
+            "run": {
+                "id": "run_1",
+                "mode": constants.MODE_LIVE_LLM,
+                "selected_experiments": ["acquisition"],
+                "selected_cases": ["acquisition:case_a"],
+                "jobs": 8,
+            },
+            "status": "completed",
+            "cases": [case_result("case_a", ["acquisition"], "provider_a", "cap_a", "binding_a")],
+            "summary": {"experiments": {"acquisition": {"providers_with_promoted_bindings": 1}}},
+            "coverage": {"distinct_case_count": 1},
+            "experiment_gates": {"acquisition": {"numerator": 1, "denominator": 1, "actual": 1, "target": 0.85, "passed": True}},
+            "capability_model": {"providers": {}, "capabilities": {}, "checks": []},
+            "scores": {},
+        }
+
+        html = report.render_html(artifact)
+
+        self.assertIn("Experiment 1: Acquiring Capabilities From Provider Surfaces", html)
+        self.assertNotIn("Experiment 2: Verification And Failure Gating", html)
+        self.assertNotIn("Experiment 3: Capability Structure Evidence", html)
+        self.assertNotIn("Experiment 4: Repeated Held-Out Reuse", html)
+
+
+class ExportResultTest(unittest.TestCase):
+    def test_public_artifact_removes_trace_paths_and_raw_model_outputs(self) -> None:
+        raw = {
+            "run": {
+                "id": "run_a",
+                "mode": constants.MODE_LIVE_LLM,
+                "status": "completed",
+                "level": "full",
+                "selected_experiments": ["acquisition"],
+                "selected_cases": ["acquisition:case_a"],
+                "jobs": 8,
+                "llm": {"api": "chat_completions", "model": "model_a", "base_url_configured": True},
+            },
+            "status": "completed",
+            "cases": [
+                {
+                    **case_result("case_a", ["acquisition"], "provider_a", "cap_a", "binding_a"),
+                    "shard": {"path": "/Users/example/run/shard", "home": "/Users/example/run/home"},
+                }
+            ],
+            "summary": {
+                "experiments": {"acquisition": {"provider_attempted": 1}},
+                "acquisition_modes": {"intent_guided": {"provider_attempted": 1, "providers_with_promoted_bindings": 1}},
+            },
+            "scores": {"proposal_total_tokens": 42},
+            "coverage": {},
+            "capability_model": {},
+            "discovery_coverage": {},
+            "failure_taxonomy": [],
+            "experiment_gates": {"acquisition": {"metric": "yield", "numerator": 1, "denominator": 1, "actual": 1.0, "target": 0.85, "passed": True}},
+        }
+        raw["cases"][0]["providers"][0]["provider_path"] = "/Users/example/tool"
+        raw["cases"][0]["providers"][0]["trace_id"] = "trace_123"
+        raw["cases"][0]["providers"][0]["acquisition"] = {"proposal": {"attempts": [{"raw_response": "secret"}]}}
+
+        public = export_result.build_public_artifact(raw)
+        metrics = export_result.build_metrics(public)
+        text = json.dumps(public)
+
+        self.assertNotIn("/Users/", text)
+        self.assertNotIn("provider_path", text)
+        self.assertNotIn("trace_", text)
+        self.assertNotIn("raw_response", text)
+        self.assertEqual(metrics["acquisition_gate"]["numerator"], 1)
+        self.assertEqual(public["cases"][0]["providers"][0]["promoted_bindings"], 1)
+
+    def test_export_run_writes_sanitized_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            run_dir = root / "run"
+            out_dir = root / "public"
+            run_dir.mkdir()
+            raw = {
+                "run": {"id": "run_a", "mode": constants.MODE_LIVE_LLM, "status": "completed", "level": "full", "selected_experiments": ["acquisition"], "selected_cases": [], "jobs": 1, "llm": {"model": "model_a"}},
+                "status": "completed",
+                "cases": [case_result("case_a", ["acquisition"], "provider_a", "cap_a", "binding_a")],
+                "summary": {"experiments": {"acquisition": {"provider_attempted": 1}}, "acquisition_modes": {}},
+                "scores": {},
+                "coverage": {},
+                "capability_model": {},
+                "discovery_coverage": {},
+                "failure_taxonomy": [],
+                "experiment_gates": {"acquisition": {"metric": "yield", "numerator": 1, "denominator": 1, "actual": 1.0, "target": 0.85, "passed": True}},
+            }
+            (run_dir / "summary.json").write_text(json.dumps(raw), encoding="utf-8")
+
+            export_result.export_run(run_dir, out_dir)
+
+            self.assertTrue((out_dir / "artifact.public.json").exists())
+            self.assertTrue((out_dir / "metrics.json").exists())
+            self.assertTrue((out_dir / "report.html").exists())
+            export_result.assert_public_directory(out_dir)
 
 
 class ValidateTest(unittest.TestCase):
@@ -196,6 +378,25 @@ class ValidateTest(unittest.TestCase):
 
         validate.check_baselines("case_a", ["repeated_reuse"], ["direct_cli"])
         validate.check_baselines("case_a", ["repeated_reuse"], ["llm_oneshot"])
+
+    def test_full_acquisition_design_requires_mostly_multi_cap_cases(self) -> None:
+        cases = [
+            {"acquisition_mode": "full_acquisition", "paper_experiments": ["acquisition"], "expected_capabilities": [{"key": "one", "surface": "one", "min_promoted_bindings": 1}]},
+            {
+                "acquisition_mode": "full_acquisition",
+                "paper_experiments": ["acquisition"],
+                "expected_capabilities": [
+                    {"key": "one", "surface": "one", "min_promoted_bindings": 1},
+                    {"key": "two", "surface": "two", "min_promoted_bindings": 1},
+                ],
+            },
+        ]
+
+        with self.assertRaises(SystemExit):
+            validate.check_full_acquisition_design(cases)
+
+        cases[0]["expected_capabilities"].append({"key": "two", "surface": "two", "min_promoted_bindings": 1})
+        validate.check_full_acquisition_design(cases)
 
 
 class LLMOneShotTest(unittest.TestCase):
@@ -238,8 +439,93 @@ class RunContractTest(unittest.TestCase):
 
         self.assertEqual(run.effective_jobs(args), 3)
 
-    def test_should_run_acquisition_for_repeated_reuse(self) -> None:
-        self.assertTrue(run.should_run_acquisition({"paper_experiments": ["repeated_reuse"]}))
+    def test_repeated_reuse_defaults_to_seeded_records(self) -> None:
+        case = {"paper_experiments": ["repeated_reuse"]}
+
+        self.assertFalse(run.should_run_acquisition(case, seed.REUSE_SEED_REPLAY))
+        self.assertTrue(run.should_seed_records(case, seed.REUSE_SEED_REPLAY))
+        self.assertTrue(run.should_run_acquisition(case, seed.REUSE_SEED_SELF))
+        self.assertFalse(run.should_seed_records(case, seed.REUSE_SEED_SELF))
+
+    def test_capability_structure_can_run_from_seeded_records(self) -> None:
+        case = {"paper_experiments": ["capability_structure"]}
+
+        self.assertFalse(run.should_run_acquisition(case, seed.REUSE_SEED_REPLAY))
+        self.assertTrue(run.should_seed_records(case, seed.REUSE_SEED_REPLAY))
+
+    def test_full_acquisition_omits_task_hint_by_default(self) -> None:
+        self.assertEqual(acquisition.acquisition_hint({"acquisition_mode": "full_acquisition", "intent": "single task"}), "")
+        self.assertEqual(
+            acquisition.acquisition_hint({"acquisition_mode": "full_acquisition", "acquisition": {"full_hint": "discover provider surfaces"}}),
+            "discover provider surfaces",
+        )
+        self.assertEqual(acquisition.acquisition_hint({"acquisition_mode": "intent_guided", "intent": "single task"}), "single task")
+
+    def test_restrict_cases_to_selected_experiments(self) -> None:
+        cases = [{"id": "case_a", "paper_experiments": ["acquisition", "capability_structure"]}]
+
+        restricted = run.restrict_cases_to_selected_experiments(cases, "capability_structure")
+
+        self.assertEqual(restricted[0]["paper_experiments"], ["capability_structure"])
+
+    def test_intent_reuse_does_not_pin_provider(self) -> None:
+        workspace = RecordingWorkspace()
+        runner = reuse.ReuseRunner(Path("/bench"), Path("/home"), workspace, oracle=None)
+        case = {
+            "id": "case_a",
+            "intent": "copy file",
+            "reuse": {"rounds": [{"id": "round_a", "inputs": {"source": "input.txt"}}]},
+        }
+        result = {"providers": [{"provider_id": "provider_a", "candidates": [{"promotion": {"binding_id": "binding_a"}}]}], "use": []}
+
+        runner.run_intent_uses(case, result)
+
+        self.assertNotIn("--provider-id", workspace.commands[0])
+        self.assertIn("--strategy", workspace.commands[0])
+        strategy_index = workspace.commands[0].index("--strategy")
+        self.assertEqual(workspace.commands[0][strategy_index + 1], "best")
+
+    def test_seed_capabilities_builds_promoted_binding(self) -> None:
+        proposal = {
+            "candidates": [
+                {
+                    "capability_id": "text.copy",
+                    "description": "Copy text.",
+                    "execution": {"kind": "cli", "spec": {"args": ["cp", "{{source}}", "{{target}}"]}},
+                }
+            ],
+            "probe_plans": [
+                {
+                    "candidate_index": 0,
+                    "verify": {
+                        "level": "L3",
+                        "method": "execute",
+                        "checks": [{"subject": {"type": "file", "input": "target"}, "predicate": "exists"}],
+                    },
+                }
+            ],
+        }
+
+        capabilities = seed.seed_capabilities(proposal, "provider_a")
+
+        self.assertEqual(capabilities[0]["id"], "text.copy")
+        binding = capabilities[0]["bindings"][0]
+        self.assertEqual(binding["provider_id"], "provider_a")
+        self.assertEqual(binding["state"], "promoted")
+        self.assertEqual(binding["verify"]["level"], "L3")
+        self.assertTrue(binding["evidence"])
+
+    def test_seed_capability_write_merges_multiple_bindings(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            first = [{"id": "text.search", "description": "Search text.", "bindings": [{"id": "binding_grep", "provider_id": "provider_grep"}]}]
+            second = [{"id": "text.search", "description": "Search text.", "bindings": [{"id": "binding_rg", "provider_id": "provider_rg"}]}]
+
+            seed.write_seeded_capabilities(home, first)
+            seed.write_seeded_capabilities(home, second)
+
+            stored = json.loads((home / "capabilities" / "text.search.json").read_text(encoding="utf-8"))
+            self.assertEqual([binding["id"] for binding in stored["bindings"]], ["binding_grep", "binding_rg"])
 
     def test_benchmark_env_prepends_eval_tools(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -302,26 +588,33 @@ def scenario_case(case_id: str, provider_id: str, experiments: list[str], provid
     }
 
 
-def case_result(case_id: str, experiments: list[str], provider_id: str, capability_id: str, binding_id: str, use_passed: bool | None = None, checks: dict | None = None) -> dict:
+def case_result(
+    case_id: str,
+    experiments: list[str],
+    provider_id: str,
+    capability_id: str,
+    binding_id: str,
+    use_passed: bool | None = None,
+    checks: dict | None = None,
+    acquisition_mode: str = "intent_guided",
+    expected_capabilities: list[dict] | None = None,
+    candidates: list[dict] | None = None,
+) -> dict:
+    candidate_rows = candidates or [candidate_result(capability_id, binding_id, [capability_id, "{{source}}", "{{target}}"])]
     case = {
         "id": case_id,
         "case_key": f"acquisition:{case_id}",
         "paper_experiments": experiments,
         "provider_class": "known_cli",
-        "acquisition_mode": "intent_guided",
+        "acquisition_mode": acquisition_mode,
         "domain": "text",
+        "expected_capabilities": expected_capabilities or [],
         "providers": [
             {
                 "id": provider_id,
                 "provider_path": f"/bin/{provider_id}",
                 "acquisition_duration_ms": 10,
-                "candidates": [
-                    {
-                        "capability_id": capability_id,
-                        "probe": {"passed": bool(binding_id), "status": "passed" if binding_id else "failed"},
-                        "promotion": {"capability_id": capability_id, "binding_id": binding_id},
-                    }
-                ],
+                "candidates": candidate_rows,
             }
         ],
         "use": [],
@@ -332,6 +625,24 @@ def case_result(case_id: str, experiments: list[str], provider_id: str, capabili
     if use_passed is not None:
         case["use"] = [{"fixture_id": "round_1", "duration_ms": 7, "selection": {"source": "llm", "binding_id": binding_id}, "oracle": {"passed": use_passed}, "status": "passed" if use_passed else "failed"}]
     return case
+
+
+def candidate_result(capability_id: str, binding_id: str, args: list[str]) -> dict:
+    return {
+        "capability_id": capability_id,
+        "execution": {"kind": "cli", "spec": {"args": args}},
+        "probe": {"passed": bool(binding_id), "status": "passed" if binding_id else "failed"},
+        "promotion": {"capability_id": capability_id, "binding_id": binding_id},
+    }
+
+
+class RecordingWorkspace:
+    def __init__(self) -> None:
+        self.commands: list[list[str]] = []
+
+    def run_calctl(self, args: list[str]):
+        self.commands.append(args)
+        return type("Completed", (), {"returncode": 1, "stdout": '{"error":{"code":"no_match","message":"no match"}}', "stderr": ""})()
 
 
 def write_oneshot_fixture(bench: Path) -> None:

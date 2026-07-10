@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from constants import (
+    ACQUISITION_FULL,
     MODE_LIVE_LLM,
     MODE_REPLAY,
     STATUS_FAILED,
@@ -70,7 +71,10 @@ class AcquisitionRunner:
             return result
 
         before = self.workspace.trace_ids()
-        cmd = ["acquisition", "run", "--provider-id", result["provider_id"], "--hint", case["intent"], "--json"]
+        cmd = ["acquisition", "run", "--provider-id", result["provider_id"], "--json"]
+        hint = acquisition_hint(case)
+        if hint:
+            cmd.extend(["--hint", hint])
         if self.mode == MODE_REPLAY:
             cmd.extend(["--mode", MODE_REPLAY, "--proposal-path", str(proposal)])
         started = time.monotonic()
@@ -240,3 +244,9 @@ def proposal_llm_metrics(trace: dict[str, Any]) -> dict[str, int]:
         metrics["completion_tokens"] += int(attempt.get("completion_tokens") or 0)
         metrics["total_tokens"] += int(attempt.get("total_tokens") or 0)
     return metrics
+
+
+def acquisition_hint(case: dict[str, Any]) -> str:
+    if case.get("acquisition_mode") == ACQUISITION_FULL:
+        return ((case.get("acquisition") or {}).get("full_hint") or "").strip()
+    return str(case.get("intent") or "").strip()

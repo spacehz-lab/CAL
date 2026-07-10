@@ -126,7 +126,8 @@ predicate_text.go  -> equals, not_equals, contains, contains_any, regex
 predicate_bytes.go -> bytes_equal_transform
 predicate_hash.go  -> hash_line_matches
 predicate_archive.go -> archive_contains_input
-predicate_json.go -> json_query_matches
+predicate_json.go -> json_query_matches, json_equivalent, json_field_equals,
+                     json_field_matches_source
 ```
 
 That keeps adding a predicate local to one file: params, allowed subjects, and
@@ -179,6 +180,13 @@ bytes_equal_transform
 hash_line_matches
 archive_contains_input
 json_query_matches
+json_equivalent
+json_field_equals
+json_field_matches_source
+text_transform_matches
+line_count_matches
+text_filter_matches
+delimited_column_matches
 ```
 
 Allowed subject/predicate combinations:
@@ -195,6 +203,13 @@ file:
   hash_line_matches
   archive_contains_input
   json_query_matches
+  json_equivalent
+  json_field_equals
+  json_field_matches_source
+  text_transform_matches
+  line_count_matches
+  text_filter_matches
+  delimited_column_matches
 
 stdout:
   equals
@@ -205,6 +220,12 @@ stdout:
   regex
   hash_line_matches
   json_query_matches
+  json_equivalent
+  json_field_equals
+  json_field_matches_source
+  line_count_matches
+  text_filter_matches
+  delimited_column_matches
 
 stderr:
   equals
@@ -215,6 +236,12 @@ stderr:
   regex
   hash_line_matches
   json_query_matches
+  json_equivalent
+  json_field_equals
+  json_field_matches_source
+  line_count_matches
+  text_filter_matches
+  delimited_column_matches
 
 exit_code:
   equals
@@ -256,11 +283,41 @@ hash_line_matches:
 archive_contains_input:
   source required
   format required
-  allowed values: zip
+  allowed values: zip, tar
 
 json_query_matches:
   source required
   query required
+
+json_equivalent:
+  source required
+
+json_field_equals:
+  query required
+  value required
+
+json_field_matches_source:
+  query required
+  source required
+  property required
+  allowed property values: basename, bytes, sha256
+
+text_transform_matches:
+  source required
+  transform required
+  allowed values: uppercase, lowercase
+
+line_count_matches:
+  source required
+
+text_filter_matches:
+  source required
+  pattern required
+
+delimited_column_matches:
+  source required
+  delimiter required
+  column required
 ```
 
 ## Run Semantics

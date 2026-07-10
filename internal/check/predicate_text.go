@@ -199,11 +199,11 @@ func checkDelimitedColumnMatches(ctx *predicateContext) error {
 		return err
 	}
 	delimiter := valueParam(ctx.check.Params, paramDelimiter, ctx.subject.inputs)
-	column, err := strconv.Atoi(valueParam(ctx.check.Params, paramColumn, ctx.subject.inputs))
-	if err != nil || column < 1 {
-		return fmt.Errorf("verify delimited column is invalid")
+	column := valueParam(ctx.check.Params, paramColumn, ctx.subject.inputs)
+	want, err := delimitedColumn(source, delimiter, column)
+	if err != nil {
+		return err
 	}
-	want := delimitedColumn(source, delimiter, column)
 	got, err := subjectText(ctx.subject)
 	if err != nil {
 		return err
@@ -260,7 +260,21 @@ func filterLines(content string, pattern string) string {
 	return strings.Join(lines, "\n")
 }
 
-func delimitedColumn(content string, delimiter string, column int) string {
+func delimitedColumn(content string, delimiter string, column string) (string, error) {
+	column = strings.TrimSpace(column)
+	if column == "" {
+		return "", fmt.Errorf("verify delimited column is invalid")
+	}
+	if number, err := strconv.Atoi(column); err == nil {
+		if number < 1 {
+			return "", fmt.Errorf("verify delimited column is invalid")
+		}
+		return delimitedColumnByIndex(content, delimiter, number), nil
+	}
+	return delimitedColumnByHeader(content, delimiter, column)
+}
+
+func delimitedColumnByIndex(content string, delimiter string, column int) string {
 	var values []string
 	for _, line := range splitLines(content) {
 		parts := strings.Split(line, delimiter)
@@ -269,6 +283,32 @@ func delimitedColumn(content string, delimiter string, column int) string {
 		}
 	}
 	return strings.Join(values, "\n")
+}
+
+func delimitedColumnByHeader(content string, delimiter string, header string) (string, error) {
+	lines := splitLines(content)
+	if len(lines) == 0 {
+		return "", fmt.Errorf("verify delimited source is empty")
+	}
+	headers := strings.Split(lines[0], delimiter)
+	column := -1
+	for index, candidate := range headers {
+		if strings.TrimSpace(candidate) == header {
+			column = index
+			break
+		}
+	}
+	if column < 0 {
+		return "", fmt.Errorf("verify delimited header %q is missing", header)
+	}
+	var values []string
+	for _, line := range lines[1:] {
+		parts := strings.Split(line, delimiter)
+		if column < len(parts) {
+			values = append(values, parts[column])
+		}
+	}
+	return strings.Join(values, "\n"), nil
 }
 
 func splitLines(content string) []string {

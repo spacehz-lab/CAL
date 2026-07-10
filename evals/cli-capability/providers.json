@@ -333,6 +333,7 @@
         "--version"
       ],
       "task_families": [
+        "enterprise_acmejson_suite",
         "enterprise_json_pluck",
         "enterprise_json_normalize"
       ]
@@ -357,6 +358,7 @@
         "--version"
       ],
       "task_families": [
+        "enterprise_corp_redact_suite",
         "enterprise_pii_redact"
       ]
     },
@@ -379,6 +381,7 @@
         "--version"
       ],
       "task_families": [
+        "enterprise_datapick_suite",
         "enterprise_table_field"
       ]
     },
@@ -401,6 +404,7 @@
         "--version"
       ],
       "task_families": [
+        "enterprise_packnote_suite",
         "enterprise_manifest_create"
       ]
     },

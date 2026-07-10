@@ -11,6 +11,7 @@ const (
 	paramAlgorithm = "algorithm"
 	paramDelimiter = "delimiter"
 	paramColumn    = "column"
+	paramProperty  = "property"
 )
 
 const (
@@ -38,6 +39,12 @@ const (
 	hashSHA256Under = "sha_256"
 	hashSHA1Space   = "sha 1"
 	hashSHA256Space = "sha 256"
+)
+
+const (
+	sourcePropertyBasename = "basename"
+	sourcePropertyBytes    = "bytes"
+	sourcePropertySHA256   = "sha256"
 )
 
 const (

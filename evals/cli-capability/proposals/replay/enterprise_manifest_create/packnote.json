@@ -58,9 +58,46 @@
               "type": "file",
               "input": "target"
             },
-            "predicate": "contains",
+            "predicate": "json_field_equals",
             "params": {
-              "value": "alpha-release"
+              "query": ".label",
+              "value": "label"
+            }
+          },
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "json_field_matches_source",
+            "params": {
+              "query": ".basename",
+              "source": "source",
+              "property": "basename"
+            }
+          },
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "json_field_matches_source",
+            "params": {
+              "query": ".bytes",
+              "source": "source",
+              "property": "bytes"
+            }
+          },
+          {
+            "subject": {
+              "type": "file",
+              "input": "target"
+            },
+            "predicate": "json_field_matches_source",
+            "params": {
+              "query": ".sha256",
+              "source": "source",
+              "property": "sha256"
             }
           }
         ]

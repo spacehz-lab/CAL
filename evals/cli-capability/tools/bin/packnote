@@ -15,6 +15,9 @@ Internal release-manifest generator.
 Commands:
   manifest --source FILE --label TEXT --output FILE
       Write a JSON manifest with basename, byte size, sha256 digest, and label.
+
+  digest --source FILE --output FILE
+      Write the SHA-256 digest of a source file as plain text.
 """
 
 
@@ -31,7 +34,12 @@ def main() -> int:
     manifest.add_argument("--source", required=True)
     manifest.add_argument("--label", required=True)
     manifest.add_argument("--output", required=True)
+    digest = subparsers.add_parser("digest", add_help=False)
+    digest.add_argument("--source", required=True)
+    digest.add_argument("--output", required=True)
     args = parser.parse_args()
+    if args.command == "digest":
+        return run_digest(args.source, args.output)
     if args.command != "manifest":
         return 2
     source = Path(args.source)
@@ -45,6 +53,13 @@ def main() -> int:
     with open(args.output, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, indent=2, sort_keys=True)
         handle.write("\n")
+    return 0
+
+
+def run_digest(source_path: str, target_path: str) -> int:
+    content = Path(source_path).read_bytes()
+    with open(target_path, "w", encoding="utf-8") as handle:
+        handle.write(hashlib.sha256(content).hexdigest() + "\n")
     return 0
 
 

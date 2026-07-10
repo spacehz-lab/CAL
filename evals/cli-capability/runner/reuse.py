@@ -20,6 +20,8 @@ from oracle import OracleRunner
 from util import elapsed_ms, failure, flow_step, parse_json, template_inputs
 from workspace import Workspace
 
+USE_SELECTION_STRATEGY = "best"
+
 
 class ReuseRunner:
     def __init__(self, bench: Path, home: Path, workspace: Workspace, oracle: OracleRunner) -> None:
@@ -44,13 +46,10 @@ class ReuseRunner:
         rounds = reuse_rounds(case)
         if not rounds:
             return
-        providers = [provider for provider in case_result.get("providers") or [] if provider_has_promoted_binding(provider)]
-        providers = providers[:1] or [{}]
         for fixture in rounds:
             inputs = materialize_inputs(self.bench, self.home, case["id"], fixture)
-            for provider in providers:
-                use = self.run_use_fixture(case, fixture, inputs, provider.get("provider_id", ""))
-                case_result.setdefault("use", []).append(use)
+            use = self.run_use_fixture(case, fixture, inputs)
+            case_result.setdefault("use", []).append(use)
 
     def run_reuse_fixture(self, case: dict[str, Any], provider_id: str, candidate: dict[str, Any], fixture: dict[str, Any]) -> dict[str, Any]:
         inputs = materialize_inputs(self.bench, self.home, case["id"], fixture)
@@ -120,6 +119,8 @@ class ReuseRunner:
             intent,
             "--inputs-json",
             json.dumps(call_inputs, separators=(",", ":")),
+            "--strategy",
+            USE_SELECTION_STRATEGY,
             "--json",
         ]
         if provider_id:

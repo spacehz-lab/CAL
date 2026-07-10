@@ -14,6 +14,9 @@ Commands:
   emit --input FILE --delimiter SEP --field HEADER --output FILE
       Read a delimited file with a header row and write the selected field
       value for each data row, one value per line.
+
+  headers --input FILE --delimiter SEP --output FILE
+      Read a delimited file and write the header names, one per line.
 """
 
 
@@ -31,7 +34,13 @@ def main() -> int:
     emit.add_argument("--delimiter", required=True)
     emit.add_argument("--field", required=True)
     emit.add_argument("--output", required=True)
+    headers = subparsers.add_parser("headers", add_help=False)
+    headers.add_argument("--input", required=True)
+    headers.add_argument("--delimiter", required=True)
+    headers.add_argument("--output", required=True)
     args = parser.parse_args()
+    if args.command == "headers":
+        return run_headers(args.input, args.delimiter, args.output)
     if args.command != "emit":
         return 2
     with open(args.input, "r", encoding="utf-8", newline="") as source:
@@ -40,6 +49,16 @@ def main() -> int:
     with open(args.output, "w", encoding="utf-8") as target:
         for value in values:
             target.write(value + "\n")
+    return 0
+
+
+def run_headers(source_path: str, delimiter: str, target_path: str) -> int:
+    with open(source_path, "r", encoding="utf-8", newline="") as source:
+        reader = csv.DictReader(source, delimiter=delimiter)
+        headers = reader.fieldnames or []
+    with open(target_path, "w", encoding="utf-8") as target:
+        for header in headers:
+            target.write(header + "\n")
     return 0
 
 

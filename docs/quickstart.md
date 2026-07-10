@@ -128,6 +128,7 @@ derive missing inputs from the intent. You can also pass structured inputs:
 calctl use \
   "convert plist to json" \
   --inputs-json '{"source":"/tmp/cal-sample.plist","target":"/tmp/cal-sample.json"}' \
+  --strategy best \
   --verify \
   --json
 ```

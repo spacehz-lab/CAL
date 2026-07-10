@@ -25,6 +25,7 @@ from constants import (
 from oracle import OracleRunner
 from report import ArtifactWriter
 from reuse import ReuseRunner, use_intent
+from seed import REUSE_SEED_REPLAY, REUSE_SEEDS, ReplaySeedRunner
 from summary import update_artifact_metrics
 from util import clean_run_part, new_run_id
 from workspace import Workspace, start_cald, stop_process, wait_for_cald
@@ -36,6 +37,7 @@ def main() -> int:
     bench = Path(__file__).resolve().parents[1]
     catalog = ScenarioCatalog(bench)
     selected_cases = catalog.select(args.experiment, args.level, args.case, args.provider_class, args.tag, args.failure_type)
+    selected_cases = restrict_cases_to_selected_experiments(selected_cases, args.experiment)
     selected_experiments = selected_experiment_names(selected_cases)
     model = os.environ.get("CAL_LLM_MODEL", "") if args.mode == MODE_LIVE_LLM else ""
     run_id = new_run_id(args.mode, model)
@@ -59,7 +61,7 @@ def main() -> int:
         wait_for_cald(calctl, repo, env)
         workspace = Workspace(repo, home, calctl, env)
         oracle = OracleRunner(repo, bench)
-        benchmark = BenchmarkRunner(bench, home, workspace, args.mode, oracle)
+        benchmark = BenchmarkRunner(bench, home, workspace, args.mode, oracle, args.reuse_seed)
         baselines = BaselineRunner(repo, bench, home, oracle, args.mode, env)
         for case in selected_cases:
             result = run_case(case, benchmark, baselines)
@@ -71,7 +73,7 @@ def main() -> int:
 
     with ThreadPoolExecutor(max_workers=worker_count) as executor:
         futures = {
-            executor.submit(run_case_shard, case, repo, bench, run_dir, calctl, cald, args.mode): case
+            executor.submit(run_case_shard, case, repo, bench, run_dir, calctl, cald, args.mode, args.reuse_seed): case
             for case in selected_cases
         }
         for future in as_completed(futures):
@@ -94,18 +96,22 @@ def main() -> int:
 
 
 class BenchmarkRunner:
-    def __init__(self, bench: Path, home: Path, workspace: Workspace, mode: str, oracle: OracleRunner) -> None:
+    def __init__(self, bench: Path, home: Path, workspace: Workspace, mode: str, oracle: OracleRunner, reuse_seed: str) -> None:
         self.mode = mode
+        self.reuse_seed = reuse_seed
         self.acquisition = AcquisitionRunner(bench, workspace, mode)
+        self.seed = ReplaySeedRunner(bench, workspace)
         self.reuse = ReuseRunner(bench, home, workspace, oracle)
 
     def run_case(self, case: dict[str, Any]) -> dict[str, Any]:
         result = self.new_case_result(case)
-        if should_run_acquisition(case):
+        if should_run_acquisition(case, self.reuse_seed):
             for provider in case["providers"]:
                 provider_result = self.acquisition.run_provider(case, provider)
                 finalize_provider_status(provider_result, self.mode, False)
                 result["providers"].append(provider_result)
+        elif should_seed_records(case, self.reuse_seed):
+            result["providers"].extend(self.seed.seed_case(case))
         if EXPERIMENT_REPEATED_REUSE in case.get("paper_experiments", []):
             self.reuse.run_intent_uses(case, result)
         return result
@@ -125,6 +131,7 @@ class BenchmarkRunner:
             "intent": use_intent(case),
             "description": case.get("description", ""),
             "capability_layer_checks": case.get("capability_layer_checks") or {},
+            "expected_capabilities": case.get("expected_capabilities") or [],
             "reuse_rounds": [round_value.get("id", "") for round_value in (case.get("reuse") or {}).get("rounds") or []],
             "providers": [],
             "use": [],
@@ -132,7 +139,7 @@ class BenchmarkRunner:
         }
 
 
-def run_case_shard(case: dict[str, Any], repo: Path, bench: Path, run_dir: Path, calctl: str, cald: str, mode: str) -> dict[str, Any]:
+def run_case_shard(case: dict[str, Any], repo: Path, bench: Path, run_dir: Path, calctl: str, cald: str, mode: str, reuse_seed: str) -> dict[str, Any]:
     shard = run_dir / "shards" / clean_run_part(case.get("case_key", case.get("id", "case")))
     home = shard / "home"
     env = benchmark_env(os.environ.copy(), bench)
@@ -143,7 +150,7 @@ def run_case_shard(case: dict[str, Any], repo: Path, bench: Path, run_dir: Path,
         wait_for_cald(calctl, repo, env)
         workspace = Workspace(repo, home, calctl, env)
         oracle = OracleRunner(repo, bench)
-        benchmark = BenchmarkRunner(bench, home, workspace, mode, oracle)
+        benchmark = BenchmarkRunner(bench, home, workspace, mode, oracle, reuse_seed)
         baselines = BaselineRunner(repo, bench, home, oracle, mode, env)
         result = run_case(case, benchmark, baselines)
         result["shard"] = {"path": str(shard), "home": str(home)}
@@ -165,18 +172,18 @@ def run_case(case: dict[str, Any], benchmark: BenchmarkRunner, baselines: Baseli
     return result
 
 
-def should_run_acquisition(case: dict[str, Any]) -> bool:
+def should_run_acquisition(case: dict[str, Any], reuse_seed: str) -> bool:
     experiments = set(case.get("paper_experiments") or [])
-    return bool(
-        experiments.intersection(
-            {
-                EXPERIMENT_ACQUISITION,
-                EXPERIMENT_VERIFICATION_FAILURE,
-                EXPERIMENT_CAPABILITY_STRUCTURE,
-                EXPERIMENT_REPEATED_REUSE,
-            }
-        )
-    )
+    if experiments.intersection({EXPERIMENT_ACQUISITION, EXPERIMENT_VERIFICATION_FAILURE}):
+        return True
+    return EXPERIMENT_REPEATED_REUSE in experiments and reuse_seed != REUSE_SEED_REPLAY
+
+
+def should_seed_records(case: dict[str, Any], reuse_seed: str) -> bool:
+    experiments = set(case.get("paper_experiments") or [])
+    if EXPERIMENT_REPEATED_REUSE in experiments and reuse_seed == REUSE_SEED_REPLAY:
+        return True
+    return EXPERIMENT_CAPABILITY_STRUCTURE in experiments and EXPERIMENT_ACQUISITION not in experiments
 
 
 def benchmark_env(env: dict[str, str], bench: Path) -> dict[str, str]:
@@ -197,6 +204,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--level", choices=["focus", "full"], default="focus", help="select benchmark cases by level")
     parser.add_argument("--jobs", type=int, default=1, help="parallel case workers")
     parser.add_argument("--llm-jobs", type=int, default=2, help="parallel live LLM case workers")
+    parser.add_argument("--reuse-seed", choices=REUSE_SEEDS, default=REUSE_SEED_REPLAY, help="seed repeated reuse from replay records or acquire in each reuse shard")
     parser.add_argument("--calctl", default="calctl")
     parser.add_argument("--cald", default="cald")
     parser.add_argument("--home", default="")
@@ -222,6 +230,7 @@ def new_artifact(
             "selected_experiments": experiments,
             "selected_cases": [case.get("case_key", case["id"]) for case in cases],
             "jobs": jobs,
+            "reuse_seed": args.reuse_seed,
             "goos": sys.platform,
             "goarch": platform.machine(),
             "llm": {
@@ -258,6 +267,17 @@ def effective_jobs(args: argparse.Namespace) -> int:
     if args.mode == MODE_LIVE_LLM:
         return max(1, min(jobs, int(args.llm_jobs or 1)))
     return jobs
+
+
+def restrict_cases_to_selected_experiments(cases: list[dict[str, Any]], experiments: str) -> list[dict[str, Any]]:
+    wanted = [item.strip() for item in experiments.split(",") if item.strip()]
+    wanted = wanted or list(EXPERIMENTS)
+    restricted: list[dict[str, Any]] = []
+    for case in cases:
+        copied = dict(case)
+        copied["paper_experiments"] = [experiment for experiment in case.get("paper_experiments") or [] if experiment in wanted]
+        restricted.append(copied)
+    return restricted
 
 
 def selected_experiment_names(cases: list[dict[str, Any]]) -> list[str]:

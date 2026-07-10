@@ -49,6 +49,8 @@ func checkStrength(check model.VerifyCheck) evidenceStrength {
 		model.VerifyPredicateArchiveContainsInput,
 		model.VerifyPredicateJSONQueryMatches,
 		model.VerifyPredicateJSONEquivalent,
+		model.VerifyPredicateJSONFieldEquals,
+		model.VerifyPredicateJSONFieldMatchesSource,
 		model.VerifyPredicateTextTransformMatches,
 		model.VerifyPredicateLineCountMatches,
 		model.VerifyPredicateTextFilterMatches,

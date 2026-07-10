@@ -24,11 +24,11 @@ func TestSystemPromptUsesVerifyPredicateRules(t *testing.T) {
 	}
 }
 
-func TestSystemPromptAvoidsWhitespaceSensitiveJSONContains(t *testing.T) {
-	if !strings.Contains(systemPrompt, "do not use whitespace-sensitive contains checks") {
-		t.Fatal("systemPrompt must avoid whitespace-sensitive JSON contains checks")
+func TestSystemPromptPrefersStructuredPredicatesForStructuredFormats(t *testing.T) {
+	if !strings.Contains(systemPrompt, "For structured formats, prefer predicates that parse the structure when available") {
+		t.Fatal("systemPrompt must prefer structured predicates for structured formats")
 	}
-	if !strings.Contains(systemPrompt, "contains_any with compact and spaced forms") {
-		t.Fatal("systemPrompt must allow robust JSON content checks")
+	if !strings.Contains(systemPrompt, "Use regex only for stable text formats") {
+		t.Fatal("systemPrompt must avoid making regex the first choice for structured fields")
 	}
 }

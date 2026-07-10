@@ -32,11 +32,12 @@ type Executor interface {
 
 // Request provides one intent-level reuse input.
 type Request struct {
-	Intent         string
-	Inputs         map[string]any
-	ProviderID     string
-	Verify         bool
-	MinVerifyLevel model.VerifyLevel
+	Intent            string
+	Inputs            map[string]any
+	ProviderID        string
+	ForceLLMSelection bool
+	Verify            bool
+	MinVerifyLevel    model.VerifyLevel
 }
 
 // Result describes one intent-level reuse result.

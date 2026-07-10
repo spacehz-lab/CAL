@@ -18,6 +18,7 @@ const (
 	paramAlgorithm = "algorithm"
 	paramDelimiter = "delimiter"
 	paramColumn    = "column"
+	paramProperty  = "property"
 )
 
 const (
@@ -47,9 +48,16 @@ const (
 	hashSHA256Space = "sha 256"
 )
 
+const (
+	sourcePropertyBasename = "basename"
+	sourcePropertyBytes    = "bytes"
+	sourcePropertySHA256   = "sha256"
+)
+
 // PredicateRule is the prompt-facing and parser-facing parameter contract for one predicate.
 type PredicateRule struct {
 	Predicate      model.VerifyPredicate `json:"predicate"`
+	Description    string                `json:"description,omitempty"`
 	RequiredParams []string              `json:"required_params,omitempty"`
 	AllowedParams  []string              `json:"allowed_params,omitempty"`
 	AllowedValues  map[string][]string   `json:"allowed_values,omitempty"`
@@ -99,6 +107,17 @@ func verifyPredicateRules() []PredicateRule {
 			AllowedParams:  []string{paramSource},
 		},
 		{
+			Predicate:      model.VerifyPredicateJSONFieldEquals,
+			RequiredParams: []string{paramQuery, paramValue},
+			AllowedParams:  []string{paramQuery, paramValue},
+		},
+		{
+			Predicate:      model.VerifyPredicateJSONFieldMatchesSource,
+			RequiredParams: []string{paramQuery, paramSource, paramProperty},
+			AllowedParams:  []string{paramQuery, paramSource, paramProperty},
+			AllowedValues:  map[string][]string{paramProperty: []string{sourcePropertyBasename, sourcePropertyBytes, sourcePropertySHA256}},
+		},
+		{
 			Predicate:      model.VerifyPredicateTextTransformMatches,
 			RequiredParams: []string{paramSource, paramTransform},
 			AllowedParams:  []string{paramSource, paramTransform},
@@ -106,6 +125,7 @@ func verifyPredicateRules() []PredicateRule {
 		},
 		{
 			Predicate:      model.VerifyPredicateLineCountMatches,
+			Description:    "Subject must be a numeric line-count report; the checker extracts the first integer from subject text and compares it with the number of lines in source.",
 			RequiredParams: []string{paramSource},
 			AllowedParams:  []string{paramSource},
 		},

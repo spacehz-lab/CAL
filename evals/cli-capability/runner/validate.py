@@ -5,7 +5,15 @@ import json
 import py_compile
 from pathlib import Path
 
-from constants import BASELINE_DIRECT_CLI, BASELINE_LLM_ONESHOT, EXPERIMENTS, EXPERIMENT_REPEATED_REUSE, SCENARIO_GROUPS
+from constants import (
+    ACQUISITION_FULL,
+    BASELINE_DIRECT_CLI,
+    BASELINE_LLM_ONESHOT,
+    EXPERIMENTS,
+    EXPERIMENT_ACQUISITION,
+    EXPERIMENT_REPEATED_REUSE,
+    SCENARIO_GROUPS,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +55,7 @@ def main() -> int:
             raise SystemExit(f"{group}:{case_id}: missing oracle {oracle_path}")
         py_compile.compile(str(oracle_path), doraise=True)
         check_fixture_group(group, case_id, case.get("acquisition") or {}, "fixtures")
+        check_expected_capabilities(group, case_id, case)
         if EXPERIMENT_REPEATED_REUSE in experiments:
             check_fixture_group(group, case_id, case.get("reuse") or {}, "rounds")
         if case.get("level") == "focus":
@@ -61,6 +70,7 @@ def main() -> int:
     for path in (ROOT / "proposals" / "replay").glob("*/*.json"):
         check_replay_proposal(path)
     read_jsonl(ROOT / "baselines" / "oracle" / "commands.jsonl")
+    check_full_acquisition_design(cases)
     print(f"validated {len(cases)} scenario cases and {len(provider_ids)} providers")
     return 0
 
@@ -86,6 +96,30 @@ def check_fixture_group(group: str, case_id: str, fixture_group: dict, key: str)
                 continue
             if value.startswith("fixtures/") and not (ROOT / value).exists():
                 raise SystemExit(f"{group}:{case_id}: missing fixture input {input_key}={value}")
+
+
+def check_expected_capabilities(group: str, case_id: str, case: dict) -> None:
+    expected = case.get("expected_capabilities") or []
+    for index, item in enumerate(expected):
+        if not isinstance(item, dict):
+            raise SystemExit(f"{group}:{case_id}: expected_capabilities[{index}] must be an object")
+        for key in ("key", "surface", "min_promoted_bindings"):
+            if key not in item:
+                raise SystemExit(f"{group}:{case_id}: expected_capabilities[{index}] missing {key}")
+        if not isinstance(item["min_promoted_bindings"], int) or item["min_promoted_bindings"] < 1:
+            raise SystemExit(f"{group}:{case_id}: expected_capabilities[{index}].min_promoted_bindings must be a positive integer")
+
+
+def check_full_acquisition_design(cases: list[dict]) -> None:
+    full_cases = [case for case in cases if case.get("acquisition_mode") == ACQUISITION_FULL and EXPERIMENT_ACQUISITION in (case.get("paper_experiments") or [])]
+    if not full_cases:
+        return
+    multi_cap_cases = [case for case in full_cases if len(case.get("expected_capabilities") or []) >= 2]
+    if len(multi_cap_cases) / len(full_cases) < 0.8:
+        raise SystemExit(
+            "full_acquisition design requires at least 80% provider-suite cases "
+            f"with multiple expected capabilities; got {len(multi_cap_cases)}/{len(full_cases)}"
+        )
 
 
 def check_replay_proposal(path: Path) -> None:
@@ -147,6 +181,8 @@ def required_params(predicate: str) -> list[str]:
         "archive_contains_input": ["source", "format"],
         "json_query_matches": ["source", "query"],
         "json_equivalent": ["source"],
+        "json_field_equals": ["query", "value"],
+        "json_field_matches_source": ["query", "source", "property"],
         "text_transform_matches": ["source", "transform"],
         "line_count_matches": ["source"],
         "text_filter_matches": ["source", "pattern"],
@@ -169,6 +205,8 @@ def verify_predicates() -> set[str]:
         "archive_contains_input",
         "json_query_matches",
         "json_equivalent",
+        "json_field_equals",
+        "json_field_matches_source",
         "text_transform_matches",
         "line_count_matches",
         "text_filter_matches",

@@ -1,0 +1,2350 @@
+{
+  "schema_version": "cli-capability-public-result-v1",
+  "run": {
+    "id": "20260710-054743-kimi-k2-7-code-5b0eea",
+    "mode": "live_llm",
+    "status": "completed",
+    "level": "full",
+    "selected_experiments": [
+      "acquisition"
+    ],
+    "selected_cases": [
+      "acquisition:file_hash_sha1",
+      "acquisition:file_hash_sha256",
+      "acquisition:text_base64_encode",
+      "acquisition:text_base64_decode",
+      "acquisition:text_uppercase",
+      "acquisition:text_line_count",
+      "acquisition:text_search_matches",
+      "acquisition:csv_column_extract",
+      "acquisition:json_query",
+      "acquisition:archive_create_zip",
+      "acquisition:archive_create_tar",
+      "acquisition:json_format",
+      "acquisition:enterprise_acmejson_suite",
+      "acquisition:enterprise_corp_redact_suite",
+      "acquisition:enterprise_datapick_suite",
+      "acquisition:enterprise_packnote_suite"
+    ],
+    "jobs": 8,
+    "reuse_seed": "replay",
+    "goos": "darwin",
+    "goarch": "arm64",
+    "llm": {
+      "api": "chat_completions",
+      "model": "kimi-k2.7-code",
+      "base_url_configured": true
+    }
+  },
+  "status": "completed",
+  "cases": [
+    {
+      "id": "archive_create_tar",
+      "case_key": "acquisition:archive_create_tar",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "archive",
+      "intent": "Create a TAR archive containing this source file.",
+      "description": "Create a TAR archive containing at least one source file.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "tar",
+          "command": "tar",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_79419cf0eeb4",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 147313,
+          "proposal_duration_ms": 147274,
+          "llm_duration_ms": 147274,
+          "llm_call_count": 4,
+          "prompt_tokens": 7162,
+          "completion_tokens": 5646,
+          "total_tokens": 12808,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "archive.create",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "archive.create",
+                "binding_id": "binding_21e878e90e44"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "archive_create_zip",
+      "case_key": "acquisition:archive_create_zip",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "archive",
+      "intent": "Create a ZIP archive containing this source file.",
+      "description": "Create a ZIP archive containing at least one source file.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "zip",
+          "command": "zip",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_cf58dd86b42e",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 257665,
+          "proposal_duration_ms": 257630,
+          "llm_duration_ms": 257630,
+          "llm_call_count": 4,
+          "prompt_tokens": 7354,
+          "completion_tokens": 9335,
+          "total_tokens": 16689,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "archive.create",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 3,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "archive.create",
+                "binding_id": "binding_f952367e9aea"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "ditto",
+          "command": "ditto",
+          "provider_class": "system",
+          "domains": [
+            "archive"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_fc1e2dc33f5e",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 155842,
+          "proposal_duration_ms": 155803,
+          "llm_duration_ms": 155803,
+          "llm_call_count": 4,
+          "prompt_tokens": 8918,
+          "completion_tokens": 6237,
+          "total_tokens": 15155,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "archive.create",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 4,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "reused",
+                "binding_action": "created",
+                "capability_id": "archive.create",
+                "binding_id": "binding_7d5d974f6be2"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "csv_column_extract",
+      "case_key": "acquisition:csv_column_extract",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "tabular",
+      "intent": "Extract the requested column from this delimited text file and write the values.",
+      "description": "Extract a one-based column from delimited text.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "cut",
+          "command": "cut",
+          "provider_class": "system",
+          "domains": [
+            "tabular",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_b4024e36e589",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 107726,
+          "proposal_duration_ms": 107696,
+          "llm_duration_ms": 107696,
+          "llm_call_count": 4,
+          "prompt_tokens": 5759,
+          "completion_tokens": 4087,
+          "total_tokens": 9846,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.extract",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "text.extract",
+                "binding_id": "binding_2a26cab75d36"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_acmejson_suite",
+      "case_key": "acquisition:enterprise_acmejson_suite",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "full_acquisition",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "provider_suite"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "full",
+      "domain": "structured_data",
+      "intent": "Discover the reusable capabilities exposed by the enterprise acmejson provider.",
+      "description": "Provider-wide acquisition over acmejson's JSON pluck and normalize command surfaces.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "enterprise_json_pluck"
+      },
+      "expected_capabilities": [
+        {
+          "key": "json_pluck",
+          "surface": "pluck",
+          "min_promoted_bindings": 1
+        },
+        {
+          "key": "json_normalize",
+          "surface": "normalize",
+          "min_promoted_bindings": 1
+        }
+      ],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "acmejson",
+          "command": "acmejson",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_30c68c57f0ec",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 87442,
+          "proposal_duration_ms": 117645,
+          "llm_duration_ms": 117645,
+          "llm_call_count": 6,
+          "prompt_tokens": 9130,
+          "completion_tokens": 4342,
+          "total_tokens": 13472,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.extract",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 4,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "json.extract",
+                "binding_id": "binding_f9b2c3da946c"
+              }
+            },
+            {
+              "capability_id": "json.transform",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 3,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "json.transform",
+                "binding_id": "binding_d92b644759e4"
+              }
+            }
+          ],
+          "candidate_count": 2,
+          "probe_pass_count": 2,
+          "probe_fail_count": 0,
+          "promoted_bindings": 2
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_corp_redact_suite",
+      "case_key": "acquisition:enterprise_corp_redact_suite",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "provider_suite"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "full",
+      "domain": "privacy",
+      "intent": "Discover the reusable capabilities exposed by the enterprise corp-redact provider.",
+      "description": "Provider-wide acquisition over corp-redact's redaction and scan command surfaces.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [
+        {
+          "key": "pii_redact",
+          "surface": "apply",
+          "min_promoted_bindings": 1
+        },
+        {
+          "key": "pii_scan",
+          "surface": "scan",
+          "min_promoted_bindings": 1
+        }
+      ],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "corp_redact",
+          "command": "corp-redact",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "privacy",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_e88b1000685e",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 130476,
+          "proposal_duration_ms": 168461,
+          "llm_duration_ms": 168461,
+          "llm_call_count": 6,
+          "prompt_tokens": 9095,
+          "completion_tokens": 6559,
+          "total_tokens": 15654,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.redact",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 5,
+                "check_count": 5
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "text.redact",
+                "binding_id": "binding_21c407f906cf"
+              }
+            },
+            {
+              "capability_id": "text.count",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L2",
+                "method": "execute",
+                "evidence_count": 4,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "text.count",
+                "binding_id": "binding_f3499248f58c"
+              }
+            }
+          ],
+          "candidate_count": 2,
+          "probe_pass_count": 2,
+          "probe_fail_count": 0,
+          "promoted_bindings": 2
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_datapick_suite",
+      "case_key": "acquisition:enterprise_datapick_suite",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "provider_suite"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "full",
+      "domain": "tabular",
+      "intent": "Discover the reusable capabilities exposed by the enterprise datapick provider.",
+      "description": "Provider-wide acquisition over datapick's field extraction and header listing command surfaces.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [
+        {
+          "key": "table_field_emit",
+          "surface": "emit",
+          "min_promoted_bindings": 1
+        },
+        {
+          "key": "table_headers",
+          "surface": "headers",
+          "min_promoted_bindings": 1
+        }
+      ],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "datapick",
+          "command": "datapick",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "tabular"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1f634b8363da",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 89265,
+          "proposal_duration_ms": 133275,
+          "llm_duration_ms": 133275,
+          "llm_call_count": 6,
+          "prompt_tokens": 9179,
+          "completion_tokens": 5588,
+          "total_tokens": 14767,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "table.extract",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 3,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "table.extract",
+                "binding_id": "binding_59aae802fd1b"
+              }
+            },
+            {
+              "capability_id": "table.list",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 5,
+                "check_count": 5
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "table.list",
+                "binding_id": "binding_ae11408e6107"
+              }
+            }
+          ],
+          "candidate_count": 2,
+          "probe_pass_count": 2,
+          "probe_fail_count": 0,
+          "promoted_bindings": 2
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "enterprise_packnote_suite",
+      "case_key": "acquisition:enterprise_packnote_suite",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "full_acquisition",
+        "uncommon_cli",
+        "synthetic_enterprise",
+        "provider_suite"
+      ],
+      "provider_class": "uncommon_cli",
+      "acquisition_mode": "full_acquisition",
+      "failure_type": "",
+      "level": "full",
+      "domain": "metadata",
+      "intent": "Discover the reusable capabilities exposed by the enterprise packnote provider.",
+      "description": "Provider-wide acquisition over packnote's manifest and digest command surfaces.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [
+        {
+          "key": "manifest_create",
+          "surface": "manifest",
+          "min_promoted_bindings": 1
+        },
+        {
+          "key": "sha256_digest",
+          "surface": "digest",
+          "min_promoted_bindings": 1
+        }
+      ],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "packnote",
+          "command": "packnote",
+          "provider_class": "synthetic_enterprise",
+          "domains": [
+            "metadata"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_afcc5dbf30e1",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 121790,
+          "proposal_duration_ms": 156284,
+          "llm_duration_ms": 156284,
+          "llm_call_count": 6,
+          "prompt_tokens": 9014,
+          "completion_tokens": 6209,
+          "total_tokens": 15223,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "file.inspect",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "json query \"demo\" missing key \"demo\""
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 7
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            },
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "file.checksum",
+                "binding_id": "binding_e8525a901a29"
+              }
+            }
+          ],
+          "candidate_count": 2,
+          "probe_pass_count": 1,
+          "probe_fail_count": 1,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "file_hash_sha1",
+      "case_key": "acquisition:file_hash_sha1",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "checksum",
+      "intent": "Compute the SHA-1 digest of this file and write the digest artifact.",
+      "description": "Compute the SHA-1 digest of a file and write a textual digest artifact.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "shasum",
+          "command": "shasum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_f77a60b18370",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 144576,
+          "proposal_duration_ms": 144516,
+          "llm_duration_ms": 144516,
+          "llm_call_count": 4,
+          "prompt_tokens": 7035,
+          "completion_tokens": 5939,
+          "total_tokens": 12974,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "file.checksum",
+                "binding_id": "binding_8f12c48a5b72"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "sha1sum",
+          "command": "sha1sum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_ffd0d6284658",
+          "provider_register_duration_ms": 10,
+          "acquisition_duration_ms": 66609,
+          "proposal_duration_ms": 66581,
+          "llm_duration_ms": 66581,
+          "llm_call_count": 4,
+          "prompt_tokens": 5677,
+          "completion_tokens": 2288,
+          "total_tokens": 7965,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "reused",
+                "binding_action": "created",
+                "capability_id": "file.checksum",
+                "binding_id": "binding_598c127227c0"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "file_hash_sha256",
+      "case_key": "acquisition:file_hash_sha256",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "checksum",
+      "intent": "Compute the SHA-256 digest of this file and write the digest artifact.",
+      "description": "Compute the SHA-256 digest of a file and write a textual digest artifact.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "shasum",
+          "command": "shasum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_f77a60b18370",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 158278,
+          "proposal_duration_ms": 158213,
+          "llm_duration_ms": 158213,
+          "llm_call_count": 4,
+          "prompt_tokens": 7184,
+          "completion_tokens": 7177,
+          "total_tokens": 14361,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 3,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "file.checksum",
+                "binding_id": "binding_576d941769fb"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "sha256sum",
+          "command": "sha256sum",
+          "provider_class": "system",
+          "domains": [
+            "checksum"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_028958ccb92f",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 78092,
+          "proposal_duration_ms": 78062,
+          "llm_duration_ms": 78062,
+          "llm_call_count": 4,
+          "prompt_tokens": 5715,
+          "completion_tokens": 3610,
+          "total_tokens": 9325,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "file.checksum",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "reused",
+                "binding_action": "created",
+                "capability_id": "file.checksum",
+                "binding_id": "binding_8748e717b3f7"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "json_format",
+      "case_key": "acquisition:json_format",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "third_party_cli"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "full",
+      "domain": "structured_data",
+      "intent": "format pretty print",
+      "description": "Format or pretty-print JSON while preserving its data.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2,
+        "expect_provider_multi_capability_with": "json_query"
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "jq",
+          "command": "jq",
+          "provider_class": "third_party",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_c591fc101f5a",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 106384,
+          "proposal_duration_ms": 106349,
+          "llm_duration_ms": 106349,
+          "llm_call_count": 4,
+          "prompt_tokens": 7845,
+          "completion_tokens": 4683,
+          "total_tokens": 12528,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.format",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 3,
+                "check_count": 3
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "json.format",
+                "binding_id": "binding_1af8614f4779"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "python3",
+          "command": "python3",
+          "provider_class": "system",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1ddf08789797",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 154911,
+          "proposal_duration_ms": 154667,
+          "llm_duration_ms": 154667,
+          "llm_call_count": 4,
+          "prompt_tokens": 10128,
+          "completion_tokens": 6290,
+          "total_tokens": 16418,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "json.format",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 4,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "reused",
+                "binding_action": "created",
+                "capability_id": "json.format",
+                "binding_id": "binding_1287dfa51f14"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "json_query",
+      "case_key": "acquisition:json_query",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "third_party_cli"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "structured_data",
+      "intent": "Apply the JSON query to this file and write the selected value.",
+      "description": "Apply a query/filter to JSON and write the selected value as text.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2,
+        "expect_provider_multi_capability_with": "json_format"
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "jq",
+          "command": "jq",
+          "provider_class": "third_party",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": true,
+          "status": "failed",
+          "provider_id": "provider_c591fc101f5a",
+          "provider_register_duration_ms": 8,
+          "acquisition_duration_ms": 190581,
+          "proposal_duration_ms": 190553,
+          "llm_duration_ms": 190553,
+          "llm_call_count": 4,
+          "prompt_tokens": 7860,
+          "completion_tokens": 7619,
+          "total_tokens": 15479,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {
+            "stage": "acquisition_failed",
+            "code": "no_promoted_binding",
+            "message": "no promoted binding"
+          },
+          "candidates": [
+            {
+              "capability_id": "json.query",
+              "probe": {
+                "status": "failed",
+                "passed": false,
+                "error": {
+                  "stage": "probe_failed",
+                  "code": "verification_failed",
+                  "message": "verify json_query_matches failed"
+                }
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 0,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "",
+                "binding_action": "",
+                "capability_id": "",
+                "binding_id": ""
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 0,
+          "probe_fail_count": 1,
+          "promoted_bindings": 0
+        },
+        {
+          "id": "python3",
+          "command": "python3",
+          "provider_class": "system",
+          "domains": [
+            "structured_data"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_1ddf08789797",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 250518,
+          "proposal_duration_ms": 250277,
+          "llm_duration_ms": 250277,
+          "llm_call_count": 4,
+          "prompt_tokens": 10010,
+          "completion_tokens": 11114,
+          "total_tokens": 21124,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "source.run",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L1",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "source.run",
+                "binding_id": "binding_7edee39f1b06"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "text_base64_decode",
+      "case_key": "acquisition:text_base64_decode",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "encoding",
+      "intent": "Decode this Base64 file and write the decoded artifact.",
+      "description": "Decode Base64 text into bytes or text and write the decoded artifact.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "text_base64_encode"
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "base64",
+          "command": "base64",
+          "provider_class": "system",
+          "domains": [
+            "encoding"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_14300003a037",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 79964,
+          "proposal_duration_ms": 79935,
+          "llm_duration_ms": 79935,
+          "llm_call_count": 4,
+          "prompt_tokens": 5867,
+          "completion_tokens": 3353,
+          "total_tokens": 9220,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "bytes.decode",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "bytes.decode",
+                "binding_id": "binding_9859224bec73"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "text_base64_encode",
+      "case_key": "acquisition:text_base64_encode",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "encoding",
+      "intent": "Encode this file as Base64 and write the encoded artifact.",
+      "description": "Encode text or bytes as Base64 and write a textual artifact.",
+      "capability_layer_checks": {
+        "expect_provider_multi_capability_with": "text_base64_decode"
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "base64",
+          "command": "base64",
+          "provider_class": "system",
+          "domains": [
+            "encoding"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_14300003a037",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 151754,
+          "proposal_duration_ms": 151722,
+          "llm_duration_ms": 151722,
+          "llm_call_count": 4,
+          "prompt_tokens": 5860,
+          "completion_tokens": 6861,
+          "total_tokens": 12721,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "bytes.encode",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "bytes.encode",
+                "binding_id": "binding_26ed911c0c95"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "text_line_count",
+      "case_key": "acquisition:text_line_count",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "text",
+      "intent": "Count the number of lines in this text file and write the count artifact.",
+      "description": "Count source text lines and write a textual count artifact.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "wc",
+          "command": "wc",
+          "provider_class": "system",
+          "domains": [
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_d41ff252ed41",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 99856,
+          "proposal_duration_ms": 99826,
+          "llm_duration_ms": 99826,
+          "llm_call_count": 4,
+          "prompt_tokens": 5542,
+          "completion_tokens": 4124,
+          "total_tokens": 9666,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.count",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "text.count",
+                "binding_id": "binding_9531b07486a4"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "text_search_matches",
+      "case_key": "acquisition:text_search_matches",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "capability_structure",
+        "intent_guided",
+        "third_party_cli"
+      ],
+      "provider_class": "third_party_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "search",
+      "intent": "Search this text file for the requested pattern and write matching lines.",
+      "description": "Filter source lines that contain a requested literal pattern.",
+      "capability_layer_checks": {
+        "expect_multi_binding": true,
+        "expected_provider_count": 2
+      },
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "grep",
+          "command": "grep",
+          "provider_class": "system",
+          "domains": [
+            "search",
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_e270a3213499",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 257483,
+          "proposal_duration_ms": 257455,
+          "llm_duration_ms": 257455,
+          "llm_call_count": 4,
+          "prompt_tokens": 5914,
+          "completion_tokens": 9722,
+          "total_tokens": 15636,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.search",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "text.search",
+                "binding_id": "binding_86e1cdcb20a8"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        },
+        {
+          "id": "rg",
+          "command": "rg",
+          "provider_class": "third_party",
+          "domains": [
+            "search",
+            "text"
+          ],
+          "optional": true,
+          "status": "passed",
+          "provider_id": "provider_b1d506523975",
+          "provider_register_duration_ms": 11,
+          "acquisition_duration_ms": 252000,
+          "proposal_duration_ms": 251961,
+          "llm_duration_ms": 251961,
+          "llm_call_count": 4,
+          "prompt_tokens": 58503,
+          "completion_tokens": 11032,
+          "total_tokens": 69535,
+          "observation_sources": [
+            "help"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "text.search",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 2,
+                "check_count": 2
+              },
+              "promotion": {
+                "capability_action": "reused",
+                "binding_action": "created",
+                "capability_id": "text.search",
+                "binding_id": "binding_d3c6f9fdb600"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    },
+    {
+      "id": "text_uppercase",
+      "case_key": "acquisition:text_uppercase",
+      "scenario_group": "acquisition",
+      "paper_experiments": [
+        "acquisition"
+      ],
+      "scenario_tags": [
+        "intent_guided",
+        "known_cli"
+      ],
+      "provider_class": "known_cli",
+      "acquisition_mode": "intent_guided",
+      "failure_type": "",
+      "level": "focus",
+      "domain": "text",
+      "intent": "Convert this text file to uppercase and write the transformed artifact.",
+      "description": "Convert text to uppercase and write the output file.",
+      "capability_layer_checks": {},
+      "expected_capabilities": [],
+      "reuse_rounds": [],
+      "providers": [
+        {
+          "id": "dd",
+          "command": "dd",
+          "provider_class": "system",
+          "domains": [
+            "text"
+          ],
+          "optional": false,
+          "status": "passed",
+          "provider_id": "provider_0774c982e17f",
+          "provider_register_duration_ms": 9,
+          "acquisition_duration_ms": 298030,
+          "proposal_duration_ms": 297880,
+          "llm_duration_ms": 297880,
+          "llm_call_count": 4,
+          "prompt_tokens": 18627,
+          "completion_tokens": 11524,
+          "total_tokens": 30151,
+          "observation_sources": [
+            "man"
+          ],
+          "failure": {},
+          "candidates": [
+            {
+              "capability_id": "file.convert",
+              "probe": {
+                "status": "passed",
+                "passed": true,
+                "error": {}
+              },
+              "verification": {
+                "level": "L3",
+                "method": "execute",
+                "evidence_count": 4,
+                "check_count": 4
+              },
+              "promotion": {
+                "capability_action": "created",
+                "binding_action": "created",
+                "capability_id": "file.convert",
+                "binding_id": "binding_17365af55f22"
+              }
+            }
+          ],
+          "candidate_count": 1,
+          "probe_pass_count": 1,
+          "probe_fail_count": 0,
+          "promoted_bindings": 1
+        }
+      ],
+      "use": [],
+      "baselines": {}
+    }
+  ],
+  "summary": {
+    "total": {
+      "case_attempted": 16,
+      "planned_reuse_rounds": 0,
+      "provider_attempted": 22,
+      "provider_available": 22,
+      "providers_with_promoted_bindings": 21,
+      "candidate_count": 26,
+      "probe_pass_count": 24,
+      "probe_fail_count": 2,
+      "promoted_bindings": 24,
+      "held_out_reuses": 0,
+      "skipped_reuses": 0,
+      "held_out_uses": 0,
+      "eligible_held_out_uses": 0,
+      "oracle_pass_count": 0,
+      "oracle_fail_count": 0,
+      "use_oracle_pass_count": 0,
+      "conditional_use_oracle_pass_count": 0,
+      "use_oracle_fail_count": 0,
+      "failed": 0,
+      "provider_failures": 1,
+      "candidate_negative_evidence": 2,
+      "direct_reuse_failures": 0,
+      "intent_use_failures": 0,
+      "upstream_acquisition_failure_count": 0,
+      "upstream_acquisition_failed_cases": [],
+      "acquisition_duration_ms": 3386555,
+      "reuse_duration_ms": 0,
+      "use_duration_ms": 0,
+      "llm_duration_ms": 3532065,
+      "acquisition_llm_calls": 96,
+      "run_stage_llm_calls": 0,
+      "prompt_tokens": 227378,
+      "completion_tokens": 143339,
+      "total_tokens": 370717,
+      "avg_acquisition_ms": 153934,
+      "avg_reuse_ms": 0,
+      "avg_use_ms": 0,
+      "avg_llm_ms": 36792,
+      "oracle_reuse_success_rate": 0.0,
+      "oracle_use_success_rate": 0.0,
+      "conditional_oracle_use_success_rate": 0.0
+    },
+    "experiments": {
+      "acquisition": {
+        "case_attempted": 16,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 22,
+        "provider_available": 22,
+        "providers_with_promoted_bindings": 21,
+        "candidate_count": 26,
+        "probe_pass_count": 24,
+        "probe_fail_count": 2,
+        "promoted_bindings": 24,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 1,
+        "candidate_negative_evidence": 2,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 3386555,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 3532065,
+        "acquisition_llm_calls": 96,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 227378,
+        "completion_tokens": 143339,
+        "total_tokens": 370717,
+        "avg_acquisition_ms": 153934,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 36792,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "verification_failure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "capability_structure": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "repeated_reuse": {
+        "case_attempted": 0,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 0,
+        "provider_available": 0,
+        "providers_with_promoted_bindings": 0,
+        "candidate_count": 0,
+        "probe_pass_count": 0,
+        "probe_fail_count": 0,
+        "promoted_bindings": 0,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 0,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 0,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 0,
+        "acquisition_llm_calls": 0,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "avg_acquisition_ms": 0,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 0,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      }
+    },
+    "acquisition_modes": {
+      "full_acquisition": {
+        "case_attempted": 4,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 4,
+        "provider_available": 4,
+        "providers_with_promoted_bindings": 4,
+        "candidate_count": 8,
+        "probe_pass_count": 7,
+        "probe_fail_count": 1,
+        "promoted_bindings": 7,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 0,
+        "candidate_negative_evidence": 1,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 428973,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 575665,
+        "acquisition_llm_calls": 24,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 36418,
+        "completion_tokens": 22698,
+        "total_tokens": 59116,
+        "avg_acquisition_ms": 107243,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 23986,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      },
+      "intent_guided": {
+        "case_attempted": 12,
+        "planned_reuse_rounds": 0,
+        "provider_attempted": 18,
+        "provider_available": 18,
+        "providers_with_promoted_bindings": 17,
+        "candidate_count": 18,
+        "probe_pass_count": 17,
+        "probe_fail_count": 1,
+        "promoted_bindings": 17,
+        "held_out_reuses": 0,
+        "skipped_reuses": 0,
+        "held_out_uses": 0,
+        "eligible_held_out_uses": 0,
+        "oracle_pass_count": 0,
+        "oracle_fail_count": 0,
+        "use_oracle_pass_count": 0,
+        "conditional_use_oracle_pass_count": 0,
+        "use_oracle_fail_count": 0,
+        "failed": 0,
+        "provider_failures": 1,
+        "candidate_negative_evidence": 1,
+        "direct_reuse_failures": 0,
+        "intent_use_failures": 0,
+        "upstream_acquisition_failure_count": 0,
+        "upstream_acquisition_failed_cases": [],
+        "acquisition_duration_ms": 2957582,
+        "reuse_duration_ms": 0,
+        "use_duration_ms": 0,
+        "llm_duration_ms": 2956400,
+        "acquisition_llm_calls": 72,
+        "run_stage_llm_calls": 0,
+        "prompt_tokens": 190960,
+        "completion_tokens": 120641,
+        "total_tokens": 311601,
+        "avg_acquisition_ms": 164310,
+        "avg_reuse_ms": 0,
+        "avg_use_ms": 0,
+        "avg_llm_ms": 41061,
+        "oracle_reuse_success_rate": 0.0,
+        "oracle_use_success_rate": 0.0,
+        "conditional_oracle_use_success_rate": 0.0
+      }
+    },
+    "baselines": {
+      "direct_cli": {
+        "attempted": 0,
+        "passed": 0,
+        "failed": 0,
+        "duration_ms": 0,
+        "llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "success_rate": 0.0,
+        "avg_duration_ms": 0,
+        "avg_tokens": 0
+      },
+      "llm_oneshot": {
+        "attempted": 0,
+        "passed": 0,
+        "failed": 0,
+        "duration_ms": 0,
+        "llm_calls": 0,
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "success_rate": 0.0,
+        "avg_duration_ms": 0,
+        "avg_tokens": 0
+      }
+    }
+  },
+  "scores": {
+    "profile": "live_llm",
+    "closed_loop_success_rate": 0.0,
+    "intent_use_success_rate": 0.0,
+    "conditional_reuse_success_rate": 0.0,
+    "provider_yield_rate": 0.9545454545454546,
+    "probe_pass_rate": 0.9230769230769231,
+    "promotion_yield": 1.0,
+    "negative_evidence_count": 2,
+    "failed_count": 0,
+    "provider_acquisition_total_ms": 3386555,
+    "provider_acquisition_avg_ms": 153934,
+    "proposal_llm_total_ms": 3532065,
+    "proposal_llm_avg_ms": 36792,
+    "proposal_llm_calls": 96,
+    "proposal_prompt_tokens": 227378,
+    "proposal_completion_tokens": 143339,
+    "proposal_total_tokens": 370717,
+    "acquisition_local_overhead_total_ms": 0
+  },
+  "coverage": {
+    "distinct_case_count": 16,
+    "distinct_provider_case_pair_count": 22,
+    "distinct_provider_count": 18,
+    "levels": {
+      "full": 7,
+      "focus": 9
+    },
+    "domains": [
+      "archive",
+      "checksum",
+      "encoding",
+      "metadata",
+      "privacy",
+      "search",
+      "structured_data",
+      "tabular",
+      "text"
+    ],
+    "provider_classes": [
+      "known_cli",
+      "synthetic_enterprise",
+      "system",
+      "third_party",
+      "third_party_cli",
+      "uncommon_cli"
+    ],
+    "paper_experiments": [
+      "acquisition"
+    ]
+  },
+  "capability_model": {
+    "providers": {
+      "acmejson": [
+        "json.extract",
+        "json.transform"
+      ],
+      "base64": [
+        "bytes.decode",
+        "bytes.encode"
+      ],
+      "corp_redact": [
+        "text.count",
+        "text.redact"
+      ],
+      "cut": [
+        "text.extract"
+      ],
+      "datapick": [
+        "table.extract",
+        "table.list"
+      ],
+      "dd": [
+        "file.convert"
+      ],
+      "ditto": [
+        "archive.create"
+      ],
+      "grep": [
+        "text.search"
+      ],
+      "jq": [
+        "json.format"
+      ],
+      "packnote": [
+        "file.checksum"
+      ],
+      "python3": [
+        "json.format",
+        "source.run"
+      ],
+      "rg": [
+        "text.search"
+      ],
+      "sha1sum": [
+        "file.checksum"
+      ],
+      "sha256sum": [
+        "file.checksum"
+      ],
+      "shasum": [
+        "file.checksum"
+      ],
+      "tar": [
+        "archive.create"
+      ],
+      "wc": [
+        "text.count"
+      ],
+      "zip": [
+        "archive.create"
+      ]
+    },
+    "capabilities": {
+      "archive.create": [
+        "ditto",
+        "tar",
+        "zip"
+      ],
+      "bytes.decode": [
+        "base64"
+      ],
+      "bytes.encode": [
+        "base64"
+      ],
+      "file.checksum": [
+        "packnote",
+        "sha1sum",
+        "sha256sum",
+        "shasum"
+      ],
+      "file.convert": [
+        "dd"
+      ],
+      "json.extract": [
+        "acmejson"
+      ],
+      "json.format": [
+        "jq",
+        "python3"
+      ],
+      "json.transform": [
+        "acmejson"
+      ],
+      "source.run": [
+        "python3"
+      ],
+      "table.extract": [
+        "datapick"
+      ],
+      "table.list": [
+        "datapick"
+      ],
+      "text.count": [
+        "corp_redact",
+        "wc"
+      ],
+      "text.extract": [
+        "cut"
+      ],
+      "text.redact": [
+        "corp_redact"
+      ],
+      "text.search": [
+        "grep",
+        "rg"
+      ]
+    },
+    "multi_capability_providers": 5,
+    "multi_binding_capabilities": 5,
+    "checks": [],
+    "check_passed": 0,
+    "check_failed": 0,
+    "check_skipped": 0
+  },
+  "discovery_coverage": {
+    "case_count": 4,
+    "provider_case_count": 4,
+    "multi_cap_design_cases": 4,
+    "multi_cap_promoted_cases": 3,
+    "expected_capabilities": 8,
+    "promoted_expected_capabilities": 7,
+    "missing_expected_capabilities": 1,
+    "extra_promoted_capabilities": 0,
+    "multi_cap_design_rate": 1.0,
+    "multi_cap_promoted_rate": 0.75,
+    "capability_coverage_rate": 0.875,
+    "cases": [
+      {
+        "case_id": "enterprise_acmejson_suite",
+        "case_key": "acquisition:enterprise_acmejson_suite",
+        "provider": "acmejson",
+        "expected_surfaces": [
+          "pluck",
+          "normalize"
+        ],
+        "promoted_surfaces": [
+          "normalize",
+          "pluck"
+        ],
+        "matched_surfaces": [
+          "normalize",
+          "pluck"
+        ],
+        "missing_surfaces": [],
+        "extra_promoted_surfaces": [],
+        "promoted_bindings": 2,
+        "status": "passed"
+      },
+      {
+        "case_id": "enterprise_corp_redact_suite",
+        "case_key": "acquisition:enterprise_corp_redact_suite",
+        "provider": "corp_redact",
+        "expected_surfaces": [
+          "apply",
+          "scan"
+        ],
+        "promoted_surfaces": [
+          "apply",
+          "scan"
+        ],
+        "matched_surfaces": [
+          "apply",
+          "scan"
+        ],
+        "missing_surfaces": [],
+        "extra_promoted_surfaces": [],
+        "promoted_bindings": 2,
+        "status": "passed"
+      },
+      {
+        "case_id": "enterprise_datapick_suite",
+        "case_key": "acquisition:enterprise_datapick_suite",
+        "provider": "datapick",
+        "expected_surfaces": [
+          "emit",
+          "headers"
+        ],
+        "promoted_surfaces": [
+          "emit",
+          "headers"
+        ],
+        "matched_surfaces": [
+          "emit",
+          "headers"
+        ],
+        "missing_surfaces": [],
+        "extra_promoted_surfaces": [],
+        "promoted_bindings": 2,
+        "status": "passed"
+      },
+      {
+        "case_id": "enterprise_packnote_suite",
+        "case_key": "acquisition:enterprise_packnote_suite",
+        "provider": "packnote",
+        "expected_surfaces": [
+          "manifest",
+          "digest"
+        ],
+        "promoted_surfaces": [
+          "digest"
+        ],
+        "matched_surfaces": [
+          "digest"
+        ],
+        "missing_surfaces": [
+          "manifest"
+        ],
+        "extra_promoted_surfaces": [],
+        "promoted_bindings": 1,
+        "status": "failed"
+      }
+    ]
+  },
+  "failure_taxonomy": [
+    {
+      "stage": "acquisition_failed",
+      "code": "no_promoted_binding",
+      "count": 1
+    },
+    {
+      "stage": "probe_failed",
+      "code": "verification_failed",
+      "count": 2
+    }
+  ],
+  "experiment_gates": {
+    "acquisition": {
+      "metric": "promoted_provider_case_yield",
+      "numerator": 21,
+      "denominator": 22,
+      "actual": 0.9545454545454546,
+      "target": 0.85,
+      "passed": true
+    }
+  }
+}

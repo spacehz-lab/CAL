@@ -68,6 +68,8 @@ var predicateOrder = []model.VerifyPredicate{
 	model.VerifyPredicateArchiveContainsInput,
 	model.VerifyPredicateJSONQueryMatches,
 	model.VerifyPredicateJSONEquivalent,
+	model.VerifyPredicateJSONFieldEquals,
+	model.VerifyPredicateJSONFieldMatchesSource,
 	model.VerifyPredicateTextTransformMatches,
 	model.VerifyPredicateLineCountMatches,
 	model.VerifyPredicateTextFilterMatches,

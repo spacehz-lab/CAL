@@ -16,7 +16,7 @@ Goal:
 Stage 4 is Evidence. It only proposes verify method and checks so Proposal can derive the final verify level locally, then later Verification can execute the candidate and evaluate built-in checks or record weak contract evidence when execution is unsafe.
 
 Response shape:
-{"verify":{"method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches|archive_contains_input|json_query_matches|json_equivalent|text_transform_matches|line_count_matches|text_filter_matches|delimited_column_matches","params":{}}]}}.
+{"verify":{"method":"execute|contract","checks":[{"subject":{"type":"file|stdout|stderr|exit_code","input":"file input only"},"predicate":"equals|not_equals|exists|non_empty|format|contains|contains_any|regex|bytes_equal_transform|hash_line_matches|archive_contains_input|json_query_matches|json_equivalent|json_field_equals|json_field_matches_source|text_transform_matches|line_count_matches|text_filter_matches|delimited_column_matches","params":{}}]}}.
 
 Boundary:
 - Do not execute the candidate.
@@ -49,7 +49,7 @@ Check rules:
 - Prefer built-in predicates that compare output with declared inputs when available. Use exists, non_empty, and format only when shape checks are the strongest supported evidence.
 - Use file contains, contains_any, or regex only when observations explicitly guarantee stable literal output content.
 - For stable literal output content, prefer contains over anchored full-file regex. Use anchored regex only when observations specify the exact whole file content including newline behavior.
-- For structured formats such as JSON, do not use whitespace-sensitive contains checks for key/value snippets. Prefer regex with optional whitespace or contains_any with compact and spaced forms when observations guarantee the key/value content.
+- For structured formats, prefer predicates that parse the structure when available. Use regex only for stable text formats, not as the first choice for structured field comparisons.
 - Fixture content is probe-only sample input. Do not use fixture content as durable expected output unless observations explicitly say the command always emits that literal.
 - Use stdout, stderr, and exit_code subjects only for process result checks.`
 
@@ -104,6 +104,8 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateArchiveContainsInput,
 				model.VerifyPredicateJSONQueryMatches,
 				model.VerifyPredicateJSONEquivalent,
+				model.VerifyPredicateJSONFieldEquals,
+				model.VerifyPredicateJSONFieldMatchesSource,
 				model.VerifyPredicateTextTransformMatches,
 				model.VerifyPredicateLineCountMatches,
 				model.VerifyPredicateTextFilterMatches,
@@ -122,6 +124,8 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateHashLineMatches,
 				model.VerifyPredicateJSONQueryMatches,
 				model.VerifyPredicateJSONEquivalent,
+				model.VerifyPredicateJSONFieldEquals,
+				model.VerifyPredicateJSONFieldMatchesSource,
 				model.VerifyPredicateLineCountMatches,
 				model.VerifyPredicateTextFilterMatches,
 				model.VerifyPredicateDelimitedColumnMatch,
@@ -139,6 +143,8 @@ func verifySubjectRules() []model.VerifySubjectRule {
 				model.VerifyPredicateHashLineMatches,
 				model.VerifyPredicateJSONQueryMatches,
 				model.VerifyPredicateJSONEquivalent,
+				model.VerifyPredicateJSONFieldEquals,
+				model.VerifyPredicateJSONFieldMatchesSource,
 				model.VerifyPredicateLineCountMatches,
 				model.VerifyPredicateTextFilterMatches,
 				model.VerifyPredicateDelimitedColumnMatch,

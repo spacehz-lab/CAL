@@ -1,0 +1,639 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CLI Capability Paper Benchmark</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:24px;color:#222}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}
+.card{border:1px solid #ddd;border-radius:8px;padding:12px;background:#fafafa}
+.primary .card{background:#f6fbf7;border-color:#c9e4cf}
+.pass-bg{background:#eef8f0}
+.fail-bg{background:#fff0f0}
+.neutral-bg{background:#f7f7f7}
+tr.pass-bg td{background:#eef8f0}
+tr.fail-bg td{background:#fff0f0}
+tr.neutral-bg td{background:#f7f7f7}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}
+td,th{border:1px solid #ddd;padding:8px;vertical-align:top}
+th{background:#f5f5f5;text-align:left}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.section{margin-top:28px}
+.ok{color:#126b31;font-weight:600}
+.fail{color:#9b1c1c;font-weight:600}
+.muted{color:#666}
+summary{cursor:pointer;font-weight:600;margin:12px 0}
+</style>
+</head>
+<body>
+<h1>CLI Capability Paper Benchmark</h1>
+<section class="section">
+<h2>Run Overview</h2>
+<div class="grid"><div class='card'>Mode<br><strong>live_llm</strong></div><div class='card'>Status<br><strong>completed</strong></div><div class='card'>Run ID<br><strong>20260710-054743-kimi-k2-7-code-5b0eea</strong></div><div class='card'>Experiments<br><strong>acquisition</strong></div><div class='card'>Cases<br><strong>16 selected / 16 distinct</strong></div><div class='card'>Jobs<br><strong>8</strong></div><div class='card'>Model<br><strong>kimi-k2.7-code</strong></div><div class='card'>Platform<br><strong>darwin / arm64</strong></div></div>
+<details>
+<summary>Selected experiments and cases</summary>
+<p><strong>Experiments:</strong> acquisition</p>
+<ul><li><code>acquisition:file_hash_sha1</code></li><li><code>acquisition:file_hash_sha256</code></li><li><code>acquisition:text_base64_encode</code></li><li><code>acquisition:text_base64_decode</code></li><li><code>acquisition:text_uppercase</code></li><li><code>acquisition:text_line_count</code></li><li><code>acquisition:text_search_matches</code></li><li><code>acquisition:csv_column_extract</code></li><li><code>acquisition:json_query</code></li><li><code>acquisition:archive_create_zip</code></li><li><code>acquisition:archive_create_tar</code></li><li><code>acquisition:json_format</code></li><li><code>acquisition:enterprise_acmejson_suite</code></li><li><code>acquisition:enterprise_corp_redact_suite</code></li><li><code>acquisition:enterprise_datapick_suite</code></li><li><code>acquisition:enterprise_packnote_suite</code></li></ul>
+</details>
+</section>
+<section class="section primary">
+<h2>Experiment 1: Acquiring Capabilities From Provider Surfaces</h2>
+<div class='grid'><div class='card pass-bg'>Gate<br><strong>passed</strong></div><div class='card'>Actual<br><strong>21 / 22 = 95.5%</strong></div><div class='card'>Target<br><strong>&gt;= 85.0%</strong></div></div>
+<h3>Acquisition Mode Summary</h3><div class='grid'><div class='card pass-bg'>full_acquisition<br><strong>4 / 4 providers<br><span class='muted'>7 bindings, 8 candidates</span></strong></div><div class='card fail-bg'>intent_guided<br><strong>17 / 18 providers<br><span class='muted'>17 bindings, 18 candidates</span></strong></div></div>
+<h3>Full Acquisition Discovery Coverage</h3><div class='grid'><div class='card'>Provider suites<br><strong>4</strong></div><div class='card'>Expected capabilities<br><strong>8</strong></div><div class='card'>Matched expected<br><strong>7</strong></div><div class='card'>Coverage<br><strong>87.5%</strong></div><div class='card'>Multi-cap design<br><strong>100.0%</strong></div><div class='card'>Multi-cap promoted<br><strong>75.0%</strong></div></div><table><tr><th>Case</th><th>Provider</th><th>Expected surfaces</th><th>Matched surfaces</th><th>Missing</th><th>Extra promoted</th><th>Promoted bindings</th><th>Status</th></tr><tr class='pass-bg'><td><code>acquisition:enterprise_acmejson_suite</code></td><td><code>acmejson</code></td><td>pluck, normalize</td><td>normalize, pluck</td><td></td><td></td><td>2</td><td><span class='ok'>passed</span></td></tr><tr class='pass-bg'><td><code>acquisition:enterprise_corp_redact_suite</code></td><td><code>corp_redact</code></td><td>apply, scan</td><td>apply, scan</td><td></td><td></td><td>2</td><td><span class='ok'>passed</span></td></tr><tr class='pass-bg'><td><code>acquisition:enterprise_datapick_suite</code></td><td><code>datapick</code></td><td>emit, headers</td><td>emit, headers</td><td></td><td></td><td>2</td><td><span class='ok'>passed</span></td></tr><tr class='fail-bg'><td><code>acquisition:enterprise_packnote_suite</code></td><td><code>packnote</code></td><td>manifest, digest</td><td>digest</td><td>manifest</td><td></td><td>1</td><td><span class='fail'>failed</span></td></tr></table>
+<h3>Full Acquisition Runs</h3><table><tr><th>Case</th><th>Provider class</th><th>Mode</th><th>Provider</th><th>Capabilities</th><th>Candidates</th><th>Probes</th><th>Verified</th><th>Promoted</th><th>Latency / tokens</th><th>Trace</th></tr><tr class='pass-bg'><td><code>acquisition:enterprise_acmejson_suite</code></td><td>uncommon_cli</td><td>full_acquisition</td><td><code>acmejson</code></td><td><div><code>json.extract</code> <span class='ok'>1</span><span class='muted'>/1</span></div><div><code>json.transform</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>2</td><td>2</td><td>2</td><td>2</td><td>1.5 min / 13472</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:enterprise_corp_redact_suite</code></td><td>uncommon_cli</td><td>full_acquisition</td><td><code>corp_redact</code></td><td><div><code>text.count</code> <span class='ok'>1</span><span class='muted'>/1</span></div><div><code>text.redact</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>2</td><td>2</td><td>2</td><td>2</td><td>2.2 min / 15654</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:enterprise_datapick_suite</code></td><td>uncommon_cli</td><td>full_acquisition</td><td><code>datapick</code></td><td><div><code>table.extract</code> <span class='ok'>1</span><span class='muted'>/1</span></div><div><code>table.list</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>2</td><td>2</td><td>2</td><td>2</td><td>1.5 min / 14767</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:enterprise_packnote_suite</code></td><td>uncommon_cli</td><td>full_acquisition</td><td><code>packnote</code></td><td><div><code>file.checksum</code> <span class='ok'>1</span><span class='muted'>/1</span></div><div><code>file.inspect</code> <span class='fail'>0</span><span class='muted'>/1</span></div></td><td>2</td><td>2</td><td>1</td><td>1</td><td>2.0 min / 15223</td><td><code></code></td></tr></table><h3>Intent-guided Acquisition Runs</h3><table><tr><th>Case</th><th>Provider class</th><th>Mode</th><th>Provider</th><th>Capabilities</th><th>Candidates</th><th>Probes</th><th>Verified</th><th>Promoted</th><th>Latency / tokens</th><th>Trace</th></tr><tr class='pass-bg'><td><code>acquisition:archive_create_tar</code></td><td>known_cli</td><td>intent_guided</td><td><code>tar</code></td><td><div><code>archive.create</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>2.5 min / 12808</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:archive_create_zip</code></td><td>known_cli</td><td>intent_guided</td><td><code>zip</code></td><td><div><code>archive.create</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>4.3 min / 16689</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:archive_create_zip</code></td><td>known_cli</td><td>intent_guided</td><td><code>ditto</code></td><td><div><code>archive.create</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>2.6 min / 15155</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:csv_column_extract</code></td><td>known_cli</td><td>intent_guided</td><td><code>cut</code></td><td><div><code>text.extract</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1.8 min / 9846</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:file_hash_sha1</code></td><td>known_cli</td><td>intent_guided</td><td><code>shasum</code></td><td><div><code>file.checksum</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>2.4 min / 12974</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:file_hash_sha1</code></td><td>known_cli</td><td>intent_guided</td><td><code>sha1sum</code></td><td><div><code>file.checksum</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1.1 min / 7965</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:file_hash_sha256</code></td><td>known_cli</td><td>intent_guided</td><td><code>shasum</code></td><td><div><code>file.checksum</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>2.6 min / 14361</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:file_hash_sha256</code></td><td>known_cli</td><td>intent_guided</td><td><code>sha256sum</code></td><td><div><code>file.checksum</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1.3 min / 9325</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:json_format</code></td><td>third_party_cli</td><td>intent_guided</td><td><code>jq</code></td><td><div><code>json.format</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1.8 min / 12528</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:json_format</code></td><td>third_party_cli</td><td>intent_guided</td><td><code>python3</code></td><td><div><code>json.format</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>2.6 min / 16418</td><td><code></code></td></tr><tr class='fail-bg'><td><code>acquisition:json_query</code></td><td>third_party_cli</td><td>intent_guided</td><td><code>jq</code></td><td><div><code>json.query</code> <span class='fail'>0</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>0</td><td>0</td><td>3.2 min / 15479</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:json_query</code></td><td>third_party_cli</td><td>intent_guided</td><td><code>python3</code></td><td><div><code>source.run</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>4.2 min / 21124</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:text_base64_decode</code></td><td>known_cli</td><td>intent_guided</td><td><code>base64</code></td><td><div><code>bytes.decode</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1.3 min / 9220</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:text_base64_encode</code></td><td>known_cli</td><td>intent_guided</td><td><code>base64</code></td><td><div><code>bytes.encode</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>2.5 min / 12721</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:text_line_count</code></td><td>known_cli</td><td>intent_guided</td><td><code>wc</code></td><td><div><code>text.count</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>1.7 min / 9666</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:text_search_matches</code></td><td>third_party_cli</td><td>intent_guided</td><td><code>grep</code></td><td><div><code>text.search</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>4.3 min / 15636</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:text_search_matches</code></td><td>third_party_cli</td><td>intent_guided</td><td><code>rg</code></td><td><div><code>text.search</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>4.2 min / 69535</td><td><code></code></td></tr><tr class='pass-bg'><td><code>acquisition:text_uppercase</code></td><td>known_cli</td><td>intent_guided</td><td><code>dd</code></td><td><div><code>file.convert</code> <span class='ok'>1</span><span class='muted'>/1</span></div></td><td>1</td><td>1</td><td>1</td><td>1</td><td>5.0 min / 30151</td><td><code></code></td></tr></table>
+</section>
+<section class="section">
+<details><summary>Raw scores</summary><pre>{
+  &quot;profile&quot;: &quot;live_llm&quot;,
+  &quot;closed_loop_success_rate&quot;: 0.0,
+  &quot;intent_use_success_rate&quot;: 0.0,
+  &quot;conditional_reuse_success_rate&quot;: 0.0,
+  &quot;provider_yield_rate&quot;: 0.9545454545454546,
+  &quot;probe_pass_rate&quot;: 0.9230769230769231,
+  &quot;promotion_yield&quot;: 1.0,
+  &quot;negative_evidence_count&quot;: 2,
+  &quot;failed_count&quot;: 0,
+  &quot;provider_acquisition_total_ms&quot;: 3386555,
+  &quot;provider_acquisition_avg_ms&quot;: 153934,
+  &quot;proposal_llm_total_ms&quot;: 3532065,
+  &quot;proposal_llm_avg_ms&quot;: 36792,
+  &quot;proposal_llm_calls&quot;: 96,
+  &quot;proposal_prompt_tokens&quot;: 227378,
+  &quot;proposal_completion_tokens&quot;: 143339,
+  &quot;proposal_total_tokens&quot;: 370717,
+  &quot;acquisition_local_overhead_total_ms&quot;: 0
+}</pre></details>
+<details><summary>Raw summary</summary><pre>{
+  &quot;total&quot;: {
+    &quot;case_attempted&quot;: 16,
+    &quot;planned_reuse_rounds&quot;: 0,
+    &quot;provider_attempted&quot;: 22,
+    &quot;provider_available&quot;: 22,
+    &quot;providers_with_promoted_bindings&quot;: 21,
+    &quot;candidate_count&quot;: 26,
+    &quot;probe_pass_count&quot;: 24,
+    &quot;probe_fail_count&quot;: 2,
+    &quot;promoted_bindings&quot;: 24,
+    &quot;held_out_reuses&quot;: 0,
+    &quot;skipped_reuses&quot;: 0,
+    &quot;held_out_uses&quot;: 0,
+    &quot;eligible_held_out_uses&quot;: 0,
+    &quot;oracle_pass_count&quot;: 0,
+    &quot;oracle_fail_count&quot;: 0,
+    &quot;use_oracle_pass_count&quot;: 0,
+    &quot;conditional_use_oracle_pass_count&quot;: 0,
+    &quot;use_oracle_fail_count&quot;: 0,
+    &quot;failed&quot;: 0,
+    &quot;provider_failures&quot;: 1,
+    &quot;candidate_negative_evidence&quot;: 2,
+    &quot;direct_reuse_failures&quot;: 0,
+    &quot;intent_use_failures&quot;: 0,
+    &quot;upstream_acquisition_failure_count&quot;: 0,
+    &quot;upstream_acquisition_failed_cases&quot;: [],
+    &quot;acquisition_duration_ms&quot;: 3386555,
+    &quot;reuse_duration_ms&quot;: 0,
+    &quot;use_duration_ms&quot;: 0,
+    &quot;llm_duration_ms&quot;: 3532065,
+    &quot;acquisition_llm_calls&quot;: 96,
+    &quot;run_stage_llm_calls&quot;: 0,
+    &quot;prompt_tokens&quot;: 227378,
+    &quot;completion_tokens&quot;: 143339,
+    &quot;total_tokens&quot;: 370717,
+    &quot;avg_acquisition_ms&quot;: 153934,
+    &quot;avg_reuse_ms&quot;: 0,
+    &quot;avg_use_ms&quot;: 0,
+    &quot;avg_llm_ms&quot;: 36792,
+    &quot;oracle_reuse_success_rate&quot;: 0.0,
+    &quot;oracle_use_success_rate&quot;: 0.0,
+    &quot;conditional_oracle_use_success_rate&quot;: 0.0
+  },
+  &quot;experiments&quot;: {
+    &quot;acquisition&quot;: {
+      &quot;case_attempted&quot;: 16,
+      &quot;planned_reuse_rounds&quot;: 0,
+      &quot;provider_attempted&quot;: 22,
+      &quot;provider_available&quot;: 22,
+      &quot;providers_with_promoted_bindings&quot;: 21,
+      &quot;candidate_count&quot;: 26,
+      &quot;probe_pass_count&quot;: 24,
+      &quot;probe_fail_count&quot;: 2,
+      &quot;promoted_bindings&quot;: 24,
+      &quot;held_out_reuses&quot;: 0,
+      &quot;skipped_reuses&quot;: 0,
+      &quot;held_out_uses&quot;: 0,
+      &quot;eligible_held_out_uses&quot;: 0,
+      &quot;oracle_pass_count&quot;: 0,
+      &quot;oracle_fail_count&quot;: 0,
+      &quot;use_oracle_pass_count&quot;: 0,
+      &quot;conditional_use_oracle_pass_count&quot;: 0,
+      &quot;use_oracle_fail_count&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;provider_failures&quot;: 1,
+      &quot;candidate_negative_evidence&quot;: 2,
+      &quot;direct_reuse_failures&quot;: 0,
+      &quot;intent_use_failures&quot;: 0,
+      &quot;upstream_acquisition_failure_count&quot;: 0,
+      &quot;upstream_acquisition_failed_cases&quot;: [],
+      &quot;acquisition_duration_ms&quot;: 3386555,
+      &quot;reuse_duration_ms&quot;: 0,
+      &quot;use_duration_ms&quot;: 0,
+      &quot;llm_duration_ms&quot;: 3532065,
+      &quot;acquisition_llm_calls&quot;: 96,
+      &quot;run_stage_llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 227378,
+      &quot;completion_tokens&quot;: 143339,
+      &quot;total_tokens&quot;: 370717,
+      &quot;avg_acquisition_ms&quot;: 153934,
+      &quot;avg_reuse_ms&quot;: 0,
+      &quot;avg_use_ms&quot;: 0,
+      &quot;avg_llm_ms&quot;: 36792,
+      &quot;oracle_reuse_success_rate&quot;: 0.0,
+      &quot;oracle_use_success_rate&quot;: 0.0,
+      &quot;conditional_oracle_use_success_rate&quot;: 0.0
+    },
+    &quot;verification_failure&quot;: {
+      &quot;case_attempted&quot;: 0,
+      &quot;planned_reuse_rounds&quot;: 0,
+      &quot;provider_attempted&quot;: 0,
+      &quot;provider_available&quot;: 0,
+      &quot;providers_with_promoted_bindings&quot;: 0,
+      &quot;candidate_count&quot;: 0,
+      &quot;probe_pass_count&quot;: 0,
+      &quot;probe_fail_count&quot;: 0,
+      &quot;promoted_bindings&quot;: 0,
+      &quot;held_out_reuses&quot;: 0,
+      &quot;skipped_reuses&quot;: 0,
+      &quot;held_out_uses&quot;: 0,
+      &quot;eligible_held_out_uses&quot;: 0,
+      &quot;oracle_pass_count&quot;: 0,
+      &quot;oracle_fail_count&quot;: 0,
+      &quot;use_oracle_pass_count&quot;: 0,
+      &quot;conditional_use_oracle_pass_count&quot;: 0,
+      &quot;use_oracle_fail_count&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;provider_failures&quot;: 0,
+      &quot;candidate_negative_evidence&quot;: 0,
+      &quot;direct_reuse_failures&quot;: 0,
+      &quot;intent_use_failures&quot;: 0,
+      &quot;upstream_acquisition_failure_count&quot;: 0,
+      &quot;upstream_acquisition_failed_cases&quot;: [],
+      &quot;acquisition_duration_ms&quot;: 0,
+      &quot;reuse_duration_ms&quot;: 0,
+      &quot;use_duration_ms&quot;: 0,
+      &quot;llm_duration_ms&quot;: 0,
+      &quot;acquisition_llm_calls&quot;: 0,
+      &quot;run_stage_llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 0,
+      &quot;completion_tokens&quot;: 0,
+      &quot;total_tokens&quot;: 0,
+      &quot;avg_acquisition_ms&quot;: 0,
+      &quot;avg_reuse_ms&quot;: 0,
+      &quot;avg_use_ms&quot;: 0,
+      &quot;avg_llm_ms&quot;: 0,
+      &quot;oracle_reuse_success_rate&quot;: 0.0,
+      &quot;oracle_use_success_rate&quot;: 0.0,
+      &quot;conditional_oracle_use_success_rate&quot;: 0.0
+    },
+    &quot;capability_structure&quot;: {
+      &quot;case_attempted&quot;: 0,
+      &quot;planned_reuse_rounds&quot;: 0,
+      &quot;provider_attempted&quot;: 0,
+      &quot;provider_available&quot;: 0,
+      &quot;providers_with_promoted_bindings&quot;: 0,
+      &quot;candidate_count&quot;: 0,
+      &quot;probe_pass_count&quot;: 0,
+      &quot;probe_fail_count&quot;: 0,
+      &quot;promoted_bindings&quot;: 0,
+      &quot;held_out_reuses&quot;: 0,
+      &quot;skipped_reuses&quot;: 0,
+      &quot;held_out_uses&quot;: 0,
+      &quot;eligible_held_out_uses&quot;: 0,
+      &quot;oracle_pass_count&quot;: 0,
+      &quot;oracle_fail_count&quot;: 0,
+      &quot;use_oracle_pass_count&quot;: 0,
+      &quot;conditional_use_oracle_pass_count&quot;: 0,
+      &quot;use_oracle_fail_count&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;provider_failures&quot;: 0,
+      &quot;candidate_negative_evidence&quot;: 0,
+      &quot;direct_reuse_failures&quot;: 0,
+      &quot;intent_use_failures&quot;: 0,
+      &quot;upstream_acquisition_failure_count&quot;: 0,
+      &quot;upstream_acquisition_failed_cases&quot;: [],
+      &quot;acquisition_duration_ms&quot;: 0,
+      &quot;reuse_duration_ms&quot;: 0,
+      &quot;use_duration_ms&quot;: 0,
+      &quot;llm_duration_ms&quot;: 0,
+      &quot;acquisition_llm_calls&quot;: 0,
+      &quot;run_stage_llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 0,
+      &quot;completion_tokens&quot;: 0,
+      &quot;total_tokens&quot;: 0,
+      &quot;avg_acquisition_ms&quot;: 0,
+      &quot;avg_reuse_ms&quot;: 0,
+      &quot;avg_use_ms&quot;: 0,
+      &quot;avg_llm_ms&quot;: 0,
+      &quot;oracle_reuse_success_rate&quot;: 0.0,
+      &quot;oracle_use_success_rate&quot;: 0.0,
+      &quot;conditional_oracle_use_success_rate&quot;: 0.0
+    },
+    &quot;repeated_reuse&quot;: {
+      &quot;case_attempted&quot;: 0,
+      &quot;planned_reuse_rounds&quot;: 0,
+      &quot;provider_attempted&quot;: 0,
+      &quot;provider_available&quot;: 0,
+      &quot;providers_with_promoted_bindings&quot;: 0,
+      &quot;candidate_count&quot;: 0,
+      &quot;probe_pass_count&quot;: 0,
+      &quot;probe_fail_count&quot;: 0,
+      &quot;promoted_bindings&quot;: 0,
+      &quot;held_out_reuses&quot;: 0,
+      &quot;skipped_reuses&quot;: 0,
+      &quot;held_out_uses&quot;: 0,
+      &quot;eligible_held_out_uses&quot;: 0,
+      &quot;oracle_pass_count&quot;: 0,
+      &quot;oracle_fail_count&quot;: 0,
+      &quot;use_oracle_pass_count&quot;: 0,
+      &quot;conditional_use_oracle_pass_count&quot;: 0,
+      &quot;use_oracle_fail_count&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;provider_failures&quot;: 0,
+      &quot;candidate_negative_evidence&quot;: 0,
+      &quot;direct_reuse_failures&quot;: 0,
+      &quot;intent_use_failures&quot;: 0,
+      &quot;upstream_acquisition_failure_count&quot;: 0,
+      &quot;upstream_acquisition_failed_cases&quot;: [],
+      &quot;acquisition_duration_ms&quot;: 0,
+      &quot;reuse_duration_ms&quot;: 0,
+      &quot;use_duration_ms&quot;: 0,
+      &quot;llm_duration_ms&quot;: 0,
+      &quot;acquisition_llm_calls&quot;: 0,
+      &quot;run_stage_llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 0,
+      &quot;completion_tokens&quot;: 0,
+      &quot;total_tokens&quot;: 0,
+      &quot;avg_acquisition_ms&quot;: 0,
+      &quot;avg_reuse_ms&quot;: 0,
+      &quot;avg_use_ms&quot;: 0,
+      &quot;avg_llm_ms&quot;: 0,
+      &quot;oracle_reuse_success_rate&quot;: 0.0,
+      &quot;oracle_use_success_rate&quot;: 0.0,
+      &quot;conditional_oracle_use_success_rate&quot;: 0.0
+    }
+  },
+  &quot;acquisition_modes&quot;: {
+    &quot;full_acquisition&quot;: {
+      &quot;case_attempted&quot;: 4,
+      &quot;planned_reuse_rounds&quot;: 0,
+      &quot;provider_attempted&quot;: 4,
+      &quot;provider_available&quot;: 4,
+      &quot;providers_with_promoted_bindings&quot;: 4,
+      &quot;candidate_count&quot;: 8,
+      &quot;probe_pass_count&quot;: 7,
+      &quot;probe_fail_count&quot;: 1,
+      &quot;promoted_bindings&quot;: 7,
+      &quot;held_out_reuses&quot;: 0,
+      &quot;skipped_reuses&quot;: 0,
+      &quot;held_out_uses&quot;: 0,
+      &quot;eligible_held_out_uses&quot;: 0,
+      &quot;oracle_pass_count&quot;: 0,
+      &quot;oracle_fail_count&quot;: 0,
+      &quot;use_oracle_pass_count&quot;: 0,
+      &quot;conditional_use_oracle_pass_count&quot;: 0,
+      &quot;use_oracle_fail_count&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;provider_failures&quot;: 0,
+      &quot;candidate_negative_evidence&quot;: 1,
+      &quot;direct_reuse_failures&quot;: 0,
+      &quot;intent_use_failures&quot;: 0,
+      &quot;upstream_acquisition_failure_count&quot;: 0,
+      &quot;upstream_acquisition_failed_cases&quot;: [],
+      &quot;acquisition_duration_ms&quot;: 428973,
+      &quot;reuse_duration_ms&quot;: 0,
+      &quot;use_duration_ms&quot;: 0,
+      &quot;llm_duration_ms&quot;: 575665,
+      &quot;acquisition_llm_calls&quot;: 24,
+      &quot;run_stage_llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 36418,
+      &quot;completion_tokens&quot;: 22698,
+      &quot;total_tokens&quot;: 59116,
+      &quot;avg_acquisition_ms&quot;: 107243,
+      &quot;avg_reuse_ms&quot;: 0,
+      &quot;avg_use_ms&quot;: 0,
+      &quot;avg_llm_ms&quot;: 23986,
+      &quot;oracle_reuse_success_rate&quot;: 0.0,
+      &quot;oracle_use_success_rate&quot;: 0.0,
+      &quot;conditional_oracle_use_success_rate&quot;: 0.0
+    },
+    &quot;intent_guided&quot;: {
+      &quot;case_attempted&quot;: 12,
+      &quot;planned_reuse_rounds&quot;: 0,
+      &quot;provider_attempted&quot;: 18,
+      &quot;provider_available&quot;: 18,
+      &quot;providers_with_promoted_bindings&quot;: 17,
+      &quot;candidate_count&quot;: 18,
+      &quot;probe_pass_count&quot;: 17,
+      &quot;probe_fail_count&quot;: 1,
+      &quot;promoted_bindings&quot;: 17,
+      &quot;held_out_reuses&quot;: 0,
+      &quot;skipped_reuses&quot;: 0,
+      &quot;held_out_uses&quot;: 0,
+      &quot;eligible_held_out_uses&quot;: 0,
+      &quot;oracle_pass_count&quot;: 0,
+      &quot;oracle_fail_count&quot;: 0,
+      &quot;use_oracle_pass_count&quot;: 0,
+      &quot;conditional_use_oracle_pass_count&quot;: 0,
+      &quot;use_oracle_fail_count&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;provider_failures&quot;: 1,
+      &quot;candidate_negative_evidence&quot;: 1,
+      &quot;direct_reuse_failures&quot;: 0,
+      &quot;intent_use_failures&quot;: 0,
+      &quot;upstream_acquisition_failure_count&quot;: 0,
+      &quot;upstream_acquisition_failed_cases&quot;: [],
+      &quot;acquisition_duration_ms&quot;: 2957582,
+      &quot;reuse_duration_ms&quot;: 0,
+      &quot;use_duration_ms&quot;: 0,
+      &quot;llm_duration_ms&quot;: 2956400,
+      &quot;acquisition_llm_calls&quot;: 72,
+      &quot;run_stage_llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 190960,
+      &quot;completion_tokens&quot;: 120641,
+      &quot;total_tokens&quot;: 311601,
+      &quot;avg_acquisition_ms&quot;: 164310,
+      &quot;avg_reuse_ms&quot;: 0,
+      &quot;avg_use_ms&quot;: 0,
+      &quot;avg_llm_ms&quot;: 41061,
+      &quot;oracle_reuse_success_rate&quot;: 0.0,
+      &quot;oracle_use_success_rate&quot;: 0.0,
+      &quot;conditional_oracle_use_success_rate&quot;: 0.0
+    }
+  },
+  &quot;baselines&quot;: {
+    &quot;direct_cli&quot;: {
+      &quot;attempted&quot;: 0,
+      &quot;passed&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;duration_ms&quot;: 0,
+      &quot;llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 0,
+      &quot;completion_tokens&quot;: 0,
+      &quot;total_tokens&quot;: 0,
+      &quot;success_rate&quot;: 0.0,
+      &quot;avg_duration_ms&quot;: 0,
+      &quot;avg_tokens&quot;: 0
+    },
+    &quot;llm_oneshot&quot;: {
+      &quot;attempted&quot;: 0,
+      &quot;passed&quot;: 0,
+      &quot;failed&quot;: 0,
+      &quot;duration_ms&quot;: 0,
+      &quot;llm_calls&quot;: 0,
+      &quot;prompt_tokens&quot;: 0,
+      &quot;completion_tokens&quot;: 0,
+      &quot;total_tokens&quot;: 0,
+      &quot;success_rate&quot;: 0.0,
+      &quot;avg_duration_ms&quot;: 0,
+      &quot;avg_tokens&quot;: 0
+    }
+  }
+}</pre></details>
+<details><summary>Capability model</summary><pre>{
+  &quot;providers&quot;: {
+    &quot;acmejson&quot;: [
+      &quot;json.extract&quot;,
+      &quot;json.transform&quot;
+    ],
+    &quot;base64&quot;: [
+      &quot;bytes.decode&quot;,
+      &quot;bytes.encode&quot;
+    ],
+    &quot;corp_redact&quot;: [
+      &quot;text.count&quot;,
+      &quot;text.redact&quot;
+    ],
+    &quot;cut&quot;: [
+      &quot;text.extract&quot;
+    ],
+    &quot;datapick&quot;: [
+      &quot;table.extract&quot;,
+      &quot;table.list&quot;
+    ],
+    &quot;dd&quot;: [
+      &quot;file.convert&quot;
+    ],
+    &quot;ditto&quot;: [
+      &quot;archive.create&quot;
+    ],
+    &quot;grep&quot;: [
+      &quot;text.search&quot;
+    ],
+    &quot;jq&quot;: [
+      &quot;json.format&quot;
+    ],
+    &quot;packnote&quot;: [
+      &quot;file.checksum&quot;
+    ],
+    &quot;python3&quot;: [
+      &quot;json.format&quot;,
+      &quot;source.run&quot;
+    ],
+    &quot;rg&quot;: [
+      &quot;text.search&quot;
+    ],
+    &quot;sha1sum&quot;: [
+      &quot;file.checksum&quot;
+    ],
+    &quot;sha256sum&quot;: [
+      &quot;file.checksum&quot;
+    ],
+    &quot;shasum&quot;: [
+      &quot;file.checksum&quot;
+    ],
+    &quot;tar&quot;: [
+      &quot;archive.create&quot;
+    ],
+    &quot;wc&quot;: [
+      &quot;text.count&quot;
+    ],
+    &quot;zip&quot;: [
+      &quot;archive.create&quot;
+    ]
+  },
+  &quot;capabilities&quot;: {
+    &quot;archive.create&quot;: [
+      &quot;ditto&quot;,
+      &quot;tar&quot;,
+      &quot;zip&quot;
+    ],
+    &quot;bytes.decode&quot;: [
+      &quot;base64&quot;
+    ],
+    &quot;bytes.encode&quot;: [
+      &quot;base64&quot;
+    ],
+    &quot;file.checksum&quot;: [
+      &quot;packnote&quot;,
+      &quot;sha1sum&quot;,
+      &quot;sha256sum&quot;,
+      &quot;shasum&quot;
+    ],
+    &quot;file.convert&quot;: [
+      &quot;dd&quot;
+    ],
+    &quot;json.extract&quot;: [
+      &quot;acmejson&quot;
+    ],
+    &quot;json.format&quot;: [
+      &quot;jq&quot;,
+      &quot;python3&quot;
+    ],
+    &quot;json.transform&quot;: [
+      &quot;acmejson&quot;
+    ],
+    &quot;source.run&quot;: [
+      &quot;python3&quot;
+    ],
+    &quot;table.extract&quot;: [
+      &quot;datapick&quot;
+    ],
+    &quot;table.list&quot;: [
+      &quot;datapick&quot;
+    ],
+    &quot;text.count&quot;: [
+      &quot;corp_redact&quot;,
+      &quot;wc&quot;
+    ],
+    &quot;text.extract&quot;: [
+      &quot;cut&quot;
+    ],
+    &quot;text.redact&quot;: [
+      &quot;corp_redact&quot;
+    ],
+    &quot;text.search&quot;: [
+      &quot;grep&quot;,
+      &quot;rg&quot;
+    ]
+  },
+  &quot;multi_capability_providers&quot;: 5,
+  &quot;multi_binding_capabilities&quot;: 5,
+  &quot;checks&quot;: [],
+  &quot;check_passed&quot;: 0,
+  &quot;check_failed&quot;: 0,
+  &quot;check_skipped&quot;: 0
+}</pre></details>
+<details><summary>Discovery coverage</summary><pre>{
+  &quot;case_count&quot;: 4,
+  &quot;provider_case_count&quot;: 4,
+  &quot;multi_cap_design_cases&quot;: 4,
+  &quot;multi_cap_promoted_cases&quot;: 3,
+  &quot;expected_capabilities&quot;: 8,
+  &quot;promoted_expected_capabilities&quot;: 7,
+  &quot;missing_expected_capabilities&quot;: 1,
+  &quot;extra_promoted_capabilities&quot;: 0,
+  &quot;multi_cap_design_rate&quot;: 1.0,
+  &quot;multi_cap_promoted_rate&quot;: 0.75,
+  &quot;capability_coverage_rate&quot;: 0.875,
+  &quot;cases&quot;: [
+    {
+      &quot;case_id&quot;: &quot;enterprise_acmejson_suite&quot;,
+      &quot;case_key&quot;: &quot;acquisition:enterprise_acmejson_suite&quot;,
+      &quot;provider&quot;: &quot;acmejson&quot;,
+      &quot;expected_surfaces&quot;: [
+        &quot;pluck&quot;,
+        &quot;normalize&quot;
+      ],
+      &quot;promoted_surfaces&quot;: [
+        &quot;normalize&quot;,
+        &quot;pluck&quot;
+      ],
+      &quot;matched_surfaces&quot;: [
+        &quot;normalize&quot;,
+        &quot;pluck&quot;
+      ],
+      &quot;missing_surfaces&quot;: [],
+      &quot;extra_promoted_surfaces&quot;: [],
+      &quot;promoted_bindings&quot;: 2,
+      &quot;status&quot;: &quot;passed&quot;
+    },
+    {
+      &quot;case_id&quot;: &quot;enterprise_corp_redact_suite&quot;,
+      &quot;case_key&quot;: &quot;acquisition:enterprise_corp_redact_suite&quot;,
+      &quot;provider&quot;: &quot;corp_redact&quot;,
+      &quot;expected_surfaces&quot;: [
+        &quot;apply&quot;,
+        &quot;scan&quot;
+      ],
+      &quot;promoted_surfaces&quot;: [
+        &quot;apply&quot;,
+        &quot;scan&quot;
+      ],
+      &quot;matched_surfaces&quot;: [
+        &quot;apply&quot;,
+        &quot;scan&quot;
+      ],
+      &quot;missing_surfaces&quot;: [],
+      &quot;extra_promoted_surfaces&quot;: [],
+      &quot;promoted_bindings&quot;: 2,
+      &quot;status&quot;: &quot;passed&quot;
+    },
+    {
+      &quot;case_id&quot;: &quot;enterprise_datapick_suite&quot;,
+      &quot;case_key&quot;: &quot;acquisition:enterprise_datapick_suite&quot;,
+      &quot;provider&quot;: &quot;datapick&quot;,
+      &quot;expected_surfaces&quot;: [
+        &quot;emit&quot;,
+        &quot;headers&quot;
+      ],
+      &quot;promoted_surfaces&quot;: [
+        &quot;emit&quot;,
+        &quot;headers&quot;
+      ],
+      &quot;matched_surfaces&quot;: [
+        &quot;emit&quot;,
+        &quot;headers&quot;
+      ],
+      &quot;missing_surfaces&quot;: [],
+      &quot;extra_promoted_surfaces&quot;: [],
+      &quot;promoted_bindings&quot;: 2,
+      &quot;status&quot;: &quot;passed&quot;
+    },
+    {
+      &quot;case_id&quot;: &quot;enterprise_packnote_suite&quot;,
+      &quot;case_key&quot;: &quot;acquisition:enterprise_packnote_suite&quot;,
+      &quot;provider&quot;: &quot;packnote&quot;,
+      &quot;expected_surfaces&quot;: [
+        &quot;manifest&quot;,
+        &quot;digest&quot;
+      ],
+      &quot;promoted_surfaces&quot;: [
+        &quot;digest&quot;
+      ],
+      &quot;matched_surfaces&quot;: [
+        &quot;digest&quot;
+      ],
+      &quot;missing_surfaces&quot;: [
+        &quot;manifest&quot;
+      ],
+      &quot;extra_promoted_surfaces&quot;: [],
+      &quot;promoted_bindings&quot;: 1,
+      &quot;status&quot;: &quot;failed&quot;
+    }
+  ]
+}</pre></details>
+<details><summary>Failure taxonomy</summary><pre>[
+  {
+    &quot;stage&quot;: &quot;acquisition_failed&quot;,
+    &quot;code&quot;: &quot;no_promoted_binding&quot;,
+    &quot;count&quot;: 1
+  },
+  {
+    &quot;stage&quot;: &quot;probe_failed&quot;,
+    &quot;code&quot;: &quot;verification_failed&quot;,
+    &quot;count&quot;: 2
+  }
+]</pre></details>
+</section>
+</body>
+</html>

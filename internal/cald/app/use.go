@@ -26,11 +26,12 @@ func (app *App) Use(ctx context.Context, req *contract.UseRequest) (*contract.Us
 		slog.String("provider_id", req.ProviderID),
 	)
 	result, err := app.use.Run(ctx, &usepkg.Request{
-		Intent:         req.Intent,
-		Inputs:         req.Inputs,
-		ProviderID:     req.ProviderID,
-		Verify:         req.Verify,
-		MinVerifyLevel: req.MinVerifyLevel,
+		Intent:            req.Intent,
+		Inputs:            req.Inputs,
+		ProviderID:        req.ProviderID,
+		ForceLLMSelection: req.Strategy == contract.RunStrategyBest,
+		Verify:            req.Verify,
+		MinVerifyLevel:    req.MinVerifyLevel,
 	})
 	if err != nil {
 		logOperationFailure(ctx, opUse, started, err, slog.String("provider_id", req.ProviderID))

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 
@@ -13,7 +14,10 @@ Internal text redaction utility.
 Commands:
   apply --input FILE --output FILE --emails mask --tokens mask
       Replace email addresses with [EMAIL] and token-like values beginning
-      with tok_ with [TOKEN]. The command preserves line boundaries.
+      with tok_ with [TOKEN].
+
+  scan --input FILE --output FILE
+      Count email addresses and token-like values and write a JSON report.
 """
 
 
@@ -31,7 +35,12 @@ def main() -> int:
     apply.add_argument("--output", required=True)
     apply.add_argument("--emails", choices=["mask"], default="")
     apply.add_argument("--tokens", choices=["mask"], default="")
+    scan = subparsers.add_parser("scan", add_help=False)
+    scan.add_argument("--input", required=True)
+    scan.add_argument("--output", required=True)
     args = parser.parse_args()
+    if args.command == "scan":
+        return run_scan(args.input, args.output)
     if args.command != "apply":
         return 2
     with open(args.input, "r", encoding="utf-8") as handle:
@@ -42,6 +51,19 @@ def main() -> int:
         text = re.sub(r"\btok_[A-Za-z0-9_]+\b", "[TOKEN]", text)
     with open(args.output, "w", encoding="utf-8") as handle:
         handle.write(text)
+    return 0
+
+
+def run_scan(source: str, target: str) -> int:
+    with open(source, "r", encoding="utf-8") as handle:
+        text = handle.read()
+    payload = {
+        "emails": len(re.findall(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)),
+        "tokens": len(re.findall(r"\btok_[A-Za-z0-9_]+\b", text)),
+    }
+    with open(target, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, sort_keys=True)
+        handle.write("\n")
     return 0
 
 

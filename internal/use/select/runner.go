@@ -45,6 +45,7 @@ type Request struct {
 	Intent           string
 	Inputs           map[string]any
 	ProviderID       string
+	ForceLLM         bool
 	MinVerifyLevel   model.VerifyLevel
 	Capabilities     []model.Capability
 	ProviderCommands map[string]string
@@ -97,7 +98,7 @@ func (runner *Runner) Run(ctx context.Context, req *Request) (*Result, error) {
 		return nil, &Error{Code: CodeNoMatch, Message: "no promoted binding matched the intent"}
 	}
 	sortCandidates(candidates)
-	if runner != nil && runner.client != nil && shouldUseLLM(candidates) {
+	if runner != nil && runner.client != nil && (req.ForceLLM || shouldUseLLM(candidates)) {
 		return runner.selectWithLLM(ctx, req, candidates)
 	}
 	return selectLocal(candidates)

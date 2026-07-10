@@ -79,6 +79,7 @@ func (runner *Runner) Run(ctx context.Context, req *Request) (*Result, error) {
 		Intent:           normalized.Intent,
 		Inputs:           normalized.Inputs,
 		ProviderID:       normalized.ProviderID,
+		ForceLLM:         normalized.ForceLLMSelection,
 		MinVerifyLevel:   normalized.MinVerifyLevel,
 		Capabilities:     capabilities,
 		ProviderCommands: providerCommands(providers),

@@ -103,6 +103,27 @@ func TestRunUsesLLMForCloseCandidates(t *testing.T) {
 	}
 }
 
+func TestRunForceLLMUsesLLMForClearCandidate(t *testing.T) {
+	client := &fakeLLM{response: `{"binding_id":"binding_pdf","reason":"forced best strategy"}`}
+	result, err := NewRunner(WithLLM(client)).Run(context.Background(), &Request{
+		Intent:   "convert markdown to pdf",
+		Inputs:   map[string]any{"source": "input.md"},
+		ForceLLM: true,
+		Capabilities: []model.Capability{
+			capability("markdown_to_pdf", "Convert Markdown to PDF", binding("binding_pdf", "provider_a", model.VerifyLevelL2, []string{"run", "{{source}}"})),
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+	if result.Source != SourceLLM || result.BindingID != "binding_pdf" {
+		t.Fatalf("result = %#v, want forced LLM binding_pdf", result)
+	}
+	if client.request == nil {
+		t.Fatalf("llm request = nil, want forced LLM request")
+	}
+}
+
 func TestRunLLMPayloadIncludesProviderCommandAndInputSummaries(t *testing.T) {
 	client := &fakeLLM{response: `{"binding_id":"binding_cut","inputs_patch":{"fields":"2"},"reason":"cut extracts fields"}`}
 	_, err := NewRunner(WithLLM(client)).Run(context.Background(), &Request{

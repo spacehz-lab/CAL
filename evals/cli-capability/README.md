@@ -39,16 +39,16 @@ provider cases; the runner prepends this directory to worker `PATH`.
 
 Current scenario surface:
 
-- `acquisition`: 17 cases, including 5 uncommon/enterprise-like CLI cases.
+- `acquisition`: 16 cases, including 4 uncommon provider-suite full-acquisition cases.
 - `verification_failure`: 6 controlled invalid-provider cases.
 - `capability_structure`: structure checks attached to acquisition cases.
 - `repeated_reuse`: 17 cases with held-out reuse rounds.
 
 The uncommon provider slice uses `acmejson`, `corp-redact`, `datapick`, and
 `packnote`. These are intentionally small eval-local command surfaces whose
-syntax is not a standard Unix interface, so live runs can test whether a model
-can acquire behavior from provider help instead of relying only on memorized
-common CLI patterns.
+syntax is not a standard Unix interface. Intent-guided acquisition still uses a
+task hint; full acquisition omits the task hint by default and checks whether a
+provider-wide run promotes the expected command surfaces for that provider.
 
 ## Case Contract
 
@@ -75,6 +75,11 @@ Each scenario case declares the paper experiments it contributes to:
 Held-out reuse uses `reuse.rounds`, not `reuse.fixtures`. Repeated one-shot
 baselines run once per held-out round.
 
+Full-acquisition cases may declare `expected_capabilities`. The summary and
+HTML report use those expected command surfaces to compute discovery coverage
+from promoted bindings. The report renders intent-guided and full-acquisition
+runs as separate tables.
+
 ## Dependency Model
 
 The benchmark is a fixed-sample DAG:
@@ -87,11 +92,27 @@ Fixed Scenario Matrix
   -> repeated held-out reuse
 ```
 
-Later experiments may consume records produced by earlier stages, but they do
-not select cases after seeing acquisition success. Reuse reports both:
+`repeated_reuse` is a pure reuse experiment by default. It seeds the shard with
+verified replay capability records, then calls `calctl use` with only the user
+intent and runtime inputs. It does not pass a provider id, capability id, or
+binding id to the use step. The use call passes `--strategy best`, so live LLM
+runs use bounded LLM-assisted selection over the local promoted binding
+shortlist. Use `--reuse-seed self` only when you want the older end-to-end
+diagnostic mode where each reuse shard first runs acquisition.
+
+Seeded reuse supports single-capability multi-binding cases: replay records for
+the same capability are merged into one capability file with multiple promoted
+bindings, such as the hash, search, JSON, and archive cases.
+
+Reuse reports both:
 
 - end-to-end reuse rate over all planned reuse rounds
 - conditional reuse rate over rounds whose case produced a promoted binding
+
+`--experiment` also controls the experiment labels written to the artifact and
+HTML report. Running one group, such as `--experiment capability_structure`,
+produces a single-group report rather than also counting overlapping
+acquisition labels.
 
 ## Parallel Execution
 
@@ -102,7 +123,8 @@ python3 evals/cli-capability/runner/run.py \
   --mode replay \
   --experiment acquisition,repeated_reuse \
   --level focus \
-  --jobs 4
+  --jobs 4 \
+  --reuse-seed replay
 ```
 
 Each worker uses an isolated `CAL_HOME` under the run directory and starts its

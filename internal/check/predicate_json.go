@@ -2,9 +2,11 @@ package check
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,6 +29,25 @@ func registerJSONPredicates(c *Checker) {
 		subjects: []model.VerifySubjectType{model.VerifySubjectFile, model.VerifySubjectStdout, model.VerifySubjectStderr},
 		params:   []paramRule{{name: paramSource, required: true}},
 		run:      checkJSONEquivalent,
+	})
+	c.register(predicate{
+		name:     model.VerifyPredicateJSONFieldEquals,
+		subjects: []model.VerifySubjectType{model.VerifySubjectFile, model.VerifySubjectStdout, model.VerifySubjectStderr},
+		params: []paramRule{
+			{name: paramQuery, required: true},
+			{name: paramValue, required: true},
+		},
+		run: checkJSONFieldEquals,
+	})
+	c.register(predicate{
+		name:     model.VerifyPredicateJSONFieldMatchesSource,
+		subjects: []model.VerifySubjectType{model.VerifySubjectFile, model.VerifySubjectStdout, model.VerifySubjectStderr},
+		params: []paramRule{
+			{name: paramQuery, required: true},
+			{name: paramSource, required: true},
+			{name: paramProperty, required: true, allowedValues: []string{sourcePropertyBasename, sourcePropertyBytes, sourcePropertySHA256}},
+		},
+		run: checkJSONFieldMatchesSource,
 	})
 }
 
@@ -75,6 +96,68 @@ func checkJSONEquivalent(ctx *predicateContext) error {
 	return nil
 }
 
+func checkJSONFieldEquals(ctx *predicateContext) error {
+	got, err := jsonFieldText(ctx)
+	if err != nil {
+		return err
+	}
+	want := valueParam(ctx.check.Params, paramValue, ctx.subject.inputs)
+	if strings.TrimSpace(got) != strings.TrimSpace(want) {
+		return fmt.Errorf("verify json_field_equals failed")
+	}
+	return nil
+}
+
+func checkJSONFieldMatchesSource(ctx *predicateContext) error {
+	got, err := jsonFieldText(ctx)
+	if err != nil {
+		return err
+	}
+	want, err := sourcePropertyValue(ctx)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(got) != want {
+		return fmt.Errorf("verify json_field_matches_source failed")
+	}
+	return nil
+}
+
+func jsonFieldText(ctx *predicateContext) (string, error) {
+	text, err := subjectText(ctx.subject)
+	if err != nil {
+		return "", err
+	}
+	value, err := parseJSONValue([]byte(text))
+	if err != nil {
+		return "", fmt.Errorf("parse json target: %w", err)
+	}
+	current, err := walkJSON(value, valueParam(ctx.check.Params, paramQuery, ctx.subject.inputs))
+	if err != nil {
+		return "", err
+	}
+	return jsonScalarText(current)
+}
+
+func sourcePropertyValue(ctx *predicateContext) (string, error) {
+	source := pathParam(ctx.check.Params, paramSource, ctx.subject.inputs)
+	content, err := os.ReadFile(source)
+	if err != nil {
+		return "", fmt.Errorf("read source: %w", err)
+	}
+	switch strings.ToLower(stringParam(ctx.check.Params, paramProperty)) {
+	case sourcePropertyBasename:
+		return filepath.Base(source), nil
+	case sourcePropertyBytes:
+		return strconv.Itoa(len(content)), nil
+	case sourcePropertySHA256:
+		sum := sha256.Sum256(content)
+		return fmt.Sprintf("%x", sum), nil
+	default:
+		return "", fmt.Errorf("source property %q is not supported", stringParam(ctx.check.Params, paramProperty))
+	}
+}
+
 func queryJSON(content []byte, query string) (string, error) {
 	value, err := parseJSONValue(content)
 	if err != nil {
@@ -99,6 +182,7 @@ func parseJSONValue(content []byte) (any, error) {
 
 func walkJSON(value any, query string) (any, error) {
 	path := strings.TrimSpace(query)
+	path = strings.TrimPrefix(path, "$")
 	path = strings.TrimPrefix(path, ".")
 	if path == "" {
 		return value, nil

@@ -35,6 +35,25 @@ python3 evals/cli-capability/runner/run.py \
   --case repeated_reuse:file_hash_sha1
 ```
 
+Pure reuse is the default. `repeated_reuse` seeds verified replay capability
+records into the shard, then runs `calctl use` with only the user intent and
+inputs. It does not pin provider, capability, or binding ids. The use command
+passes `--strategy best`, so live runs use LLM-assisted selection over the
+seeded or acquired local shortlist. Use `--reuse-seed self` for the older
+end-to-end diagnostic mode that reacquires in each reuse shard.
+
+Seeded records are merged by capability id, so cases with two providers for the
+same capability become one capability with multiple promoted bindings.
+
+Single-group runs write single-group artifacts and HTML. For example,
+`--experiment capability_structure` keeps only the capability-structure label in
+the run output and seeds records when acquisition is not selected.
+
+Acquisition reports split intent-guided and full-acquisition runs into separate
+tables. Full-acquisition cases use provider-suite scenarios with
+`expected_capabilities`, so the report also includes discovery coverage over the
+expected promoted command surfaces.
+
 ## Selection Flags
 
 - `--experiment`: comma-separated paper experiments:
@@ -46,6 +65,8 @@ python3 evals/cli-capability/runner/run.py \
 - `--failure-type`: filter controlled failure cases
 - `--jobs`: case-level worker count
 - `--llm-jobs`: maximum live LLM worker count
+- `--reuse-seed`: `replay` for seeded pure reuse, or `self` for acquisition
+  inside each reuse shard
 
 ## Execution Model
 

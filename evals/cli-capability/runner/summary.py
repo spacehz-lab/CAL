@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from constants import (
+    ACQUISITION_FULL,
     BASELINE_DIRECT_CLI,
     BASELINE_LLM_ONESHOT,
     EXPERIMENT_ACQUISITION,
@@ -29,6 +30,7 @@ def update_artifact_metrics(artifact: dict[str, Any], mode: str) -> None:
     artifact["scores"] = score(artifact["summary"], mode)
     artifact["coverage"] = coverage(cases)
     artifact["capability_model"] = capability_model(cases)
+    artifact["discovery_coverage"] = discovery_coverage(cases)
     artifact["failure_taxonomy"] = failure_taxonomy(cases)
     artifact["experiment_gates"] = experiment_gates(artifact["summary"], artifact["capability_model"])
 
@@ -41,6 +43,7 @@ def summarize(cases: list[dict[str, Any]], mode: str = MODE_REPLAY) -> dict[str,
     return {
         "total": finalize_summary(total),
         "experiments": {experiment: finalize_summary(value) for experiment, value in experiment_summaries.items()},
+        "acquisition_modes": summarize_acquisition_modes(cases, mode),
         "baselines": summarize_baselines(cases),
     }
 
@@ -58,6 +61,17 @@ def summarize_experiment(cases: list[dict[str, Any]], experiment: str, mode: str
             )
         merge_summary(summary, case_summary)
     return summary
+
+
+def summarize_acquisition_modes(cases: list[dict[str, Any]], mode: str) -> dict[str, Any]:
+    summaries: dict[str, dict[str, Any]] = {}
+    for case in cases:
+        if EXPERIMENT_ACQUISITION not in case.get("paper_experiments", []):
+            continue
+        acquisition_mode = case.get("acquisition_mode") or "unknown"
+        summary = summaries.setdefault(acquisition_mode, new_summary())
+        merge_summary(summary, summarize_case(case, mode))
+    return {name: finalize_summary(value) for name, value in sorted(summaries.items())}
 
 
 def summarize_case(case: dict[str, Any], mode: str) -> dict[str, Any]:
@@ -346,6 +360,97 @@ def capability_model(cases: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def discovery_coverage(cases: list[dict[str, Any]]) -> dict[str, Any]:
+    rows = []
+    total_expected = 0
+    total_promoted_expected = 0
+    total_missing = 0
+    total_extra = 0
+    multi_cap_design_cases = 0
+    multi_cap_promoted_cases = 0
+    for case in cases:
+        if case.get("acquisition_mode") != ACQUISITION_FULL:
+            continue
+        expected = case.get("expected_capabilities") or []
+        if not expected:
+            continue
+        if len(expected) >= 2:
+            multi_cap_design_cases += 1
+        expected_surfaces = [str(item.get("surface", "")).strip() for item in expected if item.get("surface")]
+        for provider in case.get("providers") or []:
+            promoted_args = promoted_candidate_args(provider)
+            promoted_surfaces = sorted({first_static_arg(args) for args in promoted_args if first_static_arg(args)})
+            matched = []
+            for item in expected:
+                surface = str(item.get("surface", "")).strip()
+                minimum = int(item.get("min_promoted_bindings") or 1)
+                count = sum(1 for args in promoted_args if surface in args)
+                if surface and count >= minimum:
+                    matched.append(surface)
+            missing = sorted(set(expected_surfaces) - set(matched))
+            extra = sorted(set(promoted_surfaces) - set(expected_surfaces))
+            if len(matched) >= 2:
+                multi_cap_promoted_cases += 1
+            total_expected += len(expected_surfaces)
+            total_promoted_expected += len(matched)
+            total_missing += len(missing)
+            total_extra += len(extra)
+            rows.append(
+                {
+                    "case_id": case.get("id", ""),
+                    "case_key": case.get("case_key", ""),
+                    "provider": provider.get("id") or provider.get("provider_id") or "",
+                    "expected_surfaces": expected_surfaces,
+                    "promoted_surfaces": promoted_surfaces,
+                    "matched_surfaces": sorted(matched),
+                    "missing_surfaces": missing,
+                    "extra_promoted_surfaces": extra,
+                    "promoted_bindings": len(promoted_args),
+                    "status": "passed" if not missing else "failed",
+                }
+            )
+    return {
+        "case_count": len({row["case_id"] for row in rows}),
+        "provider_case_count": len(rows),
+        "multi_cap_design_cases": multi_cap_design_cases,
+        "multi_cap_promoted_cases": multi_cap_promoted_cases,
+        "expected_capabilities": total_expected,
+        "promoted_expected_capabilities": total_promoted_expected,
+        "missing_expected_capabilities": total_missing,
+        "extra_promoted_capabilities": total_extra,
+        "multi_cap_design_rate": ratio(multi_cap_design_cases, len(rows)),
+        "multi_cap_promoted_rate": ratio(multi_cap_promoted_cases, len(rows)),
+        "capability_coverage_rate": ratio(total_promoted_expected, total_expected),
+        "cases": rows,
+    }
+
+
+def promoted_candidate_args(provider: dict[str, Any]) -> list[list[str]]:
+    rows = []
+    for candidate in provider.get("candidates") or []:
+        if not (candidate.get("promotion") or {}).get("binding_id"):
+            continue
+        args = candidate_execution_args(candidate)
+        if args:
+            rows.append(args)
+    return rows
+
+
+def candidate_execution_args(candidate: dict[str, Any]) -> list[str]:
+    execution = candidate.get("execution") or {}
+    spec = execution.get("spec") or {}
+    args = spec.get("args") or execution.get("args") or []
+    return [str(arg) for arg in args if isinstance(arg, (str, int, float))]
+
+
+def first_static_arg(args: list[str]) -> str:
+    for arg in args:
+        if "{{" in arg or arg.startswith("-"):
+            continue
+        return arg
+    return ""
+
+
 def capability_model_checks(
     cases: list[dict[str, Any]],
     providers: dict[str, set[str]],
@@ -424,29 +529,33 @@ def experiment_gates(summary: dict[str, Any], model: dict[str, Any]) -> dict[str
     invalid_cases = verification.get("case_attempted", 0)
     blocked_invalid = max(0, invalid_cases - verification.get("providers_with_promoted_bindings", 0))
     structure_denominator = model.get("check_passed", 0) + model.get("check_failed", 0)
-    return {
-        EXPERIMENT_ACQUISITION: gate(
+    gates: dict[str, Any] = {}
+    if acquisition.get("case_attempted", 0):
+        gates[EXPERIMENT_ACQUISITION] = gate(
             "promoted_provider_case_yield",
             acquisition.get("providers_with_promoted_bindings", 0),
             acquisition.get("provider_available", 0),
             ACQUISITION_GATE_TARGET,
-        ),
-        EXPERIMENT_VERIFICATION_FAILURE: {
+        )
+    if invalid_cases:
+        gates[EXPERIMENT_VERIFICATION_FAILURE] = {
             **gate("blocked_invalid_candidate_rate", blocked_invalid, invalid_cases, VERIFICATION_BLOCK_GATE_TARGET),
             "false_promotions": verification.get("providers_with_promoted_bindings", 0),
             "passed": verification.get("providers_with_promoted_bindings", 0) == 0 and ratio(blocked_invalid, invalid_cases) >= VERIFICATION_BLOCK_GATE_TARGET,
-        },
-        EXPERIMENT_CAPABILITY_STRUCTURE: {
+        }
+    if structure_denominator or model.get("check_skipped", 0):
+        gates[EXPERIMENT_CAPABILITY_STRUCTURE] = {
             **gate("structure_check_pass_rate", model.get("check_passed", 0), structure_denominator, CAPABILITY_STRUCTURE_GATE_TARGET),
             "skipped": model.get("check_skipped", 0),
-        },
-        EXPERIMENT_REPEATED_REUSE: gate(
+        }
+    if reuse.get("case_attempted", 0):
+        gates[EXPERIMENT_REPEATED_REUSE] = gate(
             "held_out_use_oracle_pass_rate",
             reuse.get("use_oracle_pass_count", 0),
             reuse.get("held_out_uses", 0),
             REUSE_GATE_TARGET,
-        ),
-    }
+        )
+    return gates
 
 
 def gate(metric: str, numerator: int, denominator: int, target: float) -> dict[str, Any]:

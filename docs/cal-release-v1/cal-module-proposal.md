@@ -962,12 +962,15 @@ Evidence derives `VerifySpec.Level` locally after filtering checks. Contract
 verification is L1. Execute verification with only process checks is L1,
 artifact-shape checks such as `non_empty`, `format`, or `regex` are L2, and
 semantic checks such as `contains`, `contains_any`, `bytes_equal_transform`,
-`hash_line_matches`, `archive_contains_input`, or `json_query_matches` are L3.
+`hash_line_matches`, `archive_contains_input`, `json_query_matches`,
+`json_equivalent`, `json_field_equals`, `json_field_matches_source`,
+`text_transform_matches`, `line_count_matches`, `text_filter_matches`, or
+`delimited_column_matches` are L3.
 
 Evidence checks for structured formats must avoid brittle serialization details.
-For JSON key/value content, Evidence should prefer a regex with optional
-whitespace or `contains_any` with compact and spaced forms instead of a single
-whitespace-sensitive `contains` string.
+For structured key/value content, Evidence should prefer predicates that parse
+the structure when available. Regex remains useful for stable text formats, but
+should not be the first choice for structured field comparisons.
 
 ## Policy
 
