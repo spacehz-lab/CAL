@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CAL: Capability Acquisition Layer</title>
-  <meta name="description" content="CAL turns provider-specific CLI behavior into verified, reusable capability records.">
+  <meta name="description" content="CAL acquires evidence-backed, reusable capabilities from provider-specific actions. The current reference system evaluates local CLI providers.">
   <style>
     :root {
       color-scheme: light;
@@ -1108,12 +1108,12 @@
     <div class="page">
       <section class="hero" aria-labelledby="title">
         <div>
-          <div class="eyebrow">Verified capability records for CLI tool use</div>
-          <h1 id="title">From provider-specific commands to reusable capabilities.</h1>
+          <div class="eyebrow">Evidence-gated capability acquisition</div>
+          <h1 id="title">From provider-specific actions to verified, reusable capabilities.</h1>
           <p class="lead">
-            CAL observes command-line provider surfaces, proposes executable bindings,
-            verifies them with local probes, and promotes only evidence-backed bindings
-            into reusable capability records.
+            CAL separates provider-independent capabilities from provider-specific bindings,
+            verifies candidate bindings with local evidence, and promotes only validated
+            records for later reuse. The current reference system and evaluation use local CLI providers.
           </p>
           <div class="actions">
             <a class="button primary" href="https://github.com/spacehz-lab/CAL">GitHub repository</a>
@@ -1138,7 +1138,7 @@
             <div class="architecture-tier cal-layer">
               <div class="cal-layer-head">
                 <strong>CAL capability layer</strong>
-                <span>stable task interface</span>
+                <span>capability-level interface</span>
               </div>
               <div class="layer-functions" aria-label="CAL responsibilities">
                 <div class="layer-function">Acquire</div>
@@ -1152,15 +1152,15 @@
             <div class="provider-row" aria-label="Provider layer">
               <div class="architecture-tier provider-tier">
                 <strong>Known CLI</strong>
-                <span>jq · tar</span>
+                <span>public tools</span>
               </div>
               <div class="architecture-tier provider-tier">
-                <strong>Third-party</strong>
-                <span>rg · zip</span>
+                <strong>Third-party CLI</strong>
+                <span>installed tools</span>
               </div>
               <div class="architecture-tier provider-tier">
-                <strong>Enterprise CLI</strong>
-                <span>local tools</span>
+                <strong>Local CLI</strong>
+                <span>internal tools</span>
               </div>
             </div>
           </div>
@@ -1171,8 +1171,8 @@
         <div class="section-head">
           <h2 id="acquisition-title">Acquisition</h2>
           <p>
-            Promote verified capabilities from provider surfaces. Model output is a
-            proposal; local probes and deterministic checks decide promotion.
+            Acquire capability records from provider surfaces. Model output remains a
+            candidate; local probes and deterministic checks decide which bindings are promoted.
           </p>
         </div>
 
@@ -1252,8 +1252,8 @@
         <div class="section-head">
           <h2 id="reuse-title">Reuse</h2>
           <p>
-            Select verified bindings by intent. Reuse starts from local capability
-            records, not raw provider command synthesis.
+            Select promoted bindings by intent. Reuse starts from evidence-backed capability
+            records rather than generating a provider command from scratch.
           </p>
         </div>
 
@@ -1302,7 +1302,7 @@
             <div class="life-arrow">></div>
 
             <div class="life-column">
-              <h3>Verified execution</h3>
+              <h3>Capability-guided execution</h3>
               <div class="pipeline-row">
                 <div class="pipeline-label">Select</div>
                 <div class="pipeline-card">LLM-assisted selection over verified local records.</div>
@@ -1335,23 +1335,23 @@
         <div class="compare">
           <div class="comparison-panel provider-first">
             <h3>Provider-first tool use</h3>
-            <p class="comparison-summary">Start from a provider surface and reason about its command for each task.</p>
+            <p class="comparison-summary">Start from a provider surface and resolve an action for the current task.</p>
             <div class="flow-list">
               <div class="step">
                 <div class="step-index">1</div>
-                <div><strong>Start from a tool or app</strong><span>The abstraction is a provider surface: CLI, API, tool schema, or app action.</span></div>
+                <div><strong>Start from a provider surface</strong><span>Actions are exposed through a CLI, API, tool schema, app, or similar provider-specific interface.</span></div>
               </div>
               <div class="step">
                 <div class="step-index">2</div>
-                <div><strong>Regenerate provider-specific commands</strong><span>The model interprets help text or remembered syntax each time.</span></div>
+                <div><strong>Interpret provider-specific actions</strong><span>A task may still require provider documentation, syntax, or local context.</span></div>
               </div>
               <div class="step">
                 <div class="step-index">3</div>
-                <div><strong>Trust one execution</strong><span>A successful run may not leave reusable evidence or a portable record.</span></div>
+                <div><strong>Use the immediate result</strong><span>A successful execution does not automatically produce a verified, reusable capability record.</span></div>
               </div>
               <div class="step">
                 <div class="step-index">4</div>
-                <div><strong>Repeat later</strong><span>Provider drift, local versions, and uncommon CLIs remain hard to audit.</span></div>
+                <div><strong>Revisit when context changes</strong><span>Provider drift, local versions, or unavailable functions may require re-observation.</span></div>
               </div>
             </div>
           </div>
@@ -1370,7 +1370,7 @@
               </div>
               <div class="step">
                 <div class="step-index">3</div>
-                <div><strong>Promote capability records</strong><span>Only verified bindings become durable capability-layer knowledge.</span></div>
+                <div><strong>Promote capability records</strong><span>Only evidence-backed bindings are persisted as capability records.</span></div>
               </div>
               <div class="step">
                 <div class="step-index">4</div>
@@ -1448,7 +1448,7 @@
             </div>
 
             <div class="finding-note">
-              <strong>The gap is concentrated on unfamiliar provider surfaces.</strong>
+              <strong>In this benchmark, the observed gap appears on uncommon CLI cases.</strong>
               One-shot command generation passed 21/22 rounds on known and third-party CLIs,
               but 0/8 rounds on the four uncommon enterprise-style CLIs.
             </div>
@@ -1534,7 +1534,7 @@
               <div class="figure-head">
                 <div>
                   <h3>Verification failure gate</h3>
-                  <p>Stable invalid providers test whether plausible but wrong candidates are promoted.</p>
+                  <p>Controlled invalid-provider cases test whether plausible but wrong candidates are promoted.</p>
                 </div>
                 <span class="sample-size">10 cases</span>
               </div>
@@ -1589,7 +1589,7 @@
                 <td><strong>Reuse comparison</strong></td>
                 <td>How does capability reuse compare with one-shot LLM command generation?</td>
                 <td>CAL <strong>30 / 30</strong>; one-shot LLM <strong>21 / 30</strong></td>
-                <td><span class="pass">CAL stronger</span></td>
+                <td><span class="pass">higher in this benchmark</span></td>
               </tr>
               <tr>
                 <td><strong>Capability structure</strong></td>
@@ -1709,7 +1709,7 @@ python3 evals/cli-capability/runner/run.py \
         <div class="section-head">
           <h2 id="limits-title">Limitations</h2>
           <p>
-            CAL's current benchmark is moderate-scale and controlled. The reported live
+            CAL is evaluated on a controlled CLI seed benchmark. The reported live
             LLM results use Kimi <code>kimi-k2.7-code</code>; broader claims need more
             models, more real third-party providers, and larger external task suites.
           </p>
