@@ -6,6 +6,8 @@ into reusable capabilities, and routes later requests through those capabilities
 
 Status: release preview / local-only / CLI-first.
 
+Project page: [spacehz-lab.github.io/CAL](https://spacehz-lab.github.io/CAL/)
+
 ## Highlights
 
 - Registers explicit local providers; no background provider scanning.
