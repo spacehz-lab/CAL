@@ -1,0 +1,1730 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAL: Capability Acquisition Layer</title>
+  <meta name="description" content="CAL acquires evidence-backed, reusable capabilities from provider-specific actions. The current reference system evaluates local CLI providers.">
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f8f5;
+      --panel: #ffffff;
+      --text: #18211f;
+      --muted: #5d6764;
+      --line: #d9ded8;
+      --green: #1f7a4d;
+      --green-soft: #e7f4ed;
+      --red: #ad3b35;
+      --red-soft: #fae9e7;
+      --blue: #275c9a;
+      --blue-soft: #e6eef8;
+      --amber: #936514;
+      --amber-soft: #f8efd9;
+      --ink: #17201d;
+      --shadow: 0 20px 60px rgba(24, 33, 31, 0.08);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        linear-gradient(180deg, #fbfcfa 0%, var(--bg) 42%, #eef3f1 100%);
+      line-height: 1.5;
+    }
+
+    a {
+      color: var(--blue);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 36px));
+      margin: 0 auto;
+    }
+
+    header {
+      padding: 28px 0 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 750;
+      letter-spacing: 0;
+    }
+
+    .mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      color: #ffffff;
+      background: var(--ink);
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+      gap: 34px;
+      align-items: center;
+      padding: 66px 0 48px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--green);
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    h1 {
+      max-width: 820px;
+      margin: 14px 0 18px;
+      font-size: clamp(40px, 5vw, 58px);
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      max-width: 760px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 19px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .button {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 14px;
+      background: var(--panel);
+      color: var(--text);
+      font-weight: 700;
+      box-shadow: 0 8px 20px rgba(24, 33, 31, 0.05);
+    }
+
+    .button.primary {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: #ffffff;
+    }
+
+    .hero-visual {
+      display: grid;
+      min-height: 390px;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .architecture-kicker {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 750;
+    }
+
+    .architecture-diagram {
+      display: grid;
+      justify-items: stretch;
+    }
+
+    .architecture-tier {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: #fbfcfb;
+      text-align: center;
+    }
+
+    .architecture-tier strong {
+      display: block;
+      font-size: 16px;
+    }
+
+    .architecture-tier span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .architecture-tier.cal-layer {
+      border: 2px solid rgba(31, 122, 77, 0.52);
+      padding: 20px 18px;
+      background: var(--green-soft);
+      text-align: left;
+    }
+
+    .cal-layer-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .cal-layer-head strong {
+      font-size: 19px;
+    }
+
+    .cal-layer-head span {
+      font-size: 12px;
+    }
+
+    .layer-functions {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid rgba(31, 122, 77, 0.25);
+      padding-top: 13px;
+    }
+
+    .layer-function {
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .layer-function + .layer-function {
+      border-left: 1px solid rgba(31, 122, 77, 0.25);
+    }
+
+    .architecture-arrow {
+      display: grid;
+      min-height: 34px;
+      place-items: center;
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 850;
+    }
+
+    .provider-branch {
+      position: relative;
+      height: 38px;
+    }
+
+    .provider-branch::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 1px;
+      height: 18px;
+      background: var(--muted);
+    }
+
+    .provider-branch::after {
+      content: "";
+      position: absolute;
+      top: 18px;
+      left: 16.66%;
+      right: 16.66%;
+      height: 1px;
+      background: var(--muted);
+    }
+
+    .provider-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .provider-tier {
+      position: relative;
+      border-color: rgba(39, 92, 154, 0.28);
+      background: var(--blue-soft);
+    }
+
+    .provider-tier::before {
+      content: "";
+      position: absolute;
+      top: -21px;
+      left: 50%;
+      width: 1px;
+      height: 20px;
+      background: var(--muted);
+    }
+
+    section {
+      padding: 46px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: block;
+      margin-bottom: 22px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(26px, 3vw, 36px);
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .section-head p {
+      max-width: none;
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+      box-shadow: 0 10px 28px rgba(24, 33, 31, 0.05);
+    }
+
+    .comparison-panel {
+      min-width: 0;
+      padding: 20px;
+    }
+
+    .comparison-panel + .comparison-panel {
+      border-left: 1px solid var(--line);
+    }
+
+    .comparison-panel h3 {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin: 0 0 5px;
+      font-size: 18px;
+    }
+
+    .comparison-panel h3::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+    }
+
+    .comparison-panel.provider-first h3::before {
+      background: var(--red);
+    }
+
+    .comparison-panel.capability-first h3::before {
+      background: var(--green);
+    }
+
+    .comparison-summary {
+      margin: 0 0 16px 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .flow-list {
+      display: grid;
+      gap: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .step-index {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .step strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .step span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .lifecycle {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .lifecycle-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) 46px minmax(0, 1.1fr) 46px minmax(0, 0.95fr);
+      gap: 0;
+      align-items: center;
+    }
+
+    .life-column {
+      min-height: 290px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      background: #fbfcfb;
+    }
+
+    .life-column h3 {
+      margin: 0 0 12px;
+      font-size: 17px;
+    }
+
+    .life-arrow {
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 28px;
+      font-weight: 850;
+    }
+
+    .provider-box,
+    .cap-box,
+    .binding-box,
+    .reuse-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 11px 12px;
+      box-shadow: 0 8px 20px rgba(24, 33, 31, 0.04);
+    }
+
+    .provider-box + .provider-box,
+    .cap-box + .cap-box,
+    .reuse-box + .reuse-box {
+      margin-top: 10px;
+    }
+
+    .provider-box strong,
+    .cap-box strong,
+    .binding-box strong,
+    .reuse-box strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 14px;
+    }
+
+    .provider-box span,
+    .cap-box span,
+    .binding-box span,
+    .reuse-box span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .promote-pipeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .pipeline-row {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .pipeline-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .pipeline-card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+      padding: 10px 12px;
+      font-size: 13px;
+    }
+
+    .pipeline-card.green {
+      border-color: rgba(31, 122, 77, 0.35);
+      background: var(--green-soft);
+    }
+
+    .pipeline-card.red {
+      border-color: rgba(173, 59, 53, 0.25);
+      background: var(--red-soft);
+    }
+
+    .record-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .cap-box {
+      background: var(--green-soft);
+      border-color: rgba(31, 122, 77, 0.35);
+    }
+
+    .binding-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 9px;
+    }
+
+    .binding-box {
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .reuse-box {
+      background: var(--blue-soft);
+      border-color: rgba(39, 92, 154, 0.25);
+    }
+
+    .mini-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .eval-setup {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      overflow: hidden;
+    }
+
+    .setup-item {
+      min-width: 0;
+      padding: 14px 16px;
+      border-right: 1px solid var(--line);
+    }
+
+    .setup-item:last-child {
+      border-right: 0;
+    }
+
+    .setup-item strong {
+      display: block;
+      margin-bottom: 3px;
+      font-size: 18px;
+    }
+
+    .setup-item span {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .figure-stack {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .figure-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+      gap: 18px;
+    }
+
+    .result-figure {
+      min-width: 0;
+      margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 20px;
+      box-shadow: 0 10px 28px rgba(24, 33, 31, 0.04);
+    }
+
+    .figure-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .figure-head h3 {
+      margin: 0 0 4px;
+      font-size: 19px;
+    }
+
+    .figure-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .sample-size {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .bar-chart {
+      display: grid;
+      gap: 13px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(130px, 0.8fr) minmax(180px, 2.2fr) 66px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .bar-label {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .bar-track {
+      height: 24px;
+      border-radius: 4px;
+      background: #edf0ed;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      min-width: 2px;
+      border-radius: 4px;
+    }
+
+    .bar-fill.cal {
+      background: var(--green);
+    }
+
+    .bar-fill.oneshot {
+      background: var(--blue);
+    }
+
+    .bar-fill.coverage {
+      background: var(--amber);
+    }
+
+    .bar-value {
+      text-align: right;
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+    }
+
+    .chart-divider {
+      height: 1px;
+      margin: 18px 0;
+      background: var(--line);
+    }
+
+    .subchart-title {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .finding-note {
+      margin-top: 18px;
+      border-left: 3px solid var(--green);
+      padding: 10px 12px;
+      background: var(--green-soft);
+      font-size: 13px;
+    }
+
+    .finding-note strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .matrix-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .matrix-table {
+      min-width: 650px;
+      box-shadow: none;
+    }
+
+    .matrix-table th,
+    .matrix-table td {
+      padding: 9px 12px;
+      font-size: 12px;
+    }
+
+    .matrix-table td:nth-child(3),
+    .matrix-table td:nth-child(4),
+    .matrix-table th:nth-child(3),
+    .matrix-table th:nth-child(4) {
+      width: 110px;
+      text-align: center;
+    }
+
+    .case-class {
+      color: var(--muted);
+    }
+
+    .result-mark {
+      display: inline-flex;
+      min-width: 52px;
+      min-height: 24px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result-mark.success {
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .result-mark.failure {
+      background: var(--red-soft);
+      color: var(--red);
+    }
+
+    .verification-flow {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .verification-stage {
+      position: relative;
+      display: grid;
+      min-height: 112px;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+      background: #fbfcfb;
+    }
+
+    .verification-stage + .verification-stage::before {
+      content: ">";
+      position: absolute;
+      left: -9px;
+      top: 42px;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .verification-stage.blocked {
+      border-color: rgba(31, 122, 77, 0.35);
+      background: var(--green-soft);
+    }
+
+    .verification-stage.zero {
+      border-color: rgba(173, 59, 53, 0.25);
+      background: var(--red-soft);
+    }
+
+    .verification-stage strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .verification-stage span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .figure-caption {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      min-width: 780px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      color: var(--muted);
+      background: #fbfcfb;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .pass {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .warn {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      max-width: 100%;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: var(--amber-soft);
+      color: var(--amber);
+      font-weight: 750;
+      white-space: normal;
+    }
+
+    .artifact-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .artifact {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .artifact h3 {
+      margin: 0 0 8px;
+      font-size: 17px;
+    }
+
+    .artifact p {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .artifact-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .scope-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .scope {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .scope strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .scope span {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .code-block {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #17201d;
+      color: #eff7f2;
+      padding: 18px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    footer {
+      padding: 34px 0 46px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .compare,
+      .lifecycle-grid,
+      .figure-grid,
+      .artifact-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .comparison-panel + .comparison-panel {
+        border-top: 1px solid var(--line);
+        border-left: 0;
+      }
+
+      .life-arrow {
+        transform: rotate(90deg);
+        min-height: 46px;
+      }
+
+      .life-column {
+        min-height: auto;
+      }
+
+      .hero-visual {
+        min-height: auto;
+      }
+
+      .scope-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .eval-setup {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .setup-item:nth-child(3) {
+        border-right: 0;
+      }
+
+      .setup-item:nth-child(n + 4) {
+        border-top: 1px solid var(--line);
+      }
+
+      .section-head {
+        display: block;
+      }
+
+      .section-head p {
+        margin-top: 10px;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .page {
+        width: min(100% - 24px, 1180px);
+      }
+
+      nav,
+      .nav-links {
+        align-items: flex-start;
+      }
+
+      nav {
+        flex-direction: column;
+      }
+
+      .nav-links {
+        flex-wrap: wrap;
+      }
+
+      .hero {
+        padding-top: 42px;
+      }
+
+      .scope-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .eval-setup {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .setup-item,
+      .setup-item:nth-child(3) {
+        border-right: 1px solid var(--line);
+      }
+
+      .setup-item:nth-child(even) {
+        border-right: 0;
+      }
+
+      .setup-item:last-child {
+        grid-column: 1 / -1;
+        border-right: 0;
+      }
+
+      .setup-item:nth-child(n + 3) {
+        border-top: 1px solid var(--line);
+      }
+
+      .bar-row {
+        grid-template-columns: minmax(0, 1fr) 58px;
+        gap: 7px 10px;
+      }
+
+      .bar-label {
+        grid-column: 1 / -1;
+      }
+
+      .figure-head {
+        display: block;
+      }
+
+      .sample-size {
+        display: block;
+        margin-top: 6px;
+      }
+
+      .verification-flow {
+        grid-template-columns: 1fr;
+      }
+
+      .verification-stage {
+        min-height: 88px;
+      }
+
+      .verification-stage + .verification-stage::before {
+        content: "v";
+        left: 50%;
+        top: -14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="page">
+      <nav aria-label="Primary">
+        <div class="brand">
+          <div class="mark">CAL</div>
+          <span>Capability Acquisition Layer</span>
+        </div>
+        <div class="nav-links">
+          <a href="#acquisition">Acquisition</a>
+          <a href="#reuse">Reuse</a>
+          <a href="#comparison">Comparison</a>
+          <a href="#results">Results</a>
+          <a href="#artifacts">Artifacts</a>
+          <a href="https://github.com/spacehz-lab/CAL">GitHub</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="page">
+      <section class="hero" aria-labelledby="title">
+        <div>
+          <div class="eyebrow">Evidence-gated capability acquisition</div>
+          <h1 id="title">From provider-specific actions to verified, reusable capabilities.</h1>
+          <p class="lead">
+            CAL separates provider-independent capabilities from provider-specific bindings,
+            verifies candidate bindings with local evidence, and promotes only validated
+            records for later reuse. The current reference system and evaluation use local CLI providers.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/spacehz-lab/CAL">GitHub repository</a>
+            <a class="button" href="#results">View results</a>
+            <a class="button" href="#artifacts">Evidence artifacts</a>
+          </div>
+        </div>
+
+        <aside class="hero-visual" aria-label="CAL layer diagram">
+          <div class="architecture-kicker">
+            <span>CAL in the stack</span>
+            <span>capability-first</span>
+          </div>
+          <div class="architecture-diagram">
+            <div class="architecture-tier">
+              <strong>Agent or application</strong>
+              <span>expresses task intent</span>
+            </div>
+
+            <div class="architecture-arrow">&darr;</div>
+
+            <div class="architecture-tier cal-layer">
+              <div class="cal-layer-head">
+                <strong>CAL capability layer</strong>
+                <span>capability-level interface</span>
+              </div>
+              <div class="layer-functions" aria-label="CAL responsibilities">
+                <div class="layer-function">Acquire</div>
+                <div class="layer-function">Verify</div>
+                <div class="layer-function">Reuse</div>
+              </div>
+            </div>
+
+            <div class="provider-branch" aria-hidden="true"></div>
+
+            <div class="provider-row" aria-label="Provider layer">
+              <div class="architecture-tier provider-tier">
+                <strong>Known CLI</strong>
+                <span>public tools</span>
+              </div>
+              <div class="architecture-tier provider-tier">
+                <strong>Third-party CLI</strong>
+                <span>installed tools</span>
+              </div>
+              <div class="architecture-tier provider-tier">
+                <strong>Local CLI</strong>
+                <span>internal tools</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section id="acquisition" aria-labelledby="acquisition-title">
+        <div class="section-head">
+          <h2 id="acquisition-title">Acquisition</h2>
+          <p>
+            Acquire capability records from provider surfaces. Model output remains a
+            candidate; local probes and deterministic checks decide which bindings are promoted.
+          </p>
+        </div>
+
+        <div class="lifecycle" aria-label="Capability acquisition and promotion diagram">
+          <div class="lifecycle-grid">
+            <div class="life-column">
+              <h3>Provider surface</h3>
+              <div class="provider-box">
+                <strong>packnote</strong>
+                <span>manifest, field extraction, note packaging</span>
+              </div>
+              <div class="provider-box">
+                <strong>corp-redact</strong>
+                <span>email redaction, token redaction, line-preserving output</span>
+              </div>
+              <div class="provider-box">
+                <strong>jq / tar / datapick</strong>
+                <span>provider-specific commands and option surfaces</span>
+              </div>
+            </div>
+
+            <div class="life-arrow">></div>
+
+            <div class="life-column">
+              <h3>Promote process</h3>
+              <div class="promote-pipeline">
+                <div class="pipeline-row">
+                  <div class="pipeline-label">Observe</div>
+                  <div class="pipeline-card">Read help, examples, and local behavior.</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-label">Propose</div>
+                  <div class="pipeline-card">LLM proposes capability + binding candidates.</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-label">Probe</div>
+                  <div class="pipeline-card">Execute candidates against controlled fixtures.</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-label">Verify</div>
+                  <div class="pipeline-card red">Failed checks become negative evidence.</div>
+                </div>
+                <div class="pipeline-row">
+                  <div class="pipeline-label">Promote</div>
+                  <div class="pipeline-card green">Only verified bindings become records.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="life-arrow">></div>
+
+            <div class="life-column">
+              <h3>Capability records</h3>
+              <div class="record-stack">
+                <div class="cap-box">
+                  <strong>manifest.create</strong>
+                  <span>provider: packnote</span>
+                </div>
+                <div class="cap-box">
+                  <strong>pii.redact</strong>
+                  <span>provider: corp-redact</span>
+                </div>
+                <div class="cap-box">
+                  <strong>json.field.query</strong>
+                  <span>provider: jq or datapick</span>
+                </div>
+              </div>
+              <p class="mini-note">
+                One provider can promote multiple capability records; invalid candidates stay out.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="reuse" aria-labelledby="reuse-title">
+        <div class="section-head">
+          <h2 id="reuse-title">Reuse</h2>
+          <p>
+            Select promoted bindings by intent. Reuse starts from evidence-backed capability
+            records rather than generating a provider command from scratch.
+          </p>
+        </div>
+
+        <div class="lifecycle" aria-label="Capability reuse diagram">
+          <div class="lifecycle-grid">
+            <div class="life-column">
+              <h3>Held-out intent</h3>
+              <div class="reuse-box">
+                <strong>Query this JSON owner</strong>
+                <span>intent + runtime input file</span>
+              </div>
+              <div class="reuse-box">
+                <strong>Create an archive</strong>
+                <span>intent + source and target paths</span>
+              </div>
+              <div class="reuse-box">
+                <strong>Redact sensitive fields</strong>
+                <span>intent + text input</span>
+              </div>
+            </div>
+
+            <div class="life-arrow">></div>
+
+            <div class="life-column">
+              <h3>Capability selection</h3>
+              <div class="record-stack">
+                <div class="cap-box">
+                  <strong>json.field.query</strong>
+                  <span>same capability, multiple bindings</span>
+                  <div class="binding-row">
+                    <div class="binding-box"><strong>jq</strong><span>.owner</span></div>
+                    <div class="binding-box"><strong>datapick</strong><span>field owner</span></div>
+                  </div>
+                </div>
+                <div class="cap-box">
+                  <strong>archive.create</strong>
+                  <span>same capability, provider-specific bindings</span>
+                  <div class="binding-row">
+                    <div class="binding-box"><strong>tar</strong><span>create tar</span></div>
+                    <div class="binding-box"><strong>zip</strong><span>create zip</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="life-arrow">></div>
+
+            <div class="life-column">
+              <h3>Capability-guided execution</h3>
+              <div class="pipeline-row">
+                <div class="pipeline-label">Select</div>
+                <div class="pipeline-card">LLM-assisted selection over verified local records.</div>
+              </div>
+              <div class="pipeline-row">
+                <div class="pipeline-label">Bind</div>
+                <div class="pipeline-card">Fill provider-specific arguments from runtime inputs.</div>
+              </div>
+              <div class="pipeline-row">
+                <div class="pipeline-label">Run</div>
+                <div class="pipeline-card green"><code>calctl use</code> executes the selected binding.</div>
+              </div>
+              <p class="mini-note">
+                Reuse can work across providers because capability identity is separated from bindings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="comparison" aria-labelledby="comparison-title">
+        <div class="section-head">
+          <h2 id="comparison-title">Provider-first vs capability-first</h2>
+          <p>
+            Provider-first starts from available tools. Capability-first starts from
+            verified task records and binds them to providers.
+          </p>
+        </div>
+
+        <div class="compare">
+          <div class="comparison-panel provider-first">
+            <h3>Provider-first tool use</h3>
+            <p class="comparison-summary">Start from a provider surface and resolve an action for the current task.</p>
+            <div class="flow-list">
+              <div class="step">
+                <div class="step-index">1</div>
+                <div><strong>Start from a provider surface</strong><span>Actions are exposed through a CLI, API, tool schema, app, or similar provider-specific interface.</span></div>
+              </div>
+              <div class="step">
+                <div class="step-index">2</div>
+                <div><strong>Interpret provider-specific actions</strong><span>A task may still require provider documentation, syntax, or local context.</span></div>
+              </div>
+              <div class="step">
+                <div class="step-index">3</div>
+                <div><strong>Use the immediate result</strong><span>A successful execution does not automatically produce a verified, reusable capability record.</span></div>
+              </div>
+              <div class="step">
+                <div class="step-index">4</div>
+                <div><strong>Revisit when context changes</strong><span>Provider drift, local versions, or unavailable functions may require re-observation.</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="comparison-panel capability-first">
+            <h3>Capability-first with CAL</h3>
+            <p class="comparison-summary">Start from a verified task capability and select a provider binding at reuse time.</p>
+            <div class="flow-list">
+              <div class="step">
+                <div class="step-index">1</div>
+                <div><strong>Acquire from provider surfaces</strong><span>Observe help and behavior, then propose candidate bindings.</span></div>
+              </div>
+              <div class="step">
+                <div class="step-index">2</div>
+                <div><strong>Probe and verify</strong><span>Local execution and deterministic checks decide whether the binding works.</span></div>
+              </div>
+              <div class="step">
+                <div class="step-index">3</div>
+                <div><strong>Promote capability records</strong><span>Only evidence-backed bindings are persisted as capability records.</span></div>
+              </div>
+              <div class="step">
+                <div class="step-index">4</div>
+                <div><strong>Reuse by intent</strong><span><code>calctl use</code> selects over verified records, not raw provider guesses.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="results" aria-labelledby="results-title">
+        <div class="section-head">
+          <h2 id="results-title">Evaluation snapshot</h2>
+          <p>
+            Live LLM runs use Kimi <code>kimi-k2.7-code</code>. The benchmark is a
+            controlled CLI capability suite with known CLIs, uncommon enterprise-style
+            CLIs, drift providers, and held-out reuse rounds.
+          </p>
+        </div>
+
+        <div class="eval-setup" aria-label="Evaluation setup">
+          <div class="setup-item"><strong>14</strong><span>reuse cases</span></div>
+          <div class="setup-item"><strong>30</strong><span>held-out rounds</span></div>
+          <div class="setup-item"><strong>16</strong><span>reuse providers</span></div>
+          <div class="setup-item"><strong>9</strong><span>task domains</span></div>
+          <div class="setup-item"><strong>1</strong><span>live LLM model</span></div>
+        </div>
+
+        <div class="figure-stack">
+          <figure class="result-figure">
+            <div class="figure-head">
+              <div>
+                <h3>Held-out reuse success</h3>
+                <p>Same intents, runtime inputs, and deterministic task oracles.</p>
+              </div>
+              <span class="sample-size">30 rounds</span>
+            </div>
+
+            <div class="bar-chart" aria-label="Overall reuse success rates">
+              <div class="bar-row">
+                <div class="bar-label">CAL reuse</div>
+                <div class="bar-track"><div class="bar-fill cal" style="width: 100%"></div></div>
+                <div class="bar-value">30/30</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">One-shot LLM</div>
+                <div class="bar-track"><div class="bar-fill oneshot" style="width: 70%"></div></div>
+                <div class="bar-value">21/30</div>
+              </div>
+            </div>
+
+            <div class="chart-divider"></div>
+            <p class="subchart-title">Success by provider familiarity</p>
+            <div class="bar-chart" aria-label="Reuse success by provider familiarity">
+              <div class="bar-row">
+                <div class="bar-label">CAL · known + third-party</div>
+                <div class="bar-track"><div class="bar-fill cal" style="width: 100%"></div></div>
+                <div class="bar-value">22/22</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">One-shot · known + third-party</div>
+                <div class="bar-track"><div class="bar-fill oneshot" style="width: 95.5%"></div></div>
+                <div class="bar-value">21/22</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">CAL · uncommon</div>
+                <div class="bar-track"><div class="bar-fill cal" style="width: 100%"></div></div>
+                <div class="bar-value">8/8</div>
+              </div>
+              <div class="bar-row">
+                <div class="bar-label">One-shot · uncommon</div>
+                <div class="bar-track"><div class="bar-fill oneshot" style="width: 0%"></div></div>
+                <div class="bar-value">0/8</div>
+              </div>
+            </div>
+
+            <div class="finding-note">
+              <strong>In this benchmark, the observed gap appears on uncommon CLI cases.</strong>
+              One-shot command generation passed 21/22 rounds on known and third-party CLIs,
+              but 0/8 rounds on the four uncommon enterprise-style CLIs.
+            </div>
+            <figcaption class="figure-caption">
+              CAL selects and binds previously acquired verified records; the one-shot baseline
+              generates a provider command directly for each held-out round.
+            </figcaption>
+          </figure>
+
+          <figure class="result-figure">
+            <div class="figure-head">
+              <div>
+                <h3>Per-case outcome matrix</h3>
+                <p>Success counts expose where aggregate performance differs.</p>
+              </div>
+              <span class="sample-size">14 cases</span>
+            </div>
+            <div class="matrix-wrap">
+              <table class="matrix-table">
+                <thead>
+                  <tr><th>Case</th><th>Provider class</th><th>CAL</th><th>One-shot</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>archive_create_zip</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>csv_column_extract</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>enterprise_json_pluck</td><td class="case-class">uncommon</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark failure">0/2</span></td></tr>
+                  <tr><td>enterprise_manifest_create</td><td class="case-class">uncommon</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark failure">0/2</span></td></tr>
+                  <tr><td>enterprise_pii_redact</td><td class="case-class">uncommon</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark failure">0/2</span></td></tr>
+                  <tr><td>enterprise_table_field</td><td class="case-class">uncommon</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark failure">0/2</span></td></tr>
+                  <tr><td>file_hash_sha1</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>file_hash_sha256</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark failure">1/2</span></td></tr>
+                  <tr><td>json_format</td><td class="case-class">third-party</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>json_query</td><td class="case-class">third-party</td><td><span class="result-mark success">3/3</span></td><td><span class="result-mark success">3/3</span></td></tr>
+                  <tr><td>text_base64_decode</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>text_base64_encode</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>text_line_count</td><td class="case-class">known</td><td><span class="result-mark success">2/2</span></td><td><span class="result-mark success">2/2</span></td></tr>
+                  <tr><td>text_search_matches</td><td class="case-class">third-party</td><td><span class="result-mark success">3/3</span></td><td><span class="result-mark success">3/3</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <figcaption class="figure-caption">
+              Green marks complete success for the case; red marks at least one failed held-out round.
+            </figcaption>
+          </figure>
+
+          <div class="figure-grid">
+            <figure class="result-figure">
+              <div class="figure-head">
+                <div>
+                  <h3>Acquisition outcomes</h3>
+                  <p>Intent-guided yield and full-discovery coverage are reported separately.</p>
+                </div>
+                <span class="sample-size">22 provider attempts</span>
+              </div>
+              <div class="bar-chart" aria-label="Acquisition outcome rates">
+                <div class="bar-row">
+                  <div class="bar-label">Intent-guided provider yield</div>
+                  <div class="bar-track"><div class="bar-fill cal" style="width: 94.4%"></div></div>
+                  <div class="bar-value">17/18</div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label">Full provider yield</div>
+                  <div class="bar-track"><div class="bar-fill cal" style="width: 100%"></div></div>
+                  <div class="bar-value">4/4</div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label">Full capability coverage</div>
+                  <div class="bar-track"><div class="bar-fill coverage" style="width: 87.5%"></div></div>
+                  <div class="bar-value">7/8</div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label">Multi-capability promotion</div>
+                  <div class="bar-track"><div class="bar-fill coverage" style="width: 75%"></div></div>
+                  <div class="bar-value">3/4</div>
+                </div>
+              </div>
+              <figcaption class="figure-caption">
+                Each row uses its own explicit denominator; the bars are descriptive, not pooled.
+              </figcaption>
+            </figure>
+
+            <figure class="result-figure">
+              <div class="figure-head">
+                <div>
+                  <h3>Verification failure gate</h3>
+                  <p>Controlled invalid-provider cases test whether plausible but wrong candidates are promoted.</p>
+                </div>
+                <span class="sample-size">10 cases</span>
+              </div>
+              <div class="verification-flow" aria-label="Invalid candidate verification outcomes">
+                <div class="verification-stage">
+                  <strong>10</strong><span>invalid candidates proposed</span>
+                </div>
+                <div class="verification-stage blocked">
+                  <strong>10</strong><span>blocked with negative evidence</span>
+                </div>
+                <div class="verification-stage zero">
+                  <strong>0</strong><span>false promotions</span>
+                </div>
+              </div>
+              <figcaption class="figure-caption">
+                Deterministic probes, rather than model confidence, decide promotion.
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Experiment</th>
+                <th>What it tests</th>
+                <th>Result</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Acquisition</strong></td>
+                <td>Can CAL acquire verified bindings from known, third-party, and uncommon CLI providers?</td>
+                <td><strong>21 / 22</strong> provider acquisitions</td>
+                <td><span class="pass">passed target</span></td>
+              </tr>
+              <tr>
+                <td><strong>Verification failure</strong></td>
+                <td>Can invalid or drifted candidate bindings be blocked before promotion?</td>
+                <td><strong>10 / 10</strong> blocked, <strong>0</strong> false promotions</td>
+                <td><span class="pass">passed target</span></td>
+              </tr>
+              <tr>
+                <td><strong>Reuse effectiveness</strong></td>
+                <td>Can verified records be reused through intent-level <code>calctl use</code>?</td>
+                <td><strong>17 / 17</strong> held-out uses</td>
+                <td><span class="pass">passed target</span></td>
+              </tr>
+              <tr>
+                <td><strong>Reuse comparison</strong></td>
+                <td>How does capability reuse compare with one-shot LLM command generation?</td>
+                <td>CAL <strong>30 / 30</strong>; one-shot LLM <strong>21 / 30</strong></td>
+                <td><span class="pass">higher in this benchmark</span></td>
+              </tr>
+              <tr>
+                <td><strong>Capability structure</strong></td>
+                <td>Can the model express multi-provider, multi-capability, and multi-binding records?</td>
+                <td><strong>10 / 10</strong> structure checks; <strong>14 / 14</strong> support acquisition</td>
+                <td><span class="pass">passed target</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="scope-title">
+        <div class="section-head">
+          <h2 id="scope-title">Benchmark scope</h2>
+          <p>
+            The suite is intentionally controlled and auditable. It is meant to test
+            capability acquisition and reuse mechanics, not to claim coverage over every
+            possible command-line program.
+          </p>
+        </div>
+
+        <div class="scope-grid">
+          <div class="scope">
+            <strong>Known CLIs</strong>
+            <span>Common tools such as JSON, archive, hashing, and text-processing commands.</span>
+          </div>
+          <div class="scope">
+            <strong>Uncommon providers</strong>
+            <span>Eval-local enterprise-style CLIs including acmejson, corp-redact, datapick, and packnote.</span>
+          </div>
+          <div class="scope">
+            <strong>Drift providers</strong>
+            <span>Tools that advertise plausible surfaces but return semantically wrong outputs.</span>
+          </div>
+          <div class="scope">
+            <strong>Held-out reuse</strong>
+            <span>Reuse rounds run after acquisition using only intent and runtime inputs.</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="artifacts" aria-labelledby="artifacts-title">
+        <div class="section-head">
+          <h2 id="artifacts-title">Evidence artifacts</h2>
+          <p>
+            Public result bundles contain sanitized metrics, HTML reports, and machine-readable
+            artifacts. Raw traces, provider paths, model responses, and credentials are excluded.
+          </p>
+        </div>
+
+        <div class="artifact-grid">
+          <div class="artifact">
+            <h3>Expanded reuse comparison</h3>
+            <p>14 cases, 30 held-out rounds. CAL passed 30/30; one-shot LLM passed 21/30.</p>
+            <div class="artifact-links">
+              <a href="https://github.com/spacehz-lab/CAL/tree/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/reuse-comparison-expanded-kimi-k2-7-code-20260710">bundle</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/reuse-comparison-expanded-kimi-k2-7-code-20260710/metrics.json">metrics</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/reuse-comparison-expanded-kimi-k2-7-code-20260710/report.html">report</a>
+            </div>
+          </div>
+
+          <div class="artifact">
+            <h3>Expanded verification failure</h3>
+            <p>10 invalid provider cases. All candidates were blocked with zero false promotions.</p>
+            <div class="artifact-links">
+              <a href="https://github.com/spacehz-lab/CAL/tree/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/verification-failure-expanded-kimi-k2-7-code-20260710">bundle</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/verification-failure-expanded-kimi-k2-7-code-20260710/metrics.json">metrics</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/verification-failure-expanded-kimi-k2-7-code-20260710/report.html">report</a>
+            </div>
+          </div>
+
+          <div class="artifact">
+            <h3>Acquisition</h3>
+            <p>16 cases and 22 provider attempts across intent-guided and full-acquisition modes.</p>
+            <div class="artifact-links">
+              <a href="https://github.com/spacehz-lab/CAL/tree/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/acquisition-full-kimi-k2-7-code-20260710">bundle</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/acquisition-full-kimi-k2-7-code-20260710/metrics.json">metrics</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/acquisition-full-kimi-k2-7-code-20260710/report.html">report</a>
+            </div>
+          </div>
+
+          <div class="artifact">
+            <h3>Capability structure</h3>
+            <p>Structure checks cover multi-capability providers and multi-binding capability records.</p>
+            <div class="artifact-links">
+              <a href="https://github.com/spacehz-lab/CAL/tree/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/capability-structure-kimi-k2-7-code-20260710">bundle</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/capability-structure-kimi-k2-7-code-20260710/metrics.json">metrics</a>
+              <a href="https://github.com/spacehz-lab/CAL/blob/495574678a51323ddd05769c9d431029e9631a14/evals/results/cli-capability/capability-structure-kimi-k2-7-code-20260710/report.html">report</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="quickstart-title">
+        <div class="section-head">
+          <h2 id="quickstart-title">Reproduce the local checks</h2>
+          <p>
+            The public repository includes deterministic validation and replay paths.
+            Live LLM runs require an OpenAI-compatible endpoint.
+          </p>
+        </div>
+        <pre class="code-block"><code>make build
+python3 evals/cli-capability/runner/validate.py
+python3 -m unittest evals/cli-capability/runner/run_test.py
+
+python3 evals/cli-capability/runner/run.py \
+  --mode replay \
+  --experiment acquisition,verification_failure,repeated_reuse,capability_structure \
+  --level focus \
+  --jobs 8 \
+  --calctl build/bin/calctl \
+  --cald build/bin/cald</code></pre>
+      </section>
+
+      <section aria-labelledby="limits-title">
+        <div class="section-head">
+          <h2 id="limits-title">Limitations</h2>
+          <p>
+            CAL is evaluated on a controlled CLI seed benchmark. The reported live
+            LLM results use Kimi <code>kimi-k2.7-code</code>; broader claims need more
+            models, more real third-party providers, and larger external task suites.
+          </p>
+        </div>
+        <span class="warn">Controlled CLI benchmark, not a universal CLI leaderboard</span>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <div class="page">
+      CAL is a local reference system for verified capability acquisition and reuse.
+      Source and sanitized artifacts are available at
+      <a href="https://github.com/spacehz-lab/CAL">github.com/spacehz-lab/CAL</a>.
+    </div>
+  </footer>
+</body>
+</html>
